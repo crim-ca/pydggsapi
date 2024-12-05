@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "pydggsapi"
+version = "0.1.0"
+description = ""
+authors = ["Tik <tik65536@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.104.0"
+uvicorn = "^0.23.2"
+clickhouse-driver = {extras = ["lz4", "zstd"], version = "^0.2.6"}
+shapely = "^2.0.2"
+morecantile = "^5.0.0"
+mapbox-vector-tile = "^2.0.1"
+pyproj = "^3.6.1"
+pyjwt = {extras = ["crypto"], version = "^2.9.0"}
+clickhouse-cityhash = "^1.0.2.4"
+dggrid4py = "0.2.9"
+python-dotenv = "^1.0.0"
+gunicorn = "^23.0.0"
+numpy = "^1.26.3"
+python-keycloak = "^4.7.0"
+tinydb = "^4.8.2"
+pytest = "^8.3.4"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

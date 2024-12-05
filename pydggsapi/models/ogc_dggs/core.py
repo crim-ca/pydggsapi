@@ -44,18 +44,15 @@ def landingpage(current_url):
                                   'links': [self_link, service_desc_link, service_doc_link, conformance_link, dggs_list_link]})
 
 
-def query_support_dggs(current_url, dggs_info, filter_):
+def query_support_dggs(current_url, dggs_info: Dict[str, DggrsItem], filter_):
     # DGGRID_ISEA7H_seqnum
     logging.info(f'{__name__} support dggs')
     support_dggs = []
     for k, v in dggs_info.items():
-        self_link = Link(**{'href': str(current_url), 'rel': 'self', 'title': 'Dggs Description link'})
-        dggrs_model_link = Link(**{'href': str(current_url) + f'/{k}', 'rel': 'ogc-rel:dggrs-definition', 'title': 'DGGRS definition'})
         if (k in filter_):
-            support_dggs.append(DggrsItem(**{'id': k,
-                                             'title': v['title'],
-                                             'links': [self_link, dggrs_model_link]}))
-
+            v.self_link.href = str(current_url)
+            v.dggrs_model_link.herf = str(current_url) + f'/{k}'
+            support_dggs.append(v)
     logging.info(f'{__name__} support dggs ({len(support_dggs)})')
     landing_page = '/'.join(str(current_url).split('/')[:-1])
     dggs_landing_page = Link(**{'href': landing_page, 'rel': 'ogc-rel:dggrs-list', 'title': 'DGGS API landing page'})

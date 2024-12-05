@@ -12,6 +12,7 @@ from copy import deepcopy
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s', datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
+
 # Establishing the database client
 def get_database_client_fine(use_numpy=False, compression='None'):
     return Client(host='127.0.0.1',
@@ -31,21 +32,6 @@ def get_database_client():
                   database=os.environ['CH_DB'],
                   compression='lz4',
                   settings={'use_numpy': False})
-
-
-def get_dggs_info():
-    return {
-            'DGGRID_ISEA7H_seqnum': {
-                    'title': 'Icosahedral equal area discrete global grids with aperture 7 , hexagonal',
-                    'description': 'description',
-                    'crs': 'wgs84',
-                    'defaultDepth': 5,
-                    'maxRefinementLevel': 9,
-                    'description_link': 'https://description',
-                    'definition_link': 'https://definition',
-                    'shapeType': 'hexagon'
-            }
-    }
 
 
 def get_conformance_classes():

@@ -1,14 +1,22 @@
 from __future__ import annotations
-from pydantic import AnyUrl, BaseModel, Field, conint
-from typing import List, Optional
+from pydantic import BaseModel
+from typing import List, Dict, Any
 
 
 class CollectionDggrsInfo(BaseModel):
-    dggs_indexes: str
+    dggrsId: str
     zoom_level: List[int]
 
 
-class CollectionInfo(BaseModel):
+class Provider(BaseModel):
+    providerClassName: str
+    providerParams: Dict[str, Any]
+
+
+class Collection(BaseModel):
     collectionid: str
-    dggs_indexes: List[CollectionDggrsInfo]
+    dggrs_indexes: List[CollectionDggrsInfo]
+    title: str | None
+    description: str | None
+    provider: Provider
 
