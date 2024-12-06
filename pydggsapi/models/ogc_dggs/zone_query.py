@@ -5,7 +5,6 @@ from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
 from pydggsapi.dependencies.dggs_isea7h import DggridISEA7H
 from pydggsapi.models.ogc_dggs.core import _ISEA7H_zoomlevel_fromzoneId
-from pydggsapi.models.hytruck_model import querySuitability
 
 from fastapi.exceptions import HTTPException
 from pys2index import S2PointIndex

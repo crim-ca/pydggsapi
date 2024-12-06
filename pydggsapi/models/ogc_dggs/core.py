@@ -1,10 +1,11 @@
-from pydantic import ValidationError
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate, LandingPageResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem, DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_model import DggrsModelRequest, DggrsModel
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
+
+from typing import Dict
 from pydggsapi.dependencies.dggs_isea7h import DggridISEA7H
 from fastapi.exceptions import HTTPException
 from uuid import UUID
@@ -50,8 +51,11 @@ def query_support_dggs(current_url, dggs_info: Dict[str, DggrsItem], filter_):
     support_dggs = []
     for k, v in dggs_info.items():
         if (k in filter_):
-            v.self_link.href = str(current_url)
-            v.dggrs_model_link.herf = str(current_url) + f'/{k}'
+            for i, link in enumerate(v.links):
+                if link.rel == 'self':
+                    v.links[i].href = str(current_url)
+                elif link.rel == 'ogc-rel:dggrs-definition':
+                    v.links[i].href = str(current_url) + f'/{k}'
             support_dggs.append(v)
     logging.info(f'{__name__} support dggs ({len(support_dggs)})')
     landing_page = '/'.join(str(current_url).split('/')[:-1])

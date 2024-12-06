@@ -3,23 +3,21 @@ from fastapi import FastAPI, Depends, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
+import logging
 
 
 import pydggsapi.request_example as request_example
-from pydggsapi.routers import tiles_api
 from pydggsapi.routers import dggs_api
 
 import os
 
 load_dotenv()
 
-#app = FastAPI()
 app = FastAPI()
 # initialize logging for Fastapi
-import logging
 
 # Setting up CORS
-origins = os.environ['CORS']
+origins = os.environ.get('CORS', [])
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,7 +30,7 @@ app.add_middleware(
 # mapdemopath = os.environ.get('mapdemo', './mapdemo')
 # app.mount("/mapdemo", StaticFiles(directory=mapdemopath), name="mapdemo")
 
-app.include_router(tiles_api.router, prefix='/tiles-api/v1')
+#app.include_router(tiles_api.router, prefix='/tiles-api/v1')
 app.include_router(dggs_api.router, prefix='/dggs-api/v1-pre')
 # TODO: add an asychronous db session pool for tile serving
 # ...

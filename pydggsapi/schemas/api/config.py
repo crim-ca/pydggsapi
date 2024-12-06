@@ -3,11 +3,6 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 
 
-class CollectionDggrsInfo(BaseModel):
-    dggrsId: str
-    zoom_level: List[int]
-
-
 class Provider(BaseModel):
     providerClassName: str
     providerParams: Dict[str, Any]
@@ -15,7 +10,7 @@ class Provider(BaseModel):
 
 class Collection(BaseModel):
     collectionid: str
-    dggrs_indexes: List[CollectionDggrsInfo]
+    dggrs_indexes: Dict[str, List[int]]
     title: str | None
     description: str | None
     provider: Provider

@@ -140,6 +140,9 @@ venv.bak/
 # mkdocs documentation
 /site
 
+# vim cache file 
+*.swp
+
 # mypy
 .mypy_cache/
 .dmypy.json
