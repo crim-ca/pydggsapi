@@ -7,19 +7,19 @@ from fastapi import APIRouter, HTTPException, Depends, Response, Request
 from typing import Optional
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
-from pydggsapi.schemas.ogc_dggs.dggrs_model import DggrsModelRequest, DggrsModel
+from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
 
-from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_model, query_zone_info, landingpage, _ISEA7H_zoomlevel_fromzoneId
+from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_definition, query_zone_info, landingpage, _ISEA7H_zoomlevel_fromzoneId
 from pydggsapi.models.ogc_dggs.data_retrieval import query_zone_data
 from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 
 from pydggsapi.dependencies.db import get_database_client, get_conformance_classes
 from pydggsapi.dependencies.dggs_isea7h import DggridISEA7H
 from pydggsapi.dependencies.collections import get_collections_info
-from pydggsapi.dependencies.dggrs_indexes import get_dggrs_indexes
+from pydggsapi.dependencies.dggrs_indexes import get_dggrs_indexes, get_dggrs_definitions
 
 from fastapi.responses import JSONResponse, FileResponse
 import logging
@@ -77,17 +77,25 @@ async def support_dggs(req: Request, collectionId: Optional[str] = None,
     return query_support_dggs(req.url, dggrs_info, filter_)
 
 
-@router.get("/collections/{collectionId}/dggs/{dggrs_id}", response_model=DggrsModel, tags=['ogc-dggs-api'])
-@router.get("/dggs/{dggrs_id}", response_model=DggrsModel, tags=['ogc-dggs-api'])
-async def dggrs_model(req: Request, dggrs_req: DggrsModelRequest = Depends(),
-                      collections=Depends(get_collections_info), dggs_info=Depends()):
-    current_url = req.url
+@router.get("/dggs/{dggrs_id}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrs_id}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
+async def dggrs_definition(req: Request, dggrs_req: DggrsDescriptionRequest = Depends(),
+                           collections=Depends(get_collections_info), dggrs_definitions=Depends(get_dggrs_definitions)):
+    if (dggrs_definitions is None):
+        logging.error(f'{__name__} dggrs-description: No dggrs definition is found.')
+        raise HTTPException(status_code=500, detail=f'{__name__} dggs-description: No dggrs definition is found.')
+    if (dggrs_req.dggrs_id not in dggrs_definitions.keys()):
+        logging.error(f'{__name__} dggrs-description: {dggrs_req.dggrs_id} not supported.')
+        raise HTTPException(status_code=500, detail=f'{__name__} dggrs-description: {dggrs_req.dggrs_id} not supported')
+    current_url = str(req.url)
     if (dggrs_req.collectionId is not None):
+        if (collections is None):
+            logging.error(f'{__name__} collection dggrs-description: No collections definition are found.')
+            raise HTTPException(status_code=500, detail=f'{__name__} collection dggs-description: No collections definition are found.')
         if (dggrs_req.collectionId not in list(collections.keys())):
-            logging.error(f'{__name__} collection dggs: {dggrs_req.collectionId} not found')
-            raise HTTPException(status_code=500, detail=f'{__name__} collection dggs: {dggrs_req.collectionId} not found')
-        current_url = '/'.join(str(req.url).split('/')[:-4])
-    return query_dggrs_model(dggrs_req, current_url, dggs_info[dggrs_req.dggrs_id])
+            logging.error(f'{__name__} collection dggrs-description: {dggrs_req.collectionId} not found')
+            raise HTTPException(status_code=500, detail=f'{__name__} collection dggs-description: {dggrs_req.collectionId} not found')
+    return query_dggrs_definition(current_url, dggrs_definitions[dggrs_req.dggrs_id])
 
 
 @router.get("/dggs/{dggrs_id}/zones/{zoneId}",  response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])

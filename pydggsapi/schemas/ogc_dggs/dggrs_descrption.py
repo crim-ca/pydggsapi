@@ -2,24 +2,15 @@ from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate, CrsModel
 from typing import List, Optional, Union
 from pydantic import AnyUrl, BaseModel, Field, conint, model_validator
-from fastapi import Path
 from fastapi import HTTPException
 
 
-class DggrsModelRequest(BaseModel):
+class DggrsDescriptionRequest(BaseModel):
     dggrs_id: str  # = Path(...)
     collectionId: Optional[str] = None
 
-    @model_validator(mode='after')
-    def validation(self):
-        # check if id support by API
-        support_id = ['DGGRID_ISEA7H_seqnum']
-        if (self.dggrs_id not in support_id):
-            raise HTTPException(status_code=500, detail=f'The dggrsid {self.dggrs_id} is not supported')
-        return self
 
-
-class DggrsModel(BaseModel):
+class DggrsDescription(BaseModel):
     id: str = Field(
         ...,
         description='Local DGGRS identifier consistent with the `{dggrsId}` parameter of `/dggs/{dggrsId}` resources.',

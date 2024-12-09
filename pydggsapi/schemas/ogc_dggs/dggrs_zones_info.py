@@ -1,12 +1,12 @@
 from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Link
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.ogc_dggs.dggrs_model import DggrsModelRequest
+from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest
 from typing import List, Optional
 from pydantic import BaseModel, conint
 
 
-class ZoneInfoRequest(DggrsModelRequest):
+class ZoneInfoRequest(DggrsDescriptionRequest):
     zoneId: int
 
 

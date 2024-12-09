@@ -1,6 +1,6 @@
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate, LandingPageResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem, DggrsListResponse
-from pydggsapi.schemas.ogc_dggs.dggrs_model import DggrsModelRequest, DggrsModel
+from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
@@ -53,8 +53,6 @@ def query_support_dggs(current_url, dggs_info: Dict[str, DggrsItem], filter_):
         if (k in filter_):
             for i, link in enumerate(v.links):
                 if link.rel == 'self':
-                    v.links[i].href = str(current_url)
-                elif link.rel == 'ogc-rel:dggrs-definition':
                     v.links[i].href = str(current_url) + f'/{k}'
             support_dggs.append(v)
     logging.info(f'{__name__} support dggs ({len(support_dggs)})')
@@ -63,18 +61,18 @@ def query_support_dggs(current_url, dggs_info: Dict[str, DggrsItem], filter_):
     return DggrsListResponse(**{'links': [dggs_landing_page], 'dggrs': support_dggs})
 
 
-def query_dggrs_model(dggrs_req: DggrsModelRequest, current_url, dggs_info):
-    logging.info(f'{__name__} query dggrs model {dggrs_req.dggrs_id}')
-    self_link = Link(**{'href': dggs_info['description_link'], 'rel': 'self', 'title': 'Dggrs Description link'})
-    definition_link = Link(**{'href': dggs_info['definition_link'], 'rel': 'ogc-rel:dggrs-definition', 'title': 'Dggrs definition link'})
+def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
+    logging.info(f'{__name__} query dggrs model {dggrs_description.id}')
+    for i, link in enumerate(dggrs_description.links):
+        if link.rel == 'self':
+            dggrs_description.links[i].href = str(current_url) + f'/{dggrs_description.id}'
     zone_query_link = Link(**{'href': str(current_url) + '/zones', 'rel': 'ogc-rel:dggrs-zone-query', 'title': 'Dggrs zone-query link'})
     zone_data_link = LinkTemplate(**{'uriTemplate': str(current_url) + '/zones/{zoneId}/data', 'rel': 'ogc-rel:dggrs-zone-data',
                                      'title': 'Dggrs zone-query link'})
-    dggs_info['links'] = [self_link, definition_link, zone_query_link]
-    dggs_info['linkTemplates'] = [zone_data_link]
-    dggs_info['id'] = dggrs_req.dggrs_id
-    logging.debug(f'{__name__} query dggrs model: {pprint(dggs_info)}')
-    return DggrsModel(**dggs_info)
+    dggrs_description.links.append(zone_query_link)
+    dggrs_description.linkTemplates = [zone_data_link]
+    logging.debug(f'{__name__} query dggrs model: {pprint(dggrs_description)}')
+    return dggrs_description
 
 
 def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info, dggrid: DggridISEA7H):

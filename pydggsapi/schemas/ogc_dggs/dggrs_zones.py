@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature
-from pydggsapi.schemas.ogc_dggs.dggrs_model import DggrsModelRequest
+from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest
 from typing import List, Optional, Union
 from fastapi import Query
 from fastapi.exceptions import HTTPException
@@ -11,7 +11,7 @@ zone_query_support_returntype = ['application/json', 'application/geo+json']
 zone_query_support_geometry = ['zone-centroid', 'zone-region']
 
 
-class ZonesRequest(DggrsModelRequest):
+class ZonesRequest(DggrsDescriptionRequest):
     zone_level: Optional[conint(ge=0)] = None
     compact_zone: Optional[bool] = None
     parent_zone: Optional[Union[int, str]] = None
