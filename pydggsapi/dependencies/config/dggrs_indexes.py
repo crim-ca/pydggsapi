@@ -1,8 +1,9 @@
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
-from pydggsapi.dependencies.collections import get_collections_info
+from pydggsapi.dependencies.config.collections import get_collections_info
 
+from typing import Dict
 from tinydb import TinyDB
 from dotenv import load_dotenv
 import logging
@@ -17,12 +18,25 @@ load_dotenv()
 def _checkIfTableExists():
     db = TinyDB(os.environ.get('dggs_api_config', './dggs_api_config.json'))
     if ('dggrs' not in db.tables()):
-        logging.error(f'{__name__} table dggrs not exist in DB.')
-        raise Exception("{__name__} table dggrs not exist in DB.")
+        logging.error(f'{__name__} No dggrs definition is found.')
+        raise Exception(f"{__name__} No dggrs definition is found.")
     return db
 
 
-def get_dggrs_indexes():
+def get_dggrs_class(dggrs_id) -> str:
+    try:
+        db = _checkIfTableExists()
+    except Exception as e:
+        raise e
+    dggrs_indexes = db.table('dggrs')
+    for dggrs in dggrs_indexes:
+        dggrsid, dggrs_config = dggrs.popitem()
+        if (dggrsid == dggrs_id):
+            return dggrs_config['classname']
+    return None
+
+
+def get_dggrs_items() -> Dict[str, DggrsItem]:
     try:
         db = _checkIfTableExists()
     except Exception:
@@ -37,7 +51,7 @@ def get_dggrs_indexes():
     return dggrs_dict
 
 
-def get_dggrs_definitions():
+def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
     try:
         db = _checkIfTableExists()
     except Exception:

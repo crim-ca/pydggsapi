@@ -38,7 +38,7 @@ def test_core_dggs_list():
 
     print("Success test case with collections dggs-list (suitability_hytruck)")
     response = client.get('/dggs-api/v1-pre/collections/suitablilty_hytruck/dggs')
-    print(response.json())
+    pprint(response.json())
     assert DggrsListResponse(**response.json())
     assert response.status_code == 200
 

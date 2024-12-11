@@ -3,7 +3,7 @@ from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, Property, Value, ZonesDataDggsJsonResponse, Feature, ZonesDataGeoJson
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
-from pydggsapi.dependencies.dggs_isea7h import DggridISEA7H
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.exceptions import HTTPException
 from fastapi.responses import FileResponse
@@ -22,7 +22,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-def query_zone_data(zoneId, zone_level, depth, dggrsId, dggrslink, dggrid: DggridISEA7H,
+def query_zone_data(zoneId, zone_level, depth, dggrsId, dggrslink, dggrid: AbstractDGGRS,
                     client: Client, returntype='application/dggs-json', returngeometry='zone-region'):
     logging.info(f'{__name__} query zone data {dggrsId}, zone id: {zoneId}, depth: {depth}, return: {returntype}, geometry: {returngeometry}')
 

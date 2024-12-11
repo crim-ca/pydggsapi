@@ -7,7 +7,7 @@ from pydantic import BaseModel, conint
 
 
 class ZoneInfoRequest(DggrsDescriptionRequest):
-    zoneId: int
+    zoneId: str
 
 
 class ZoneInfoResponse(BaseModel):

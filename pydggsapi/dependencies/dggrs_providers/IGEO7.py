@@ -1,11 +1,15 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGS import AbstractDGGRS
+from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
+
 import os
 import tempfile
 from dggrid4py import DGGRIDv7
+import shapely
 
 
-class DggridISEA7H:
+class IGEO7(AbstractDGGRS):
 
     def __init__(self):
 
@@ -73,12 +77,12 @@ class DggridISEA7H:
         gdf1['name'] = gdf1.name.astype('int64')
         return gdf1.set_index('name', drop=True)
 
-    def centroid_from_cellid(self, cellid: list, zoomlevel):
-        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'ISEA7H', zoomlevel)
+    def centroid_from_cellid(self, cellid: list, zone_level):
+        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'ISEA7H', zone_level, input_address_type='Z7STRING', output_address_type='Z7STRING')
         return gdf
 
-    def hexagon_from_cellid(self, cellid: list, zoomlevel):
-        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, 'ISEA7H', zoomlevel)
+    def hexagon_from_cellid(self, cellid: list, zone_level):
+        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, 'ISEA7H', zone_level, input_address_type='Z7STRING', output_address_type='Z7STRING')
         return gdf
 
     def cellid_from_centroid(self, geodf_points_wgs84, zoomlevel):
@@ -88,3 +92,29 @@ class DggridISEA7H:
     def cellids_from_extent(self, clip_geom, zoomlevel):
         gdf = self.dggrid_instance.grid_cellids_for_extent('ISEA7H', zoomlevel, clip_geom=clip_geom)
         return gdf
+
+    def zoneinfo(self, cellIds: list, dggrsId):
+
+        if (dggrsId == 'IGEO7'):
+            zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'ISEA7H')['resolution'][0]
+        else:
+            logging.error(f'{__name__} {dggrsId} not supported')
+            raise Exception(f'{__name__} {dggrsId} not supported')
+        try:
+            centroid = self.centroid_from_cellid(cellIds, zone_level).geometry
+            hex_geometry = self.hexagon_from_cellid(cellIds, zone_level).geometry
+        except Exception:
+            logging.error(f'{__name__} zone id {cellIds} dggrid convert failed')
+            raise Exception(f'{__name__} zone id {cellIds} dggrid convert failed')
+        geometry, bbox, centroids = [], [], []
+        for g in hex_geometry:
+            geometry.append(GeoJSONPolygon(**eval(shapely.to_geojson(g))))
+            bbox.append(list(g.bounds))
+        for c in centroid:
+            centroids.append(GeoJSONPoint(**eval(shapely.to_geojson(c))))
+        return {'zone_level': zone_level, 'centroids': centroids, 'geometry': geometry, 'bbox': bbox,
+                'areaMetersSquare': self.data[zone_level]["Area (km^2)"] * 1000000}
+
+
+
+

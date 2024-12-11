@@ -6,7 +6,7 @@ from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
 
 from typing import Dict
-from pydggsapi.dependencies.dggs_isea7h import DggridISEA7H
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from fastapi.exceptions import HTTPException
 from uuid import UUID
 from datetime import datetime
@@ -17,21 +17,6 @@ import os
 import logging
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
-
-
-def _ISEA7H_zoomlevel_fromzoneId(zoneId, dggrid):
-    # first, determinate the zoom level by
-    # the first time it fail the relation if (zoom(num_of_cells) > cell id)
-    # if all pass or all fail, set zoom level to 15
-    zoom_level = list(dggrid.data.keys())
-    zoom_level.sort()
-    zoom_level = [(dggrid.data[z]['Cells'] > zoneId) for z in zoom_level]
-    try:
-        zoom_level = 0 if (all(zoom_level)) else zoom_level.index(True)
-    except ValueError:
-        # if all are False == max num of cells in resolution 15
-        zoom_level = 15
-    return zoom_level
 
 
 def landingpage(current_url):
@@ -65,7 +50,7 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     logging.info(f'{__name__} query dggrs model {dggrs_description.id}')
     for i, link in enumerate(dggrs_description.links):
         if link.rel == 'self':
-            dggrs_description.links[i].href = str(current_url) + f'/{dggrs_description.id}'
+            dggrs_description.links[i].href = str(current_url)
     zone_query_link = Link(**{'href': str(current_url) + '/zones', 'rel': 'ogc-rel:dggrs-zone-query', 'title': 'Dggrs zone-query link'})
     zone_data_link = LinkTemplate(**{'uriTemplate': str(current_url) + '/zones/{zoneId}/data', 'rel': 'ogc-rel:dggrs-zone-data',
                                      'title': 'Dggrs zone-query link'})
@@ -75,39 +60,22 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     return dggrs_description
 
 
-def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info, dggrid: DggridISEA7H):
+def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info, dggrid: AbstractDGGRS):
     logging.info(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}')
-    if (zoneinfoReq.dggrs_id == 'DGGRID_ISEA7H_seqnum'):
-        zoneId = zoneinfoReq.zoneId
-        if (zoneId > dggrid.data[15]['Cells']):
-            logging.error(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id {zoneinfoReq.zoneId} > max Zoomlevel number of zones')
-            raise HTTPException(status_code=500, detial=f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id {zoneinfoReq.zoneId} > max Zoomlevel number of zones')
-        zoom_level = _ISEA7H_zoomlevel_fromzoneId(zoneId, dggrid)
-        logging.info(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}, zoom level: {zoom_level}')
-        try:
-            centroid = dggrid.centroid_from_cellid([zoneId], zoom_level).geometry
-            hex_geometry = dggrid.hexagon_from_cellid([zoneId], zoom_level).geometry
-        except Exception:
-            logging.error(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id {zoneinfoReq.zoneId} dggrid convert failed')
-            raise HTTPException(status_code=500, detial=f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id {zoneinfoReq.zoneId} dggrid convert failed')
-        geometry, bbox = [], []
-        for g in hex_geometry:
-            geometry.append(GeoJSONPolygon(**eval(shapely.to_geojson(g))))
-            bbox.append(list(g.bounds))
-        dggs_link = '/'.join(str(current_url).split('/')[:-3])
-        dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
-        data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})
-        return_ = {'id': str(zoneId)}
-        return_['level'] = zoom_level
-        return_['links'] = [data_link, dggs_link]
-        return_['shapeType'] = dggs_info['shapeType']
-        return_['crs'] = dggs_info['crs']
-        return_['centroid'] = GeoJSONPoint(**eval(shapely.to_geojson(centroid[0])))
-        return_['bbox'] = bbox[0]
-        return_['areaMetersSquare'] = dggrid.data[zoom_level]["Area (km^2)"] * 1000000
-        return_['geometry'] = geometry[0]
-        logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
-        return ZoneInfoResponse(**return_)
-    else:
-        raise NotImplementedError(f'core (zone info) is not implemented for {zoneinfoReq.dggrs_id}')
+    zoneId = zoneinfoReq.zoneId
+    zoneinfo = dggrid.zoneinfo([zoneId], zoneinfoReq.dggrs_id)
+    dggs_link = '/'.join(str(current_url).split('/')[:-3])
+    dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
+    data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})
+    return_ = {'id': str(zoneId)}
+    return_['level'] = zoneinfo['zone_level']
+    return_['links'] = [data_link, dggs_link]
+    return_['shapeType'] = dggs_info['shapeType']
+    return_['crs'] = dggs_info['crs']
+    return_['centroid'] = zoneinfo['centroids'][0]
+    return_['bbox'] = zoneinfo['bbox'][0]
+    return_['geometry'] = zoneinfo['geometry'][0]
+    return_['areaMetersSquare'] = zoneinfo['areaMetersSquare']
+    logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
+    return ZoneInfoResponse(**return_)
 
