@@ -20,11 +20,12 @@ from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 from pydggsapi.dependencies.db import get_database_client, get_conformance_classes
 from pydggsapi.dependencies.config.collections import get_collections_info
 from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.responses import JSONResponse, FileResponse
 import logging
 import pyproj
-import sys
+import importlib
 from shapely.geometry import box
 from shapely.ops import transform
 
@@ -64,17 +65,18 @@ def _get_return_type(req: Request, support_returntype, default_return='applicati
     return returntype
 
 
-async def _get_dggs_class(dggrs_id: str = Path(...)):
+async def _get_dggrs_class(dggrs_id: str = Path(...)):
     try:
         classname = get_dggrs_class(dggrs_id)
     except Exception as e:
         logging.error(f'{__name__} {dggrs_id} {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} {e}')
     if (classname is None):
-        logging.error(f'{__name__} {dggrs_id} class not found')
-        raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} class not found')
+        logging.error(f'{__name__} {dggrs_id} not supported.')
+        raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} not supported.')
     try:
-        return sys.modules[classname]
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{classname}'), classname)
+        return cls_()
     except Exception as e:
         logging.error(f'{__name__} {dggrs_id} class: {classname} not imported, {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} class: {classname} not imported, {e}')
@@ -125,7 +127,7 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
 # zone-info
 @router.get("/dggs/{dggrs_id}/zones/{zoneId}",  response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrs_id}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
-async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(), dggrid=Depends(_get_dggs_class),
+async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(), dggrid: AbstractDGGRS = Depends(_get_dggrs_class),
                           collections=Depends(get_collections_info), dggrs_descrptions=Depends(get_dggrs_descriptions)):
     _check_dggrs_description_exists(dggrs_descrptions, zoneinfoReq.dggrs_id)
     if (zoneinfoReq.collectionId is not None):

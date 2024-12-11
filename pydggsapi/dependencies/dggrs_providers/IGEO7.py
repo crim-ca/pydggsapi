@@ -1,12 +1,17 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGS import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
+from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn
 
 import os
 import tempfile
+import logging
 from dggrid4py import DGGRIDv7
 import shapely
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
+                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
 class IGEO7(AbstractDGGRS):
@@ -78,11 +83,13 @@ class IGEO7(AbstractDGGRS):
         return gdf1.set_index('name', drop=True)
 
     def centroid_from_cellid(self, cellid: list, zone_level):
-        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'ISEA7H', zone_level, input_address_type='Z7STRING', output_address_type='Z7STRING')
+        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'ISEA7H', zone_level,
+                                                                    input_address_type='Z7_STRING', output_address_type='Z7_STRING')
         return gdf
 
     def hexagon_from_cellid(self, cellid: list, zone_level):
-        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, 'ISEA7H', zone_level, input_address_type='Z7STRING', output_address_type='Z7STRING')
+        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, 'ISEA7H', zone_level,
+                                                                   input_address_type='Z7_STRING', output_address_type='Z7_STRING')
         return gdf
 
     def cellid_from_centroid(self, geodf_points_wgs84, zoomlevel):
@@ -94,12 +101,7 @@ class IGEO7(AbstractDGGRS):
         return gdf
 
     def zoneinfo(self, cellIds: list, dggrsId):
-
-        if (dggrsId == 'IGEO7'):
-            zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'ISEA7H')['resolution'][0]
-        else:
-            logging.error(f'{__name__} {dggrsId} not supported')
-            raise Exception(f'{__name__} {dggrsId} not supported')
+        zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'ISEA7H')['resolution'][0]
         try:
             centroid = self.centroid_from_cellid(cellIds, zone_level).geometry
             hex_geometry = self.hexagon_from_cellid(cellIds, zone_level).geometry
@@ -112,8 +114,9 @@ class IGEO7(AbstractDGGRS):
             bbox.append(list(g.bounds))
         for c in centroid:
             centroids.append(GeoJSONPoint(**eval(shapely.to_geojson(c))))
-        return {'zone_level': zone_level, 'centroids': centroids, 'geometry': geometry, 'bbox': bbox,
-                'areaMetersSquare': self.data[zone_level]["Area (km^2)"] * 1000000}
+        return DGGRSProviderZoneInfoReturn(**{'zone_level': zone_level, 'shapeType': 'hexagon',
+                                              'centroids': centroids, 'geometry': geometry, 'bbox': bbox,
+                                              'areaMetersSquare': self.data[zone_level]["Area (km^2)"] * 1000000})
 
 
 

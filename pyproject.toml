@@ -15,7 +15,7 @@ mapbox-vector-tile = "^2.0.1"
 pyproj = "^3.6.1"
 pyjwt = {extras = ["crypto"], version = "^2.9.0"}
 clickhouse-cityhash = "^1.0.2.4"
-dggrid4py = "0.2.9"
+dggrid4py = "0.3.1"
 python-dotenv = "^1.0.0"
 gunicorn = "^23.0.0"
 numpy = "^1.26.3"
@@ -33,4 +33,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -s""
+addopts = "-ra -s"

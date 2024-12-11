@@ -60,7 +60,7 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     return dggrs_description
 
 
-def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info, dggrid: AbstractDGGRS):
+def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrid: AbstractDGGRS):
     logging.info(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}')
     zoneId = zoneinfoReq.zoneId
     zoneinfo = dggrid.zoneinfo([zoneId], zoneinfoReq.dggrs_id)
@@ -68,14 +68,14 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info, dggrid
     dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
     data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})
     return_ = {'id': str(zoneId)}
-    return_['level'] = zoneinfo['zone_level']
+    return_['level'] = zoneinfo.zone_level
     return_['links'] = [data_link, dggs_link]
-    return_['shapeType'] = dggs_info['shapeType']
-    return_['crs'] = dggs_info['crs']
-    return_['centroid'] = zoneinfo['centroids'][0]
-    return_['bbox'] = zoneinfo['bbox'][0]
-    return_['geometry'] = zoneinfo['geometry'][0]
-    return_['areaMetersSquare'] = zoneinfo['areaMetersSquare']
+    return_['shapeType'] = zoneinfo.shapeType
+    return_['crs'] = dggs_info.crs
+    return_['centroid'] = zoneinfo.centroids[0]
+    return_['bbox'] = zoneinfo.bbox[0]
+    return_['geometry'] = zoneinfo.geometry[0]
+    return_['areaMetersSquare'] = zoneinfo.areaMetersSquare
     logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
     return ZoneInfoResponse(**return_)
 
