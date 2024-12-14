@@ -2,13 +2,16 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn
+from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 
 import os
 import tempfile
 import logging
+from typing import Union
 from dggrid4py import DGGRIDv7
 import shapely
+from shapely.geometry import box
+import geopandas as gpd
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
@@ -49,59 +52,39 @@ class IGEO7(AbstractDGGRS):
 
         return self.data[zoom]
 
-    def find_zoom_by_area_km2(self, area):
-        # area must be float and between 0 and 51006562.1724089 inclusive
-        if not isinstance(area, float):
-            raise TypeError("area must be float")
-        if area < 0 or area > 51006562.1724089:
-            raise ValueError("area must be between 0 and 51006562.1724089 inclusive")
-
-        for zoom, data in self.data.items():
-            if data["Area (km^2)"] <= area:
-                return zoom
-        return 15
-
-    def find_zoom_by_cls_km(self, cls_km):
-        # cls must be float and between 0 and 8199.5003701 inclusive
-        if not isinstance(cls_km, float):
-            raise TypeError("cls_km must be float")
-        if cls_km < 0:
-            return 15
-
-        if cls_km > 8199.5003701:
-            return 1
-
-        for zoom, data in self.data.items():
-            if data["CLS (km)"] <= cls_km:
-                return zoom+1
-        return 15
-
     def generate_hexgrid(self, bbox, resolution):
         # ISEA7H grid at resolution, for extent of provided WGS84 rectangle into GeoDataFrame
-        gdf1 = self.dggrid_instance.grid_cell_polygons_for_extent('ISEA7H', resolution, clip_geom=bbox)
-        gdf1['name'] = gdf1.name.astype('int64')
-        return gdf1.set_index('name', drop=True)
+        gdf = self.dggrid_instance.grid_cell_polygons_for_extent('IGEO7', resolution, clip_geom=bbox, output_address_type='Z7_STRING')
+        return gdf
 
     def centroid_from_cellid(self, cellid: list, zone_level):
-        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'ISEA7H', zone_level,
+        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'IGEO7', zone_level,
                                                                     input_address_type='Z7_STRING', output_address_type='Z7_STRING')
         return gdf
 
     def hexagon_from_cellid(self, cellid: list, zone_level):
-        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, 'ISEA7H', zone_level,
+        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, 'IGEO7', zone_level,
                                                                    input_address_type='Z7_STRING', output_address_type='Z7_STRING')
         return gdf
 
     def cellid_from_centroid(self, geodf_points_wgs84, zoomlevel):
-        gdf = self.dggrid_instance.cells_for_geo_points(geodf_points_wgs84, True, 'ISEA7H', zoomlevel)
+        gdf = self.dggrid_instance.cells_for_geo_points(geodf_points_wgs84, True, 'IGEO7', zoomlevel, output_address_type='Z7_STRING')
         return gdf
 
     def cellids_from_extent(self, clip_geom, zoomlevel):
-        gdf = self.dggrid_instance.grid_cellids_for_extent('ISEA7H', zoomlevel, clip_geom=clip_geom)
+        gdf = self.dggrid_instance.grid_cellids_for_extent('IGEO7', zoomlevel, clip_geom=clip_geom, output_address_type='Z7_STRING')
         return gdf
 
-    def zoneinfo(self, cellIds: list, dggrsId):
-        zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'ISEA7H')['resolution'][0]
+    def get_cells_zone_level(self, cellIds):
+        try:
+            zones_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')
+            return zones_level['resolution'].values.tolist()
+        except Exception:
+            logging.error(f'{__name__} zone id {cellIds} dggrid get zone level failed')
+            raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed')
+
+    def zonesinfo(self, cellIds: list):
+        zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')['resolution'][0]
         try:
             centroid = self.centroid_from_cellid(cellIds, zone_level).geometry
             hex_geometry = self.hexagon_from_cellid(cellIds, zone_level).geometry
@@ -117,6 +100,44 @@ class IGEO7(AbstractDGGRS):
         return DGGRSProviderZoneInfoReturn(**{'zone_level': zone_level, 'shapeType': 'hexagon',
                                               'centroids': centroids, 'geometry': geometry, 'bbox': bbox,
                                               'areaMetersSquare': self.data[zone_level]["Area (km^2)"] * 1000000})
+
+    def zoneslist(self, bbox: Union[box, None], zone_level: int, parent_zone: Union[str, int, None], returngeometry: str, compact=True):
+        if (bbox is not None):
+            try:
+                hex_gdf = self.generate_hexgrid(bbox, zone_level)
+            except Exception as e:
+                logging.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
+                raise Exception(f"{__name__} query zones list, bbox: {bbox} dggrid convert failed {e}")
+            logging.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
+        if (parent_zone is not None):
+            try:
+                parent_zone_level = self.get_cells_zone_level([parent_zone])[0]
+                parent_hex_gdf = self.hexagon_from_cellid([parent_zone], parent_zone_level)
+            except Exception as e:
+                logging.error(f'{__name__} query zones list, parent_zone: {parent_zone} get zone level failed {e}')
+                raise Exception(f'parent_zone: {parent_zone} get zone level failed {e}')
+            childern_hex_gdf = self.dggrid_instance.grid_cell_polygons_from_cellids([parent_zone], 'IGEO7', zone_level,
+                                                                                    clip_subset_type='COARSE_CELLS',
+                                                                                    clip_cell_res=parent_zone_level,
+                                                                                    input_address_type='Z7_STRING',
+                                                                                    output_address_type='Z7_STRING')
+            hex_gdf = hex_gdf.loc(childern_hex_gdf['name']) if (bbox is not None) else parent_hex_gdf
+        if (len(hex_gdf) == 0):
+            raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
+        if (compact):
+            compact_zone = parent_hex_gdf['geometry'][0] if (bbox is None) else bbox
+            compact_gdf = gpd.GeoDataFrame([0] * len(hex_gdf), geometry=[compact_zone] * len(hex_gdf), crs='wgs84')
+            hex_gdf.set_crs('wgs84', inplace=True)
+            not_touching = compact_gdf.geometry.contains(hex_gdf.geometry)
+            hex_gdf = hex_gdf[not_touching]
+            logging.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
+        if (returngeometry != 'zone-region'):
+            hex_gdf = self.centroid_from_cellid(hex_gdf['name'].values, zone_level)
+        returnedAreaMetersSquare = self.data[zone_level]['Area (km^2)'] * len(hex_gdf) * 1000000
+        return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['name'].values.astype(str).tolist(),
+                                               'geometry': hex_gdf['geometry'].values.tolist(),
+                                               'returnedAreaMetersSquare': returnedAreaMetersSquare})
+
 
 
 

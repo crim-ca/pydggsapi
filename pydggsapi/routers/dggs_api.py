@@ -144,21 +144,29 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 
 @router.get("/dggs/{dggrs_id}/zones", response_model=ZonesResponse | ZonesGeoJson, tags=['ogc-dggs-api'])
 async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
-                           dggrid=Depends(), dggs_info=Depends()):
+                           dggrid=Depends(get_dggrs_class), dggs_info=Depends(get_dggrs_descriptions)):
     returntype = _get_return_type(req, zone_query_support_returntype, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
     dggs_info = dggs_info[zonesReq.dggrs_id]
-    zoom_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggs_info['defaultDepth']
+    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggs_info['defaultDepth']
     compact_zone = zonesReq.compact_zone if (zonesReq.compact_zone is not None) else True
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
-    bbox = box(*zonesReq.bbox)
-    bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
-    if (bbox_crs != 'wgs84'):
-        logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, original bbox: {bbox}')
-        project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
-        bbox = transform(project, bbox)
-        logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, transformed bbox: {bbox}')
-    return query_zones_list(zonesReq.dggrs_id, bbox, zoom_level, limit, dggrid, compact_zone, zonesReq.parent_zone, returntype, returngeometry)
+    parent_zone = zonesReq.parent_zone
+    if (parent_zone is not None):
+        parent_level = dggrid.get_cell_zone_level([parent_zone])[0]
+        if (parent_level > zone_level):
+            logging.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
+            raise HTTPException(status_code=500, detail=f"query zones list, parent level({parent_level}]) > zone level({zone_level})")
+    if (zonesReq.bbox is not None):
+        bbox = box(*zonesReq.bbox)
+        bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
+        if (bbox_crs != 'wgs84'):
+            logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, original bbox: {bbox}')
+            project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
+            bbox = transform(project, bbox)
+            logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, transformed bbox: {bbox}')
+    return query_zones_list(bbox, zone_level, limit, dggrid, compact_zone,
+                            zonesReq.parent_zone, returntype, returngeometry)
 
 
 # Data-retrieval conformance class

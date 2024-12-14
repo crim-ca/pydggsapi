@@ -63,7 +63,7 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
 def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrid: AbstractDGGRS):
     logging.info(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}')
     zoneId = zoneinfoReq.zoneId
-    zoneinfo = dggrid.zoneinfo([zoneId], zoneinfoReq.dggrs_id)
+    zoneinfo = dggrid.zonesinfo([zoneId])
     dggs_link = '/'.join(str(current_url).split('/')[:-3])
     dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
     data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})
