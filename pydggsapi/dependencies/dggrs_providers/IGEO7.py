@@ -11,7 +11,7 @@ from typing import Union
 from dggrid4py import DGGRIDv7
 import shapely
 from shapely.geometry import box
-import geopandas as gpd
+import numpy as np
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
@@ -112,7 +112,6 @@ class IGEO7(AbstractDGGRS):
         if (parent_zone is not None):
             try:
                 parent_zone_level = self.get_cells_zone_level([parent_zone])[0]
-                parent_hex_gdf = self.hexagon_from_cellid([parent_zone], parent_zone_level)
             except Exception as e:
                 logging.error(f'{__name__} query zones list, parent_zone: {parent_zone} get zone level failed {e}')
                 raise Exception(f'parent_zone: {parent_zone} get zone level failed {e}')
@@ -121,21 +120,39 @@ class IGEO7(AbstractDGGRS):
                                                                                     clip_cell_res=parent_zone_level,
                                                                                     input_address_type='Z7_STRING',
                                                                                     output_address_type='Z7_STRING')
-            hex_gdf = hex_gdf.loc(childern_hex_gdf['name']) if (bbox is not None) else parent_hex_gdf
+            childern_hex_gdf.set_index('name', inplace=True)
+            hex_gdf = hex_gdf.join(childern_hex_gdf, how='inner', rsuffix='_p') if (bbox is not None) else childern_hex_gdf
         if (len(hex_gdf) == 0):
             raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
         if (compact):
-            compact_zone = parent_hex_gdf['geometry'][0] if (bbox is None) else bbox
-            compact_gdf = gpd.GeoDataFrame([0] * len(hex_gdf), geometry=[compact_zone] * len(hex_gdf), crs='wgs84')
-            hex_gdf.set_crs('wgs84', inplace=True)
-            not_touching = compact_gdf.geometry.contains(hex_gdf.geometry)
-            hex_gdf = hex_gdf[not_touching]
+            i = 0
+            hex_gdf.reset_index(inplace=True)
+            while (i >= 0):
+                hex_gdf['compact'] = hex_gdf['name'].apply(lambda x: x[:-1] if (len(x) == (zone_level - i + 2)) else x)
+                counts = hex_gdf.groupby("compact")['name'].count()
+                i += 1
+                counts_idx = np.where(counts == pow(7, i))[0]
+                replace = counts.iloc[counts_idx].index
+                if (len(replace) > 0):
+                    new_geometry = self.hexagon_from_cellid(replace, (zone_level - i))
+                    new_geometry.set_index('name', inplace=True)
+                    replace_idx = np.isin(hex_gdf['compact'].values, replace.values).nonzero()[0]
+                    hex_gdf.iloc[replace_idx, 0] = hex_gdf.iloc[replace_idx]['compact']
+                    hex_gdf.set_index('name', inplace=True)
+                    hex_gdf.update(new_geometry)
+                    hex_gdf.reset_index(inplace=True)
+                else:
+                    i = -1
+            hex_gdf = hex_gdf.drop_duplicates(subset=['name'])
             logging.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
         if (returngeometry != 'zone-region'):
             hex_gdf = self.centroid_from_cellid(hex_gdf['name'].values, zone_level)
         returnedAreaMetersSquare = self.data[zone_level]['Area (km^2)'] * len(hex_gdf) * 1000000
+        geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
+        geometry = [geotype(**eval(shapely.to_geojson(g))) for g in hex_gdf['geometry'].values.tolist()]
+        hex_gdf.reset_index(inplace=True)
         return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['name'].values.astype(str).tolist(),
-                                               'geometry': hex_gdf['geometry'].values.tolist(),
+                                               'geometry': geometry,
                                                'returnedAreaMetersSquare': returnedAreaMetersSquare})
 
 

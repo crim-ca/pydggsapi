@@ -4,7 +4,7 @@
 # in the main api.py under /dggs-api/v1-pre
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
@@ -19,7 +19,8 @@ from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 
 from pydggsapi.dependencies.db import get_database_client, get_conformance_classes
 from pydggsapi.dependencies.config.collections import get_collections_info
-from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
+from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions
+from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_class as check_dggrs_exists
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.responses import JSONResponse, FileResponse
@@ -67,7 +68,7 @@ def _get_return_type(req: Request, support_returntype, default_return='applicati
 
 async def _get_dggrs_class(dggrs_id: str = Path(...)):
     try:
-        classname = get_dggrs_class(dggrs_id)
+        classname = check_dggrs_exists(dggrs_id)
     except Exception as e:
         logging.error(f'{__name__} {dggrs_id} {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} {e}')
@@ -142,29 +143,38 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 
 # Zone query conformance class
 
-@router.get("/dggs/{dggrs_id}/zones", response_model=ZonesResponse | ZonesGeoJson, tags=['ogc-dggs-api'])
+@router.get("/dggs/{dggrs_id}/zones", response_model=Union[ZonesResponse,ZonesGeoJson], tags=['ogc-dggs-api'])
 async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
-                           dggrid=Depends(get_dggrs_class), dggs_info=Depends(get_dggrs_descriptions)):
+                           dggrid: AbstractDGGRS = Depends(_get_dggrs_class), dggrs_descrptions=Depends(get_dggrs_descriptions)):
+
+    _check_dggrs_description_exists(dggrs_descrptions, zonesReq.dggrs_id)
+
     returntype = _get_return_type(req, zone_query_support_returntype, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
-    dggs_info = dggs_info[zonesReq.dggrs_id]
-    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggs_info['defaultDepth']
+    dggrs_info = dggrs_descrptions[zonesReq.dggrs_id]
+    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_info.defaultDepth
     compact_zone = zonesReq.compact_zone if (zonesReq.compact_zone is not None) else True
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
+    bbox = zonesReq.bbox
+
     if (parent_zone is not None):
-        parent_level = dggrid.get_cell_zone_level([parent_zone])[0]
+        parent_level = dggrid.get_cells_zone_level([parent_zone])[0]
         if (parent_level > zone_level):
             logging.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
-            raise HTTPException(status_code=500, detail=f"query zones list, parent level({parent_level}]) > zone level({zone_level})")
-    if (zonesReq.bbox is not None):
-        bbox = box(*zonesReq.bbox)
-        bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
-        if (bbox_crs != 'wgs84'):
-            logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, original bbox: {bbox}')
-            project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
-            bbox = transform(project, bbox)
-            logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, transformed bbox: {bbox}')
+            raise HTTPException(status_code=500, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")
+    if (bbox is not None):
+        try:
+            bbox = box(*bbox)
+            bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
+            if (bbox_crs != 'wgs84'):
+                logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, original bbox: {bbox}')
+                project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
+                bbox = transform(project, bbox)
+                logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, transformed bbox: {bbox}')
+        except Exception as e:
+            logging.error(f'{__name__} query zones list, bbox converstion failed : {e}')
+            raise HTTPException(status_code=500, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
     return query_zones_list(bbox, zone_level, limit, dggrid, compact_zone,
                             zonesReq.parent_zone, returntype, returngeometry)
 

@@ -21,8 +21,7 @@ def query_zones_list(bbox, zone_level, limit, dggrid: AbstractDGGRS,
     result = dggrid.zoneslist(bbox, zone_level, parent_zone, returngeometry, compact)
     logging.info(f'{__name__} query zones list result: {len(result.zones)}, returnedAreaMetersSquare: {result.returnedAreaMetersSquare}')
     if (returntype == 'application/geo+json'):
-        geojson = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
-        features = [Feature(**{'type': 'Feature', 'id': i, 'geometry': geojson(**eval(shapely.to_geojson(geo))), 'properties': {'zoneId': result.zones[i]}}) for i, geo in enumerate(result.geometry[:limit])]
+        features = [Feature(**{'type': 'Feature', 'id': i, 'geometry': geo, 'properties': {'zoneId': result.zones[i]}}) for i, geo in enumerate(result.geometry[:limit])]
         return ZonesGeoJson(**{'type': 'FeatureCollection', 'features': features})
 
     return ZonesResponse(**{'zones': result.zones[:limit], 'returnedAreaMetersSquare': result.returnedAreaMetersSquare})
