@@ -40,7 +40,7 @@ def test_zone_query_dggrs_zones_empty_config():
     print("Testing with dggrs zoneinfo (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/dggs/IGEO7/zones', params={'bbox': [2, 3, 4, 5]})
     pprint(response.text)
-    assert "No dggrs definition is found" in response.text
+    assert "Table Not Found" in response.text
     assert response.status_code == 500
 
     # print("Testing with collections dggrs zoneinfo (no dggrs defined)")

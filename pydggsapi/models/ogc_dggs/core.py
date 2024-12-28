@@ -7,13 +7,7 @@ from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
 from typing import Dict
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
-from fastapi.exceptions import HTTPException
-from uuid import UUID
-from datetime import datetime
-from copy import deepcopy
 from pprint import pprint
-import shapely
-import os
 import logging
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
@@ -61,7 +55,7 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
 
 
 def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrid: AbstractDGGRS):
-    logging.info(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}')
+    logging.info(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
     zoneId = zoneinfoReq.zoneId
     zoneinfo = dggrid.zonesinfo([zoneId])
     dggs_link = '/'.join(str(current_url).split('/')[:-3])
@@ -76,6 +70,6 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
     return_['bbox'] = zoneinfo.bbox[0]
     return_['geometry'] = zoneinfo.geometry[0]
     return_['areaMetersSquare'] = zoneinfo.areaMetersSquare
-    logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrs_id}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
+    logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
     return ZoneInfoResponse(**return_)
 

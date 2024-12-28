@@ -23,19 +23,6 @@ def _checkIfTableExists():
     return db
 
 
-def get_dggrs_class(dggrs_id) -> str:
-    try:
-        db = _checkIfTableExists()
-    except Exception as e:
-        raise e
-    dggrs_indexes = db.table('dggrs')
-    for dggrs in dggrs_indexes:
-        dggrsid, dggrs_config = dggrs.popitem()
-        if (dggrsid == dggrs_id):
-            return dggrs_config['classname']
-    return None
-
-
 def get_dggrs_items() -> Dict[str, DggrsItem]:
     try:
         db = _checkIfTableExists()
@@ -49,6 +36,19 @@ def get_dggrs_items() -> Dict[str, DggrsItem]:
         dggrs_model_link = Link(**{'href': dggrs_config['definition_link'], 'rel': 'ogc-rel:dggrs-definition', 'title': 'DGGRS definition'})
         dggrs_dict[dggrsid] = DggrsItem(id=dggrsid, title=dggrs_config['title'], links=[self_link, dggrs_model_link])
     return dggrs_dict
+
+
+def get_dggrs_class(dggrsId: str) -> str:
+    try:
+        db = _checkIfTableExists()
+    except Exception:
+        return None
+    dggrs_indexes = db.table('dggrs')
+    for dggrs in dggrs_indexes:
+        id_, dggrs_config = dggrs.popitem()
+        if (id_ == dggrsId):
+            return dggrs_config['classname']
+    return None
 
 
 def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:

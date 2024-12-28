@@ -22,3 +22,4 @@ def get_collections_info():
         collection_config['collectionid'] = cid
         collections_dict[cid] = Collection(**collection_config)
     return collections_dict
+

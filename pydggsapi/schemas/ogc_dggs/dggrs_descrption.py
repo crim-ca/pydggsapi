@@ -6,7 +6,7 @@ from fastapi import HTTPException
 
 
 class DggrsDescriptionRequest(BaseModel):
-    dggrs_id: str  # = Path(...)
+    dggrsId: str  # = Path(...)
     collectionId: Optional[str] = None
 
 

@@ -15,7 +15,7 @@ def test_core_dggs_description_empty_config():
     print("Testing with dggrs definition (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/dggs/IGEO7')
     pprint(response.text)
-    assert "No dggrs definition is found" in response.text
+    assert "Table Not Found" in response.text
     assert response.status_code == 500
 
 
@@ -52,7 +52,7 @@ def test_core_dggrs_description():
     assert response.status_code == 500
 
     print("Success test case with collections dggs-description (suitability_hytruck, IGEO7H)")
-    response = client.get('/dggs-api/v1-pre/collections/suitablilty_hytruck/dggs/IGEO7')
+    response = client.get('/dggs-api/v1-pre/collections/suitability_hytruck/dggs/IGEO7')
     pprint(response.json())
     assert DggrsDescription(**response.json())
     assert response.status_code == 200

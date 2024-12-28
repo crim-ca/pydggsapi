@@ -26,13 +26,13 @@ def test_core_dggs_zoneinfo_empty_config():
     print("Testing with dggrs zoneinfo (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/dggs/IGEO7/zones/123343054095')
     pprint(response.text)
-    assert "No dggrs definition is found" in response.text
+    assert "Table Not Found" in response.text
     assert response.status_code == 500
 
     print("Testing with collections dggrs zoneinfo (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/collections/suitability_hytruck/dggs/IGEO7/zones/123343054095')
     pprint(response.text)
-    assert "No dggrs definition is found" in response.text
+    assert "Table Not Found" in response.text
     assert response.status_code == 500
 
 
@@ -72,7 +72,7 @@ def test_core_dggs_zoneinfo():
     assert response.status_code == 500
 
     print(f"Success test case with collections on zones info (suitability_hytruck, IGEO7, {cellids[2]})")
-    response = client.get(f'/dggs-api/v1-pre/collections/suitablilty_hytruck/dggs/IGEO7/zones/{cellids[2]}')
+    response = client.get(f'/dggs-api/v1-pre/collections/suitability_hytruck/dggs/IGEO7/zones/{cellids[2]}')
     pprint(response.json())
     zoneinfo = ZoneInfoResponse(**response.json())
     centroid = shapely.from_geojson(json.dumps(zoneinfo.centroid.__dict__))

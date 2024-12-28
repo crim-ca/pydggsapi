@@ -15,7 +15,7 @@ def test_core_dggs_list_empty_config():
     print("Testing with dggs-list (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/dggs')
     pprint(response.text)
-    assert "No dggrs definition is found" in response.text
+    assert "Table Not Found" in response.text
     assert response.status_code == 500
 
 
@@ -37,7 +37,7 @@ def test_core_dggs_list():
     assert response.status_code == 500
 
     print("Success test case with collections dggs-list (suitability_hytruck)")
-    response = client.get('/dggs-api/v1-pre/collections/suitablilty_hytruck/dggs')
+    response = client.get('/dggs-api/v1-pre/collections/suitability_hytruck/dggs')
     pprint(response.json())
     assert DggrsListResponse(**response.json())
     assert response.status_code == 200

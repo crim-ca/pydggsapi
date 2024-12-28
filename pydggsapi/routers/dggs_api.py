@@ -19,8 +19,7 @@ from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 
 from pydggsapi.dependencies.db import get_database_client, get_conformance_classes
 from pydggsapi.dependencies.config.collections import get_collections_info
-from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions
-from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_class as check_dggrs_exists
+from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.responses import JSONResponse, FileResponse
@@ -36,26 +35,33 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
 router = APIRouter()
 
 
-def _check_dggrs_description_exists(dggrs_descrptions: Dict[str, DggrsDescription], dggrsId):
-    if (dggrs_descrptions is None):
-        logging.error(f'{__name__} : No dggrs definition is found.')
-        raise HTTPException(status_code=500, detail=f'{__name__} : No dggrs definition is found.')
-    if (dggrsId not in dggrs_descrptions.keys()):
+def _check_dggrs_description(dggrsId: str = Path(...)):
+    dggrs_descriptions = get_dggrs_descriptions()
+    if (dggrs_descriptions is None):
+        logging.error(f'{__name__} : Table Not Found.')
+        raise HTTPException(status_code=500, detail=f'{__name__} : Table Not Found.')
+    if (dggrsId not in dggrs_descriptions.keys()):
         logging.error(f'{__name__} : {dggrsId} not supported.')
         raise HTTPException(status_code=500, detail=f'{__name__} : {dggrsId} not supported')
+    return dggrs_descriptions[dggrsId]
 
 
-def _check_collection_exists(collections: Dict[str, Collection], collectionId, dggrsId=None):
+def _check_collection(collectionId=None, dggrsId=None):
+    collections = get_collections_info()
     if (collections is None):
-        logging.error(f'{__name__} collection: No collections definition are found.')
-        raise HTTPException(status_code=500, detail=f'{__name__} collection: No collections definition are found.')
+        logging.error(f'{__name__} Table Not Found.')
+        raise HTTPException(status_code=500, detail=f'{__name__} Table Not Found.')
+    if (collectionId is None):
+        return collections
     if (collectionId not in list(collections.keys())):
         logging.error(f'{__name__} collection: {collectionId} not found')
         raise HTTPException(status_code=500, detail=f'{__name__} collection: {collectionId} not found')
     if (dggrsId is not None):
         if (dggrsId not in collections[collectionId].dggrs_indexes.keys()):
-            logging.error(f'{__name__} collection: {collectionId} not support with {dggrsId}')
-            raise HTTPException(status_code=500, detail=f'{__name__} collection: {collectionId} not support with {dggrsId}')
+            logging.error(f'{__name__} collection: {collectionId} not supported with {dggrsId}')
+            raise HTTPException(status_code=500, detail=f'{__name__} collection: {collectionId} not supported with {dggrsId}')
+    else:
+        return collections[collectionId]
 
 
 def _get_return_type(req: Request, support_returntype, default_return='application/json'):
@@ -66,22 +72,37 @@ def _get_return_type(req: Request, support_returntype, default_return='applicati
     return returntype
 
 
-async def _get_dggrs_class(dggrs_id: str = Path(...)):
+def _import_dggrs_class(dggrsId: str = Path(...)):
     try:
-        classname = check_dggrs_exists(dggrs_id)
+        classname = get_dggrs_class(dggrsId)
+        if (classname is None):
+            logging.error(f'{__name__} {dggrsId} not supported')
+            raise HTTPException(status_code=500, detail=f'{__name__} {dggrsId} not supported')
     except Exception as e:
-        logging.error(f'{__name__} {dggrs_id} {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} {e}')
-    if (classname is None):
-        logging.error(f'{__name__} {dggrs_id} not supported.')
-        raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} not supported.')
+        logging.error(f'{__name__} Table Not Found. {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} Table Not Found. {e}')
     try:
         cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{classname}'), classname)
         return cls_()
     except Exception as e:
-        logging.error(f'{__name__} {dggrs_id} class: {classname} not imported, {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {dggrs_id} class: {classname} not imported, {e}')
+        logging.error(f'{__name__} {dggrsId} class: {classname} not imported, {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} {dggrsId} class: {classname} not imported, {e}')
 
+
+async def _get_collection_provider(collectionId: str = Path(...)):
+    try:
+        provider = _check_collection(collectionId).provider
+    except Exception as e:
+        logging.error(f'{__name__} {collectionId} {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} {collectionId} {e}')
+    try:
+        classname = provider['providerClassName']
+        params = provider['providerParams']
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.collections_providers.{classname}'), classname)
+        return cls_(**params)
+    except Exception as e:
+        logging.error(f'{__name__} {collectionId} class: {classname} not imported, {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} {collectionId} class: {classname} not imported, {e}')
 # Landing page and conformance
 
 
@@ -101,40 +122,35 @@ async def conformance(conformance_classes=Depends(get_conformance_classes)):
 @router.get("/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
 async def support_dggs(req: Request, collectionId: Optional[str] = None,
-                       collections=Depends(get_collections_info), dggrs_items=Depends(get_dggrs_items)):
+                       dggrs_items=Depends(get_dggrs_items)):
     logging.info(f'{__name__} called.')
     if (dggrs_items is None):
-        logging.error(f'{__name__} dggs-list: No dggrs definition is found.')
-        raise HTTPException(status_code=500, detail=f'{__name__} dggs-list: No dggrs definition is found.')
+        logging.error(f'{__name__} dggs-list: Table Not Found.')
+        raise HTTPException(status_code=500, detail=f'{__name__} dggs-list: Table Not Found.')
     filter_ = list(dggrs_items.keys())
     if (collectionId is not None):
-        _check_collection_exists(collections, collectionId)
-        filter_ = [dggrsid for dggrsid in collections[collectionId].dggrs_indexes.keys()]
+        collection = _check_collection(collectionId, None)
+        filter_ = [dggrsid for dggrsid in collection.dggrs_indexes.keys()]
     return query_support_dggs(req.url, dggrs_items, filter_)
 
 
 # dggrs description
-@router.get("/dggs/{dggrs_id}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrs_id}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
+@router.get("/dggs/{dggrsId}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrsId}", response_model=DggrsDescription, tags=['ogc-dggs-api'],
+            dependencies=[Depends(_check_collection)])
 async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = Depends(),
-                            collections=Depends(get_collections_info), dggrs_descriptions=Depends(get_dggrs_descriptions)):
-    _check_dggrs_description_exists(dggrs_descriptions, dggrs_req.dggrs_id)
+                            dggrs_description=Depends(_check_dggrs_description)):
     current_url = str(req.url)
-    if (dggrs_req.collectionId is not None):
-        _check_collection_exists(collections, dggrs_req.collectionId, dggrs_req.dggrs_id)
-    return query_dggrs_definition(current_url, dggrs_descriptions[dggrs_req.dggrs_id])
+    return query_dggrs_definition(current_url, dggrs_description)
 
 
 # zone-info
-@router.get("/dggs/{dggrs_id}/zones/{zoneId}",  response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrs_id}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
-async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(), dggrid: AbstractDGGRS = Depends(_get_dggrs_class),
-                          collections=Depends(get_collections_info), dggrs_descrptions=Depends(get_dggrs_descriptions)):
-    _check_dggrs_description_exists(dggrs_descrptions, zoneinfoReq.dggrs_id)
-    if (zoneinfoReq.collectionId is not None):
-        _check_collection_exists(collections, zoneinfoReq.collectionId, zoneinfoReq.dggrs_id)
+@router.get("/dggs/{dggrsId}/zones/{zoneId}",  response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
+async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(), dggrid: AbstractDGGRS = Depends(_import_dggrs_class),
+                          collection=Depends(_check_collection), dggrs_descrption=Depends(_check_dggrs_description)):
     try:
-        info = query_zone_info(zoneinfoReq, req.url, dggrs_descrptions[zoneinfoReq.dggrs_id], dggrid)
+        info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrid)
     except Exception as e:
         logging.error(f'{__name__} dggs-zoneinfo: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} dggs-zoneifno: {e}')
@@ -143,16 +159,13 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 
 # Zone query conformance class
 
-@router.get("/dggs/{dggrs_id}/zones", response_model=Union[ZonesResponse,ZonesGeoJson], tags=['ogc-dggs-api'])
+@router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
-                           dggrid: AbstractDGGRS = Depends(_get_dggrs_class), dggrs_descrptions=Depends(get_dggrs_descriptions)):
-
-    _check_dggrs_description_exists(dggrs_descrptions, zonesReq.dggrs_id)
+                           dggrid: AbstractDGGRS = Depends(_import_dggrs_class), dggrs_descrption=Depends(_check_dggrs_description)):
 
     returntype = _get_return_type(req, zone_query_support_returntype, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
-    dggrs_info = dggrs_descrptions[zonesReq.dggrs_id]
-    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_info.defaultDepth
+    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_descrption.defaultDepth
     compact_zone = zonesReq.compact_zone if (zonesReq.compact_zone is not None) else True
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
@@ -183,6 +196,7 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
 
 
 @router.get("/dggs/{dggrs_id}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrs_id}/zones/{zoneId}/data", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
                            dggrid=Depends(), dggs_info=Depends(),
                            client=Depends(get_database_client)) -> ZonesDataDggsJsonResponse | FileResponse:
