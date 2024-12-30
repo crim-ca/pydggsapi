@@ -9,7 +9,11 @@ from shapely.geometry import box
 class AbstractDGGRS(ABC):
 
     @abstractmethod
-    def get_cells_zone_level(self, cellIds: List[str]) -> List[int]:
+    def get_cells_zone_level(self, cellIds: list) -> List[int]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_zoneIds_by_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int], geometry: str) -> tuple[List[List[Any]], List[List[Any]]]:
         raise NotImplementedError
 
     @abstractmethod

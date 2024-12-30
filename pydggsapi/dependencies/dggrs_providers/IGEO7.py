@@ -7,7 +7,7 @@ from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGG
 import os
 import tempfile
 import logging
-from typing import Union
+from typing import Union, List
 from dggrid4py import DGGRIDv7
 import shapely
 from shapely.geometry import box
@@ -20,7 +20,6 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
 class IGEO7(AbstractDGGRS):
 
     def __init__(self):
-
         executable = os.environ['DGGRID_PATH']
         working_dir = tempfile.mkdtemp()
         self.dggrid_instance = DGGRIDv7(executable=executable, working_dir=working_dir)
@@ -75,7 +74,7 @@ class IGEO7(AbstractDGGRS):
         gdf = self.dggrid_instance.grid_cellids_for_extent('IGEO7', zoomlevel, clip_geom=clip_geom, output_address_type='Z7_STRING')
         return gdf
 
-    def get_cells_zone_level(self, cellIds):
+    def get_cells_zone_level(self, cellIds: List[str]):
         try:
             zones_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')
             return zones_level['resolution'].values.tolist()
@@ -83,7 +82,24 @@ class IGEO7(AbstractDGGRS):
             logging.error(f'{__name__} zone id {cellIds} dggrid get zone level failed')
             raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed')
 
-    def zonesinfo(self, cellIds: list):
+    def get_zoneIds_by_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
+        children_cellIds = []
+        children_geometry = []
+        geometry = geometry.lower()
+        method = self.dggrid_instance.grid_cell_polygons_from_cellids if (geometry == 'zone-region') else self.dggrid_instance.grid_cell_centroids_from_cellids
+        try:
+            for z in zone_levels:
+                gdf = method([cellId], 'IGEO7', z, clip_subset_type='COARSE_CELLS', clip_cell_res=base_level,
+                             input_address_type='Z7_STRING', output_address_type='Z7_STRING')
+                children_cellIds.append(gdf['name'].values.astype(str).tolist())
+                children_geometry.append(gdf['geometry'].values.tolist())
+        except Exception as e:
+            logging.error(f'{__name__} get_zoneIds_by_zonelevels, get children failed {e}')
+            raise Exception(f'{__name__} get_zoneIds_by_zonelevels, get children failed {e}')
+
+        return (children_cellIds, children_geometry)
+
+    def zonesinfo(self, cellIds: List[str]):
         zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')['resolution'][0]
         try:
             centroid = self.centroid_from_cellid(cellIds, zone_level).geometry
@@ -112,16 +128,16 @@ class IGEO7(AbstractDGGRS):
         if (parent_zone is not None):
             try:
                 parent_zone_level = self.get_cells_zone_level([parent_zone])[0]
+                childern_hex_gdf = self.dggrid_instance.grid_cell_polygons_from_cellids([parent_zone], 'IGEO7', zone_level,
+                                                                                        clip_subset_type='COARSE_CELLS',
+                                                                                        clip_cell_res=parent_zone_level,
+                                                                                        input_address_type='Z7_STRING',
+                                                                                        output_address_type='Z7_STRING')
+                childern_hex_gdf.set_index('name', inplace=True)
+                hex_gdf = hex_gdf.join(childern_hex_gdf, how='inner', rsuffix='_p') if (bbox is not None) else childern_hex_gdf
             except Exception as e:
-                logging.error(f'{__name__} query zones list, parent_zone: {parent_zone} get zone level failed {e}')
-                raise Exception(f'parent_zone: {parent_zone} get zone level failed {e}')
-            childern_hex_gdf = self.dggrid_instance.grid_cell_polygons_from_cellids([parent_zone], 'IGEO7', zone_level,
-                                                                                    clip_subset_type='COARSE_CELLS',
-                                                                                    clip_cell_res=parent_zone_level,
-                                                                                    input_address_type='Z7_STRING',
-                                                                                    output_address_type='Z7_STRING')
-            childern_hex_gdf.set_index('name', inplace=True)
-            hex_gdf = hex_gdf.join(childern_hex_gdf, how='inner', rsuffix='_p') if (bbox is not None) else childern_hex_gdf
+                logging.error(f'{__name__} query zones list, parent_zone: {parent_zone} get children failed {e}')
+                raise Exception(f'parent_zone: {parent_zone} get children failed {e}')
         if (len(hex_gdf) == 0):
             raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
         if (compact):
