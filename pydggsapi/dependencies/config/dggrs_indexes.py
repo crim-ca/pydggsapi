@@ -18,17 +18,21 @@ load_dotenv()
 def _checkIfTableExists():
     db = TinyDB(os.environ.get('dggs_api_config', './dggs_api_config.json'))
     if ('dggrs' not in db.tables()):
-        logging.error(f'{__name__} No dggrs definition is found.')
-        raise Exception(f"{__name__} No dggrs definition is found.")
+        logging.error(f"{__name__} dggrs table not found.")
+        raise Exception(f"{__name__} dggrs table not found.")
     return db
 
 
 def get_dggrs_items() -> Dict[str, DggrsItem]:
     try:
         db = _checkIfTableExists()
-    except Exception:
-        return None
-    dggrs_indexes = db.table('dggrs')
+    except Exception as e:
+        logging.error(f"{__name__} {e}")
+        raise Exception(f"{__name__} {e}")
+    dggrs_indexes = db.table('dggrs').all()
+    if (len(dggrs_indexes) == 0):
+        logging.error(f'{__name__} no dggrs defined.')
+        raise Exception(f"{__name__} no dggrs defined.")
     dggrs_dict = {}
     for dggrs in dggrs_indexes:
         dggrsid, dggrs_config = dggrs.popitem()
@@ -41,8 +45,9 @@ def get_dggrs_items() -> Dict[str, DggrsItem]:
 def get_dggrs_class(dggrsId: str) -> str:
     try:
         db = _checkIfTableExists()
-    except Exception:
-        return None
+    except Exception as e:
+        logging.error(f"{__name__} {e}")
+        raise Exception(f"{__name__} {e}")
     dggrs_indexes = db.table('dggrs')
     for dggrs in dggrs_indexes:
         id_, dggrs_config = dggrs.popitem()
@@ -54,12 +59,19 @@ def get_dggrs_class(dggrsId: str) -> str:
 def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
     try:
         db = _checkIfTableExists()
-    except Exception:
-        return None
-    dggrs_indexes = db.table('dggrs')
+        collections = get_collections_info()
+    except Exception as e:
+        print(f'here: {e}')
+        logging.error(f"{__name__} {e}")
+        raise Exception(f"{__name__} {e}")
+    if (len(collections.keys()) == 0):
+        logging.error(f"{__name__} no collections found")
+        raise Exception(f"{__name__} no collections found")
+    dggrs_indexes = db.table('dggrs').all()
+    if (len(dggrs_indexes) == 0):
+        logging.error(f"{__name__} no dggrs defined.")
+        raise Exception(f"{__name__} no dggrs defined.")
     dggrs_dict = {}
-    collections = get_collections_info()
-    collections = {} if (collections is None) else collections
     tmp = [v.dggrs_indexes for k, v in collections.items()]
     max_dggrs = {}
     for t in tmp:
