@@ -2,7 +2,7 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
+from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
 import os
 import tempfile
@@ -82,22 +82,24 @@ class IGEO7(AbstractDGGRS):
             logging.error(f'{__name__} zone id {cellIds} dggrid get zone level failed')
             raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed')
 
-    def get_zoneIds_by_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
-        children_cellIds = []
-        children_geometry = []
+    def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
+        children = {}
         geometry = geometry.lower()
         method = self.dggrid_instance.grid_cell_polygons_from_cellids if (geometry == 'zone-region') else self.dggrid_instance.grid_cell_centroids_from_cellids
+        geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:
             for z in zone_levels:
                 gdf = method([cellId], 'IGEO7', z, clip_subset_type='COARSE_CELLS', clip_cell_res=base_level,
                              input_address_type='Z7_STRING', output_address_type='Z7_STRING')
-                children_cellIds.append(gdf['name'].values.astype(str).tolist())
-                children_geometry.append(gdf['geometry'].values.tolist())
+                g = [geojson(**shapely.to_geojson(g)) for g in gdf['geometry'].values.tolist()]
+                children[z] = DGGRSProviderZonesElement(**{'zoneIds': gdf['name'].astype(str).values.tolist(),
+                                                           'geometry': g})
+
         except Exception as e:
             logging.error(f'{__name__} get_zoneIds_by_zonelevels, get children failed {e}')
             raise Exception(f'{__name__} get_zoneIds_by_zonelevels, get children failed {e}')
 
-        return (children_cellIds, children_geometry)
+        return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
     def zonesinfo(self, cellIds: List[str]):
         zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')['resolution'][0]

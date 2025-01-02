@@ -5,13 +5,9 @@ from typing import List, Any, Union, Dict
 
 
 class AbstractCollectionProvider(ABC):
-    res_cols = {}
-    data_cols = {}
     uid: str
 
-    def __init__(self, uid, res_cols: Dict[int, str], data_cols: List[str]):
-        self.res_cols = res_cols
-        self.data_cols = data_cols
+    def __init__(self, uid: str):
         self.uid = uid
 
     # 1. The return data must be aggregated.

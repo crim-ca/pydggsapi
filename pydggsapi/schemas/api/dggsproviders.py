@@ -1,6 +1,7 @@
 from __future__ import annotations
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, model_validator
+from typing import List, Any, Dict, Union
+from typing_extensions import Self
 
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
 
@@ -18,4 +19,21 @@ class DGGRSProviderZonesListReturn(BaseModel):
     geometry: List[GeoJSONPolygon] | List[GeoJSONPoint]
     zones: List[str] | List[int]
     returnedAreaMetersSquare: float
+
+
+class DGGRSProviderZonesElement(BaseModel):
+    zoneIds: List[Any]
+    geometry: List[GeoJSONPolygon] | List[GeoJSONPoint]
+
+    @model_validator(mode='after')
+    def validator(self) -> Self:
+        if (len(self.zoneIds) != len(self.geometry)):
+            raise ValueError('length of zoneIds and geometry must equal.')
+        return self
+
+
+class DGGRSProviderGetRelativeZoneLevelsReturn(BaseModel):
+    relative_zonelevels: Union[Dict[int, DGGRSProviderZonesElement],Dict]
+
+
 
