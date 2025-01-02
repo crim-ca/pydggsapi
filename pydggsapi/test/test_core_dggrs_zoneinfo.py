@@ -26,13 +26,13 @@ def test_core_dggs_zoneinfo_empty_config():
     print("Testing with dggrs zoneinfo (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/dggs/IGEO7/zones/123343054095')
     pprint(response.text)
-    assert "Table Not Found" in response.text
+    assert "table not found" in response.text
     assert response.status_code == 500
 
     print("Testing with collections dggrs zoneinfo (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/collections/suitability_hytruck/dggs/IGEO7/zones/123343054095')
     pprint(response.text)
-    assert "Table Not Found" in response.text
+    assert "table not found" in response.text
     assert response.status_code == 500
 
 

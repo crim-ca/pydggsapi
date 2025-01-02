@@ -15,7 +15,7 @@ def test_core_dggs_list_empty_config():
     print("Testing with dggs-list (no dggrs defined)")
     response = client.get('/dggs-api/v1-pre/dggs')
     pprint(response.text)
-    assert "Table Not Found" in response.text
+    assert "table not found" in response.text
     assert response.status_code == 500
 
 
