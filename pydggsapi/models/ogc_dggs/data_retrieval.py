@@ -36,10 +36,10 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrsId: str, dgg
     # get data and form a master dataframe (seleceted providers) for each zone level
     data = {}
     data_type = {}
-    for i, z in enumerate(zone_levels):
-        g = [shapely.from_geojson(json.dumps(g.__dict__))for g in result.relative_zonelevels[z].geometry]
-        master = gpd.GeoDataFrame(result.relative_zonelevels[z].zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
-        idx = master.index.values
+    for z, v in result.relative_zonelevels.items():
+        g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
+        master = gpd.GeoDataFrame(v.zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
+        idx = master.index.values.tolist()
         for cp in collectionproviders:
             collection_result = cp.get_data(idx, z)
             cols_name = {f'{cp.uid}_{k}': v for k, v in collection_result.cols_meta.items()}
@@ -48,7 +48,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrsId: str, dgg
             tmp = pd.DataFrame(np.concatenate([id_, collection_result.data], axis=-1),
                                columns=['zoneId'] + list(cols_name.keys())).set_index('zoneId')
             master = master.join(tmp)
-        data[z] = master if (returntype == 'application/geojson') else master.drop(columns=['geometry']).T
+        data[z] = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry']).T
     zarr_root, tmpfile = None, None
     features = []
     id_ = 0
@@ -59,13 +59,14 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrsId: str, dgg
         zarr_root = zarr.group(zipstore)
 
     for z, d in data.items():
-        if (returntype == 'application/geojson'):
+        if (returntype == 'application/geo+json'):
             d.reset_index(inplace=True)
             geometry = d['geometry'].values
+            geojson = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
             d = d.drop(columns='geometry')
             feature = d.to_dict(orient='records')
-            feature = [Feature(**{'type': "Feature", 'id': id_ + i, 'geometry': geometry[i], 'properties': f}) for i, f in enumerate(feature)]
-            features.append(feature)
+            feature = [Feature(**{'type': "Feature", 'id': id_ + i, 'geometry': geojson(**shapely.geometry.mapping(geometry[i])), 'properties': f}) for i, f in enumerate(feature)]
+            features += feature
             id_ += len(d)
             logging.info(f'{__name__} query zone data {dggrsId}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
         else:

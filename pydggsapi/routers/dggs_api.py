@@ -11,15 +11,16 @@ from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest,
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
+from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
 from pydggsapi.schemas.api.config import Collection
 
 from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_definition, query_zone_info, landingpage
 from pydggsapi.models.ogc_dggs.data_retrieval import query_zone_data
 from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 
-from pydggsapi.dependencies.db import get_database_client, get_conformance_classes
 from pydggsapi.dependencies.config.collections import get_collections_info
 from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
+from pydggsapi.dependencies.config.api import get_conformance_classes
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.responses import JSONResponse, FileResponse
@@ -68,7 +69,7 @@ def _check_collection(collectionId=None, dggrsId=None):
 def _get_return_type(req: Request, support_returntype, default_return='application/json'):
     returntypes = req.headers.get('accept').lower() if (req.headers.get('accept') is not None) else default_return
     returntypes = returntypes.split(',')
-    intersection = [i for i in returntypes if i in set(support_returntype)]
+    intersection = [i for i in returntypes if i in support_returntype]
     returntype = intersection[0] if (len(intersection) > 0) else default_return
     return returntype
 
@@ -227,12 +228,12 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
         if (len(depth) == 2):
             exclude = False if depth[0] == 0 else exclude
             depth = list(range(depth[0], depth[1] + 1))
-            zone_level = zone_level + [zone_level[0] + d for d in depth if d > 0]
+        zone_level = zone_level + [zone_level[0] + d for d in depth if d > 0]
     for z in zone_level:
         if (z > dggrs_info.maxRefinementLevel):
-            logging.error(f'{__name__} query zone data {zonedataReq.dggrs_id}, zone id {zoneId} with relative depth: {z} not support')
+            logging.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
             raise HTTPException(status_code=500,
-                                detail=f"query zone data {zonedataReq.dggrs_id}, zone id {zoneId} with relative depth: {z} not support")
+                                detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
     collections_provider = [_import_collection_provider(c) for c in collections]
     link = [link.href for link in dggrs_info.links if (link.rel == 'ogc-rel:dggrs-definition')][0]
     try:

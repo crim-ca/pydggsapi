@@ -91,13 +91,13 @@ class IGEO7(AbstractDGGRS):
             for z in zone_levels:
                 gdf = method([cellId], 'IGEO7', z, clip_subset_type='COARSE_CELLS', clip_cell_res=base_level,
                              input_address_type='Z7_STRING', output_address_type='Z7_STRING')
-                g = [geojson(**shapely.to_geojson(g)) for g in gdf['geometry'].values.tolist()]
+                g = [geojson(**shapely.geometry.mapping(g)) for g in gdf['geometry'].values.tolist()]
                 children[z] = DGGRSProviderZonesElement(**{'zoneIds': gdf['name'].astype(str).values.tolist(),
                                                            'geometry': g})
 
         except Exception as e:
-            logging.error(f'{__name__} get_zoneIds_by_zonelevels, get children failed {e}')
-            raise Exception(f'{__name__} get_zoneIds_by_zonelevels, get children failed {e}')
+            logging.error(f'{__name__} get_relative_zonelevels, get children failed {e}')
+            raise Exception(f'{__name__} get_relative_zonelevels, get children failed {e}')
 
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 

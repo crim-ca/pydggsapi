@@ -53,9 +53,52 @@ def test_data_retrieval():
     assert "not supported" in response.text
     assert response.status_code == 500
 
+    print(f"Fail test case withdata-retrieval query (IGEO7, {cellids[0]}, relative_depth=4) over refinement")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': 4})
+    pprint(response.json())
+    assert "not supported" in response.text
+    assert response.status_code == 500
+
     print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]})")
     response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data')
     pprint(response.json())
+    data = ZonesDataDggsJsonResponse(**response.json())
     assert response.status_code == 200
 
+    print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, return = geojson)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'})
+    pprint(response.json())
+    data = ZonesDataGeoJson(**response.json())
+    assert response.status_code == 200
 
+    print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, return = geojson, geometry='zone-centroid')")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid'},
+                          headers={'accept': 'application/geo+json'})
+    pprint(response.json())
+    data = ZonesDataGeoJson(**response.json())
+    assert response.status_code == 200
+
+    print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=2)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': 2})
+    pprint(response.json())
+    data = ZonesDataDggsJsonResponse(**response.json())
+    assert response.status_code == 200
+
+    print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=1-2)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': '1-2'})
+    pprint(response.json())
+    data = ZonesDataDggsJsonResponse(**response.json())
+    assert response.status_code == 200
+
+    print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=0-2)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': '0-2'})
+    pprint(response.json())
+    data = ZonesDataDggsJsonResponse(**response.json())
+    assert response.status_code == 200
+
+    print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=0-2, geometry='zone-centroid', return=geojson)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': '0-2', 'geometry': 'zone-centroid'},
+                          headers={'accept': 'application/geo+json'})
+    pprint(response.json())
+    data = ZonesDataGeoJson(**response.json())
+    assert response.status_code == 200

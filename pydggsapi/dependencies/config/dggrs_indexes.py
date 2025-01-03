@@ -61,7 +61,6 @@ def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
         db = _checkIfTableExists()
         collections = get_collections_info()
     except Exception as e:
-        print(f'here: {e}')
         logging.error(f"{__name__} {e}")
         raise Exception(f"{__name__} {e}")
     if (len(collections.keys()) == 0):
@@ -76,9 +75,12 @@ def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
     max_dggrs = {}
     for t in tmp:
         for dggrs_key, zone_level in t.items():
-            if (dggrs_key in max_dggrs.keys()):
+            try:
+                current_max = max_dggrs[dggrs_key]
                 local_max = max(zone_level)
-                max_dggrs[dggrs_key] = local_max if (max_dggrs[dggrs_key] < local_max) else max_dggrs[dggrs_key]
+                max_dggrs[dggrs_key] = local_max if (current_max < local_max) else current_max
+            except KeyError:
+                max_dggrs[dggrs_key] = max(zone_level)
     for dggrs in dggrs_indexes:
         dggrsid, dggrs_config = dggrs.popitem()
         self_link = Link(**{'href': '', 'rel': 'self', 'title': 'DGGRS description link'})
