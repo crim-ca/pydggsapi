@@ -23,6 +23,7 @@ python-keycloak = "^4.7.0"
 tinydb = "^4.8.2"
 pytest = "^8.3.4"
 fastapi = "^0.115.6"
+h3 = "^4.1.2"
 
 
 
@@ -33,4 +34,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-ra -s"
+#addopts = "-ra -s"

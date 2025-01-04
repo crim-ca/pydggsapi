@@ -84,7 +84,8 @@ def _import_dggrs_class(dggrsId: str = Path(...)):
         logging.error(f'{__name__} {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} {e}')
     try:
-        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{classname}'), classname)
+        module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{module}'), classname)
         return cls_()
     except Exception as e:
         logging.error(f'{__name__} {dggrsId} class: {classname} not imported, {e}')

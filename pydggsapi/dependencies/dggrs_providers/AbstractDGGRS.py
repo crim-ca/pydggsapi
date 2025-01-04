@@ -1,7 +1,7 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
 from abc import ABC, abstractmethod
-from typing import List, Any, Union, Annotated
+from typing import List, Any, Union
 from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
 from shapely.geometry import box
 
@@ -26,3 +26,17 @@ class AbstractDGGRS(ABC):
     def zonesinfo(self, cellIds: list) -> DGGRSProviderZoneInfoReturn:
         raise NotImplementedError
 
+
+class VirtualAbstractDGGRS(AbstractDGGRS):
+
+    def __init__(self, virtual, actual):
+        self.virtualdggrs = virtual
+        self.actualdggrs = actual
+
+    @abstractmethod
+    def forward():
+        raise NotImplementedError
+
+    @abstractmethod
+    def backward():
+        raise NotImplementedError
