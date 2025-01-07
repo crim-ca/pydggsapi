@@ -63,12 +63,17 @@ def test_data_retrieval():
     response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data')
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
+    p1 = list(data.properties.keys())[0]
+    assert len(data.values[p1]) > 0
+    value = data.values[p1][0]
+    assert len(value.data) > 0
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, return = geojson)")
     response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'})
     pprint(response.json())
     data = ZonesDataGeoJson(**response.json())
+    assert len(data.features) > 0
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, return = geojson, geometry='zone-centroid')")
@@ -82,18 +87,33 @@ def test_data_retrieval():
     response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': 2})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
+    p1 = list(data.properties.keys())[0]
+    assert len(data.values[p1]) > 0
+    assert (8 in data.depths)
+    value = data.values[p1][0]
+    assert len(value.data) > 0
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=1-2)")
     response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': '1-2'})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
+    p1 = list(data.properties.keys())[0]
+    assert len(data.values[p1]) > 0
+    assert (7 in data.depths) and (8 in data.depths)
+    value = data.values[p1][0]
+    assert len(value.data) > 0
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=0-2)")
     response = client.get(f'/dggs-api/v1-pre/dggs/IGEO7/zones/{cellids[0]}/data', params={'depth': '0-2'})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
+    p1 = list(data.properties.keys())[0]
+    assert len(data.values[p1]) > 0
+    assert (7 in data.depths) and (8 in data.depths) and (6 in data.depths)
+    value = data.values[p1][0]
+    assert len(value.data) > 0
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (IGEO7, {cellids[0]}, relative_depth=0-2, geometry='zone-centroid', return=geojson)")
@@ -101,4 +121,5 @@ def test_data_retrieval():
                           headers={'accept': 'application/geo+json'})
     pprint(response.json())
     data = ZonesDataGeoJson(**response.json())
+    assert len(data.features) > 0
     assert response.status_code == 200
