@@ -36,13 +36,13 @@ class VH3_IGEO7(VirtualAbstractDGGRS):
         v_ids = []
         actual_zoneIds = []
         actual_res_list = []
-        print(len(res_list))
         try:
-            # ~ 0.05s for one iter
+            # ~ 0.05s for one iter with using actualdggrs.zoneslist
+            # ~ 0.03s for one iter with using get centriod method. (1s reduced in total for 49 zones)
             for i, res in enumerate(res_list):
-                r = self.actualdggrs.zoneslist(shapely.box(*res[1].bounds), zone_level=res[0], parent_zone=None, returngeometry='zone-centroid', compact=False)
-                selection = [shapely.within(shapely.geometry.shape(g.__dict__), res[1]) for g in r.geometry]
-                selection = [r.zones[j] for j in range(len(selection)) if (selection[j] == True)]
+                r = self.actualdggrs.generate_hexcentroid(shapely.box(*res[1].bounds), res[0])
+                selection = [shapely.within(g, res[1]) for g in r['geometry']]
+                selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
                 actual_zoneIds += selection
                 v_ids += [virtual_zoneIds[i]] * len(selection)
                 actual_res_list += [res[0]] * len(selection)

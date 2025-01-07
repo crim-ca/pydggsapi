@@ -56,6 +56,11 @@ class IGEO7(AbstractDGGRS):
         gdf = self.dggrid_instance.grid_cell_polygons_for_extent('IGEO7', resolution, clip_geom=bbox, output_address_type='Z7_STRING')
         return gdf
 
+    def generate_hexcentroid(self, bbox, resolution):
+        # ISEA7H grid at resolution, for extent of provided WGS84 rectangle into GeoDataFrame
+        gdf = self.dggrid_instance.grid_cell_centroids_for_extent('IGEO7', resolution, clip_geom=bbox, output_address_type='Z7_STRING')
+        return gdf
+
     def centroid_from_cellid(self, cellid: list, zone_level):
         gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, 'IGEO7', zone_level,
                                                                     input_address_type='Z7_STRING', output_address_type='Z7_STRING')
