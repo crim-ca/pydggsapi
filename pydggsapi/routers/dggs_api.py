@@ -101,7 +101,8 @@ def _import_collection_provider(collectionId: str):
     try:
         classname = provider.providerClassName
         params = provider.providerParams
-        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.collections_providers.{classname}'), classname)
+        module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.collections_providers.{module}'), classname)
         return cls_(params)
     except Exception as e:
         logging.error(f'{__name__} {collectionId} provider not imported, {e}')

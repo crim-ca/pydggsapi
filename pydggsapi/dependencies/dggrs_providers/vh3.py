@@ -2,7 +2,7 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import VirtualAbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.dependencies.dggrs_providers.IGEO7 import IGEO7
+from pydggsapi.dependencies.dggrs_providers.dggrid import IGEO7
 from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 from pydggsapi.schemas.api.dggsproviders import VirtualAbstractDGGRSForwardReturn
 
