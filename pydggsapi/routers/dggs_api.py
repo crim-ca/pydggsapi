@@ -189,10 +189,10 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
             bbox = box(*bbox)
             bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
             if (bbox_crs != 'wgs84'):
-                logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, original bbox: {bbox}')
+                logging.info(f'{__name__} query zones list {zonesReq.dggrsId}, original bbox: {bbox}')
                 project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
                 bbox = transform(project, bbox)
-                logging.info(f'{__name__} query zones list {zonesReq.dggrs_id}, transformed bbox: {bbox}')
+                logging.info(f'{__name__} query zones list {zonesReq.dggrsId}, transformed bbox: {bbox}')
         except Exception as e:
             logging.error(f'{__name__} query zones list, bbox converstion failed : {e}')
             raise HTTPException(status_code=500, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
@@ -223,8 +223,8 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     try:
         zone_level.append(dggrid.get_cells_zone_level([zoneId])[0])
     except Exception as e:
-        logging.error(f'{__name__} query zone data {zonedataReq.dggrs_id}, zone id {zoneId} get zone level error: {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} query zone data {zonedataReq.dggrs_id}, zone id {zoneId} get zone level error: {e}')
+        logging.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
     if (depth is not None):
         if (len(depth) == 2):
             exclude = False if depth[0] == 0 else exclude

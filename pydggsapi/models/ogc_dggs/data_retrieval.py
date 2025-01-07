@@ -4,12 +4,13 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, Proper
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZonesElement
 
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS, VirtualAbstractDGGRS
 from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
 
 from fastapi.responses import FileResponse
 from numcodecs import Blosc
 from typing import List
+from scipy.stats import mode
 import shapely
 import tempfile
 import numpy as np
@@ -38,16 +39,31 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrsId: str, dgg
     data_type = {}
     for z, v in result.relative_zonelevels.items():
         g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
-        master = gpd.GeoDataFrame(v.zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
+        if issubclass(dggrid.__class__, VirtualAbstractDGGRS):
+            converted = dggrid.convert(v.zoneIds)
+            tmp = gpd.GeoDataFrame({'vid': v.zoneIds}, geometry=g).set_index('vid')
+            master = pd.DataFrame({'vid': converted.virtual_zoneIds, 'zoneId': converted.actual_zoneIds}).set_index('vid')
+            master = master.join(tmp).reset_index().set_index('zoneId')
+            z = converted.actual_res[0]
+        else:
+            master = gpd.GeoDataFrame(v.zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
         idx = master.index.values.tolist()
         for cp in collectionproviders:
             collection_result = cp.get_data(idx, z)
-            cols_name = {f'{cp.uid}_{k}': v for k, v in collection_result.cols_meta.items()}
+            cols_name = {f'{cp.uid}.{k}': v for k, v in collection_result.cols_meta.items()}
             data_type.update(cols_name)
             id_ = np.array(collection_result.zoneIds).reshape(-1, 1)
             tmp = pd.DataFrame(np.concatenate([id_, collection_result.data], axis=-1),
                                columns=['zoneId'] + list(cols_name.keys())).set_index('zoneId')
             master = master.join(tmp)
+        master = master.astype(data_type)
+        if issubclass(dggrid.__class__, VirtualAbstractDGGRS):
+            master.reset_index(inplace=True)
+            tmp_geo = master.groupby('vid')['geometry'].last()
+            master.drop(columns=['zoneId', 'geometry'], inplace=True)
+            master = master.groupby('vid').agg(lambda x: mode(x)[0])
+            master = master.join(tmp_geo).reset_index().rename(columns={'vid': 'zoneId'})
+            master.set_index('zoneId', inplace=True)
         data[z] = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry']).T
     zarr_root, tmpfile = None, None
     features = []
