@@ -27,7 +27,7 @@ zone_level = [5, 6, 7, 8, 9]
 aoi = shapely.Polygon(aoi)
 
 
-def test_data_retrieval_VH3():
+def test_data_retrieval_VH3_2_IGEO7():
     os.environ['dggs_api_config'] = './dggs_api_config.json'
     app = reload(pydggsapi.api).app
     client = TestClient(app)
@@ -38,33 +38,33 @@ def test_data_retrieval_VH3():
     assert "not supported" in response.text
     assert response.status_code == 500
 
-    print(f"Fail test case withdata-retrieval query (VH3, {cellids[0]}, relative_depth=4) over refinement")
-    response = client.get(f'/dggs-api/v1-pre/dggs/VH3/zones/{cellids[0]}/data', params={'depth': 4})
+    print(f"Fail test case withdata-retrieval query (VH3_2_IGEO7, {cellids[0]}, relative_depth=4) over refinement")
+    response = client.get(f'/dggs-api/v1-pre/dggs/VH3_2_IGEO7/zones/{cellids[0]}/data', params={'depth': 4})
     pprint(response.json())
     assert "not supported" in response.text
     assert response.status_code == 500
 
-    print(f"Success test case with data-retrieval query (VH3, {cellids[0]})")
-    response = client.get(f'/dggs-api/v1-pre/dggs/VH3/zones/{cellids[0]}/data')
+    print(f"Success test case with data-retrieval query (VH3_2_IGEO7, {cellids[0]})")
+    response = client.get(f'/dggs-api/v1-pre/dggs/VH3_2_IGEO7/zones/{cellids[0]}/data')
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
     assert response.status_code == 200
 
-    print(f"Success test case with data-retrieval query (VH3, {cellids[0]}, return = geojson)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/VH3/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'})
+    print(f"Success test case with data-retrieval query (VH3_2_IGEO7, {cellids[0]}, return = geojson)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/VH3_2_IGEO7/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'})
     pprint(response.json())
     data = ZonesDataGeoJson(**response.json())
     assert response.status_code == 200
 
-    print(f"Success test case with data-retrieval query (VH3, {cellids[0]}, return = geojson, geometry='zone-centroid')")
-    response = client.get(f'/dggs-api/v1-pre/dggs/VH3/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid'},
+    print(f"Success test case with data-retrieval query (VH3_2_IGEO7, {cellids[0]}, return = geojson, geometry='zone-centroid')")
+    response = client.get(f'/dggs-api/v1-pre/dggs/VH3_2_IGEO7/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid'},
                           headers={'accept': 'application/geo+json'})
     pprint(response.json())
     data = ZonesDataGeoJson(**response.json())
     assert response.status_code == 200
 
-    print(f"Success test case with data-retrieval query (VH3, {cellids[0]}, relative_depth=2)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/VH3/zones/{cellids[0]}/data', params={'depth': 2})
+    print(f"Success test case with data-retrieval query (VH3_2_IGEO7, {cellids[0]}, relative_depth=2)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/VH3_2_IGEO7/zones/{cellids[0]}/data', params={'depth': 2})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
     assert response.status_code == 200
