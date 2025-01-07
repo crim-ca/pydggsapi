@@ -2,31 +2,56 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import VirtualAbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
+from pydggsapi.dependencies.dggrs_providers.IGEO7 import IGEO7
 from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.api.dggsproviders import VirtualAbstractDGGRSForwardReturn
 
-import os
-import tempfile
 import logging
 from typing import Union, List, Any
-from dggrid4py import DGGRIDv7
+import time
 import shapely
 import h3
+import json
+import numpy as np
 import geopandas as gpd
+import pandas as pd
 from shapely.geometry import box
+
+logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
+                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
 class VH3_IGEO7(VirtualAbstractDGGRS):
 
     def __init__(self):
-        executable = os.environ['DGGRID_PATH']
-        working_dir = tempfile.mkdtemp()
-        super().__init__(h3, DGGRIDv7(executable=executable, working_dir=working_dir))
+        super().__init__(h3, IGEO7())
 
-    def forward():
-        pass
-
-    def backward(self):
-        pass
+    def convert(self, virtual_zoneIds: list):
+        res_list = [[self.virtualdggrs.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
+        for i, area in enumerate(res_list):
+            for k, v in self.actualdggrs.data.items():
+                if (area[0] > v['Area (km^2)']):
+                    res_list[i][0] = k
+                    break
+        v_ids = []
+        actual_zoneIds = []
+        actual_res_list = []
+        print(len(res_list))
+        try:
+            # ~ 0.05s for one iter
+            for i, res in enumerate(res_list):
+                r = self.actualdggrs.zoneslist(shapely.box(*res[1].bounds), zone_level=res[0], parent_zone=None, returngeometry='zone-centroid', compact=False)
+                selection = [shapely.within(shapely.geometry.shape(g.__dict__), res[1]) for g in r.geometry]
+                selection = [r.zones[j] for j in range(len(selection)) if (selection[j] == True)]
+                actual_zoneIds += selection
+                v_ids += [virtual_zoneIds[i]] * len(selection)
+                actual_res_list += [res[0]] * len(selection)
+        except Exception as e:
+            logging.error(f'{__name__} forward transform failed : {e}')
+            raise Exception(f'{__name__} forward transform failed : {e}')
+        if (len(np.unique(actual_zoneIds)) < len(np.unique(virtual_zoneIds))):
+            logging.warn(f'{__name__} forward transform: unique virtual zones id > unique actual zones id ')
+        return VirtualAbstractDGGRSForwardReturn(virtual_zoneIds=v_ids, actual_zoneIds=actual_zoneIds, actual_res=actual_res_list)
 
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
         zoneslevel = []
@@ -40,7 +65,21 @@ class VH3_IGEO7(VirtualAbstractDGGRS):
 
     def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int],
                                 geometry: str) -> DGGRSProviderGetRelativeZoneLevelsReturn:
-        raise NotImplementedError
+        children = {}
+        geometry = geometry.lower()
+        geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
+        try:
+            for z in zone_levels:
+                children_ids = self.virtualdggrs.cell_to_children(cellId, z)
+                children_geometry = [self._cell_to_shapely(id_, geometry) for id_ in children_ids]
+                children_geometry = [geojson(**shapely.geometry.mapping(g)) for g in children_geometry]
+                children[z] = DGGRSProviderZonesElement(**{'zoneIds': children_ids,
+                                                           'geometry': children_geometry})
+        except Exception as e:
+            logging.error(f'{__name__} get_relative_zonelevels, get children failed {e}')
+            raise Exception(f'{__name__} get_relative_zonelevels, get children failed {e}')
+
+        return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
     def zoneslist(self, bbox: Union[box, None], zone_level: int, parent_zone: Union[str, int, None],
                   returngeometry: str, compact=True) -> DGGRSProviderZonesListReturn:

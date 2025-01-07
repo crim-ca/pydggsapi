@@ -1,8 +1,9 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
 from abc import ABC, abstractmethod
-from typing import List, Any, Union
+from typing import List, Any, Union, Tuple
 from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
+from pydggsapi.schemas.api.dggsproviders import VirtualAbstractDGGRSForwardReturn
 from shapely.geometry import box
 
 
@@ -33,10 +34,9 @@ class VirtualAbstractDGGRS(AbstractDGGRS):
         self.virtualdggrs = virtual
         self.actualdggrs = actual
 
+    # convert virtual zones id to actual zones id.
+    # It return a tuple of list, the first one is the zone id and the second one is zone level
+    # 1. It should return actual zone id at finer level, ie. the number of unique actual zone id return >=  unique virtual one.
     @abstractmethod
-    def forward():
-        raise NotImplementedError
-
-    @abstractmethod
-    def backward():
+    def convert(self, virtual_zoneIds: list) -> VirtualAbstractDGGRSForwardReturn:
         raise NotImplementedError

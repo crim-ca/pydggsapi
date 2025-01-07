@@ -22,7 +22,7 @@ class IGEO7(AbstractDGGRS):
     def __init__(self):
         executable = os.environ['DGGRID_PATH']
         working_dir = tempfile.mkdtemp()
-        self.dggrid_instance = DGGRIDv7(executable=executable, working_dir=working_dir)
+        self.dggrid_instance = DGGRIDv7(executable=executable, working_dir=working_dir, silent=True)
         self.data = {
             0: {"Cells": 12, "Area (km^2)": 51006562.1724089, "CLS (km)": 8199.5003701},
             1: {"Cells": 72, "Area (km^2)": 7286651.7389156, "CLS (km)": 3053.2232428},
