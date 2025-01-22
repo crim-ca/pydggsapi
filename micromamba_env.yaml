@@ -1,0 +1,26 @@
+name: geopython2023
+channels:
+  - conda-forge
+dependencies:
+  - pyopenssl>=20.0.1
+  - python=3.10
+  - requests>=2.25.1
+  - fiona
+  - gdal==3.6.2
+  - geographiclib
+  - geojson
+  - geopandas
+  - geopy
+  - geos
+  - numpy<1.25
+  - numba
+  - pandas
+  - proj==9.1.0
+  - pyogrio
+  - pyarrow
+  - poetry
+  - shapely
+  - zarr
+  - wheel
+  - setuptools
+  - pip
