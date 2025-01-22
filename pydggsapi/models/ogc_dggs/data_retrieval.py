@@ -2,9 +2,9 @@ from pydantic import ValidationError
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, Property, Value, ZonesDataDggsJsonResponse, Feature, ZonesDataGeoJson
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZonesElement
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZonesElement
 
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS, VirtualAbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
 
 from fastapi.responses import FileResponse

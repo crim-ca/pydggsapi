@@ -1,10 +1,10 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import VirtualAbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.dependencies.dggrs_providers.dggrid import IGEO7
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
-from pydggsapi.schemas.api.dggsproviders import VirtualAbstractDGGRSForwardReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
 import logging
 from typing import Union, List, Any
@@ -21,12 +21,9 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-class VH3_IGEO7(VirtualAbstractDGGRS):
+class H3(AbstractDGGRS):
 
-    def __init__(self):
-        super().__init__(h3, IGEO7())
-
-    def convert(self, virtual_zoneIds: list):
+    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRS]):
         res_list = [[self.virtualdggrs.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
         for i, area in enumerate(res_list):
             for k, v in self.actualdggrs.data.items():
@@ -51,7 +48,7 @@ class VH3_IGEO7(VirtualAbstractDGGRS):
             raise Exception(f'{__name__} forward transform failed : {e}')
         if (len(np.unique(actual_zoneIds)) < len(np.unique(virtual_zoneIds))):
             logging.warn(f'{__name__} forward transform: unique virtual zones id > unique actual zones id ')
-        return VirtualAbstractDGGRSForwardReturn(virtual_zoneIds=v_ids, actual_zoneIds=actual_zoneIds, actual_res=actual_res_list)
+        return DGGRSProviderConversionReturn(virtual_zoneIds=v_ids, actual_zoneIds=actual_zoneIds, actual_res=actual_res_list)
 
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
         zoneslevel = []

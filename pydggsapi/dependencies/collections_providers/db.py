@@ -1,5 +1,5 @@
 from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
-from pydggsapi.schemas.api.collectionproviders import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
 from clickhouse_driver import Client
 from typing import List
@@ -19,14 +19,10 @@ class Clickhouse(AbstractCollectionProvider):
 
     def __init__(self, params):
         try:
-            super().__init__(params['uid'])
             self.host = params['host']
             self.user = params['user']
             self.port = params['port']
             self.password = params['password']
-            self.table = params['table']
-            self.res_cols = params['res_cols']
-            self.data_cols = params['data_cols']
             self.compression = params.get('compression', False)
             self.database = params.get('database', 'default')
         except Exception as e:

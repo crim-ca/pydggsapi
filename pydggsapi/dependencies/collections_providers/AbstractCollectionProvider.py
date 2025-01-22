@@ -1,14 +1,10 @@
-from pydggsapi.schemas.api.collectionproviders import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
 from abc import ABC, abstractmethod
 from typing import List, Any, Union, Dict
 
 
 class AbstractCollectionProvider(ABC):
-    uid: str
-
-    def __init__(self, uid: str):
-        self.uid = uid
 
     # 1. The return data must be aggregated.
     # 2. The return consist of 4 parts (zoneIds, cols_name, cols_dtype, data)

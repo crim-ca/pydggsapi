@@ -2,7 +2,8 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
 import os
 import tempfile
@@ -10,11 +11,14 @@ import logging
 from typing import Union, List
 from dggrid4py import DGGRIDv7
 import shapely
+from dotenv import load_dotenv
 from shapely.geometry import box
 import numpy as np
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+
+load_dotenv()
 
 
 class IGEO7(AbstractDGGRS):
@@ -41,6 +45,9 @@ class IGEO7(AbstractDGGRS):
             14: {"Cells": 6782230728492, "Area (km^2)": 0.0000752, "CLS (km)": 0.0097855},
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
+
+    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRS]):
+        pass
 
     def get(self, zoom):
         # zoom must be integer and between 0 and 15 inclusive

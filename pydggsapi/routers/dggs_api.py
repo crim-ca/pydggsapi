@@ -6,25 +6,26 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Path
 from typing import Optional, Dict, Union
 
-from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse, DggrsItem
+from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
-from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
-from pydggsapi.schemas.api.config import Collection
+from pydggsapi.schemas.api.collections import Collection
 
 from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_definition, query_zone_info, landingpage
 from pydggsapi.models.ogc_dggs.data_retrieval import query_zone_data
 from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 
-from pydggsapi.dependencies.config.collections import get_collections_info
-from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
-from pydggsapi.dependencies.config.api import get_conformance_classes
+from pydggsapi.dependencies.api.collections import get_collections_info
+from pydggsapi.dependencies.api.collection_providers import get_collection_providers
+from pydggsapi.dependencies.api.dggrs import get_dggrs_descriptions, get_dggrs_class, get_conformance_classes
+
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.responses import JSONResponse, FileResponse
 import logging
+import copy
 import pyproj
 import importlib
 from shapely.geometry import box
@@ -35,35 +36,75 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 router = APIRouter()
 
+dggrs, dggrs_providers, collections, collections_provider = {}, {}, {}, {}
+
+
+def _import_dggrs_class(dggrsId):
+    try:
+        classname = get_dggrs_class(dggrsId)
+        if (classname is None):
+            logging.error(f'{__name__} {dggrsId} class not found.')
+            raise Exception(f'{__name__} {dggrsId} class not found.')
+    except Exception as e:
+        logging.error(f'{__name__} {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} {e}')
+    try:
+        module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{module}'), classname)
+        return cls_()
+    except Exception as e:
+        logging.error(f'{__name__} {dggrsId} class: {classname} not imported, {e}')
+        raise Exception(f'{__name__} {dggrsId} class: {classname} not imported, {e}')
+
+
+def _import_collection_provider(providerConfig: dict):
+    try:
+        classname = providerConfig.classname
+        params = providerConfig.initial_params
+        module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.collections_providers.{module}'), classname)
+        return cls_(params)
+    except Exception as e:
+        logging.error(f'{__name__} {providerConfig.classname} import failed, {e}')
+        raise Exception(f'{__name__} {providerConfig.classname} import failed, {e}')
+
+
+def _get_dggrs_provider(dggrsId):
+    global dggrs_providers
+    try:
+        return dggrs_providers[dggrsId]
+    except KeyError:
+        logging.error(f'{__name__} : {dggrsId} not found in dggrs providers')
+        raise HTTPException(status_code=500, detail=f'{__name__} : {dggrsId} not found in dggrs providers')
+
+
+def _get_collection_provider(providerId):
+    global collection_providers
+    try:
+        return collection_providers[providerId]
+    except KeyError:
+        logging.error(f'{__name__} : {providerId} not found in collection providers')
+        raise HTTPException(status_code=500, detail=f'{__name__} : {providerId} not found in collection providers')
+
 
 def _check_dggrs_description(dggrsId: str = Path(...)):
+    global dggrs
     try:
-        dggrs_descriptions = get_dggrs_descriptions()
-    except Exception as e:
-        logging.error(f'{__name__} {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {e}')
-    if (dggrsId not in dggrs_descriptions.keys()):
-        logging.error(f'{__name__} : {dggrsId} not supported.')
-        raise HTTPException(status_code=500, detail=f'{__name__} : {dggrsId} not supported')
-    return dggrs_descriptions[dggrsId]
+        return dggrs[dggrsId]
+    except KeyError as e:
+        logging.error(f'{__name__} {dggrsId} not supported : {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} {dggrsId} not supported: {e}')
 
 
-def _check_collection(collectionId=None, dggrsId=None):
-    try:
-        collections = get_collections_info()
-    except Exception as e:
-        logging.error(f'{__name__} {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {e}')
+def _check_collection(collectionId=None):
+    global collections
     if (collectionId is None):
         return collections
-    if (collectionId not in list(collections.keys())):
+    try:
+        return collections[collectionId]
+    except KeyError:
         logging.error(f'{__name__} : {collectionId} not found')
         raise HTTPException(status_code=500, detail=f'{__name__} : {collectionId} not found')
-    if (dggrsId is not None):
-        if (dggrsId not in collections[collectionId].dggrs_indexes.keys()):
-            logging.error(f'{__name__} {collectionId} not supported with {dggrsId}')
-            raise HTTPException(status_code=500, detail=f'{__name__} {collectionId} not supported with {dggrsId}')
-    return {collectionId: collections[collectionId]}
 
 
 def _get_return_type(req: Request, support_returntype, default_return='application/json'):
@@ -74,42 +115,23 @@ def _get_return_type(req: Request, support_returntype, default_return='applicati
     return returntype
 
 
-def _import_dggrs_class(dggrsId: str = Path(...)):
-    try:
-        classname = get_dggrs_class(dggrsId)
-        if (classname is None):
-            logging.error(f'{__name__} {dggrsId} class not found.')
-            raise HTTPException(status_code=500, detail=f'{__name__} {dggrsId} class not found.')
-    except Exception as e:
-        logging.error(f'{__name__} {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {e}')
-    try:
-        module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
-        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{module}'), classname)
-        return cls_()
-    except Exception as e:
-        logging.error(f'{__name__} {dggrsId} class: {classname} not imported, {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {dggrsId} class: {classname} not imported, {e}')
+# API Initialization checking and setup.
+try:
+    dggrs = get_dggrs_descriptions()
+    collections = get_collections_info()
+    collections_provider = get_collection_providers()
+except Exception as e:
+    logging.error(f'{__name__} {e}')
+    raise Exception(f'{__name__} {e}')
+
+for dggrsId in dggrs.keys():
+    dggrs_providers[dggrsId] = _import_dggrs_class(dggrsId)
+
+for providerId, providerConfig in collections_provider.items():
+    collections_provider[providerId] = _import_collection_provider(providerConfig)
 
 
-def _import_collection_provider(collectionId: str):
-    try:
-        provider = _check_collection(collectionId)[collectionId].provider
-    except Exception as e:
-        logging.error(f'{__name__} {collectionId} {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {collectionId} {e}')
-    try:
-        classname = provider.providerClassName
-        params = provider.providerParams
-        module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
-        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.collections_providers.{module}'), classname)
-        return cls_(params)
-    except Exception as e:
-        logging.error(f'{__name__} {collectionId} provider not imported, {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {collectionId} provider not imported, {e}')
 # Landing page and conformance
-
-
 @router.get("/", tags=['ogc-dggs-api'])
 async def landing_page(req: Request):
     return landingpage(req.url)
@@ -126,14 +148,14 @@ async def conformance(conformance_classes=Depends(get_conformance_classes)):
 @router.get("/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
 async def support_dggs(req: Request, collectionId: Optional[str] = None,
-                       collection: Dict[str, Collection] = Depends(_check_collection),
-                       dggrs_items: Dict[str, DggrsItem] = Depends(get_dggrs_items)):
+                       collection: Dict[str, Collection] = Depends(_check_collection)):
     logging.info(f'{__name__} called.')
+    global dggrs
+    selected_dggrs = copy.deepcopy(dggrs)
     try:
-        filter_ = list(dggrs_items.keys())
         if (collectionId is not None):
-            filter_ = [dggrsid for dggrsid in collection[collectionId].dggrs_indexes.keys()]
-        result = query_support_dggs(req.url, dggrs_items, filter_)
+            selected_dggrs = {collection.collection_provider.dggrsId: selected_dggrs[collection.collection_provider.dggrsId]}
+        result = query_support_dggs(req.url, selected_dggrs)
     except Exception as e:
         logging.error(f'{__name__} dggrs-list failed: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} dggrs-list failed: {e}')
@@ -155,10 +177,10 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(),
                           dggrs_descrption: DggrsDescription = Depends(_check_dggrs_description),
-                          dggrid: AbstractDGGRS = Depends(_import_dggrs_class),
+                          dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
                           collections: Dict[str, Collection] = Depends(_check_collection)):
     try:
-        info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrid)
+        info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrs_provider)
     except Exception as e:
         logging.error(f'{__name__} query zone info fail: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone info fail: {e}')

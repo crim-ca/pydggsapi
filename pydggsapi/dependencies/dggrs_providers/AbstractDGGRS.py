@@ -2,8 +2,8 @@
 # DGGRID ISEA7H resolutions
 from abc import ABC, abstractmethod
 from typing import List, Any, Union, Tuple
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
-from pydggsapi.schemas.api.dggsproviders import VirtualAbstractDGGRSForwardReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn
 from shapely.geometry import box
 
 
@@ -27,16 +27,6 @@ class AbstractDGGRS(ABC):
     def zonesinfo(self, cellIds: list) -> DGGRSProviderZoneInfoReturn:
         raise NotImplementedError
 
-
-class VirtualAbstractDGGRS(AbstractDGGRS):
-
-    def __init__(self, virtual, actual):
-        self.virtualdggrs = virtual
-        self.actualdggrs = actual
-
-    # convert virtual zones id to actual zones id.
-    # It return a tuple of list, the first one is the zone id and the second one is zone level
-    # 1. It should return actual zone id at finer level, ie. the number of unique actual zone id return >=  unique virtual one.
     @abstractmethod
-    def convert(self, virtual_zoneIds: list) -> VirtualAbstractDGGRSForwardReturn:
+    def convert(self, virtual_zoneIds: list, targetdggrs: Any) -> DGGRSProviderConversionReturn:
         raise NotImplementedError

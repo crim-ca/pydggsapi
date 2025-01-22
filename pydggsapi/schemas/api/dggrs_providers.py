@@ -36,7 +36,7 @@ class DGGRSProviderGetRelativeZoneLevelsReturn(BaseModel):
     relative_zonelevels: Union[Dict[int, DGGRSProviderZonesElement], Dict]
 
 
-class VirtualAbstractDGGRSForwardReturn(BaseModel):
+class DGGRSProviderConversionReturn(BaseModel):
     virtual_zoneIds: List[Any]
     actual_zoneIds: List[Any]
     actual_res: List[int]

@@ -24,20 +24,19 @@ def landingpage(current_url):
                                   'links': [self_link, service_desc_link, service_doc_link, conformance_link, dggs_list_link]})
 
 
-def query_support_dggs(current_url, dggs_info: Dict[str, DggrsItem], filter_):
+def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription]):
     # DGGRID_ISEA7H_seqnum
     logging.info(f'{__name__} support dggs')
-    support_dggs = []
-    for k, v in dggs_info.items():
-        if (k in filter_):
-            for i, link in enumerate(v.links):
-                if link.rel == 'self':
-                    v.links[i].href = str(current_url) + f'/{k}'
-            support_dggs.append(v)
-    logging.info(f'{__name__} support dggs ({len(support_dggs)})')
+    support_dggrs = []
+    for k, v in selected_dggrs.items():
+        for i, link in enumerate(v.links):
+            if link.rel == 'self':
+                v.links[i].href = str(current_url) + f'/{k}'
+        support_dggrs.append(DggrsItem(id=k, title=v.title, links=v.links))
+    logging.info(f'{__name__} support dggs ({len(support_dggrs)})')
     landing_page = '/'.join(str(current_url).split('/')[:-1])
     dggs_landing_page = Link(**{'href': landing_page, 'rel': 'ogc-rel:dggrs-list', 'title': 'DGGS API landing page'})
-    return DggrsListResponse(**{'links': [dggs_landing_page], 'dggrs': support_dggs})
+    return DggrsListResponse(**{'links': [dggs_landing_page], 'dggrs': support_dggrs})
 
 
 def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):

@@ -1,45 +1,31 @@
-from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
-from pydggsapi.dependencies.config.collections import get_collections_info
+from pydggsapi.dependencies.api.collections import get_collections_info
 
 from typing import Dict
 from tinydb import TinyDB
-from dotenv import load_dotenv
 import logging
 import os
 
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
-load_dotenv()
+
+
+def get_conformance_classes():
+    return ["https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/landing-page",
+            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/core",
+            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-query",
+            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-retrieval",
+            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/collection-dggs"]
 
 
 def _checkIfTableExists():
-    db = TinyDB(os.environ.get('dggs_api_config', './dggs_api_config.json'))
+    db = TinyDB(os.environ.get('dggs_api_config'))
     if ('dggrs' not in db.tables()):
         logging.error(f"{__name__} dggrs table not found.")
         raise Exception(f"{__name__} dggrs table not found.")
     return db
-
-
-def get_dggrs_items() -> Dict[str, DggrsItem]:
-    try:
-        db = _checkIfTableExists()
-    except Exception as e:
-        logging.error(f"{__name__} {e}")
-        raise Exception(f"{__name__} {e}")
-    dggrs_indexes = db.table('dggrs').all()
-    if (len(dggrs_indexes) == 0):
-        logging.error(f'{__name__} no dggrs defined.')
-        raise Exception(f"{__name__} no dggrs defined.")
-    dggrs_dict = {}
-    for dggrs in dggrs_indexes:
-        dggrsid, dggrs_config = dggrs.popitem()
-        self_link = Link(**{'href': '', 'rel': 'self', 'title': 'DGGRS description link'})
-        dggrs_model_link = Link(**{'href': dggrs_config['definition_link'], 'rel': 'ogc-rel:dggrs-definition', 'title': 'DGGRS definition'})
-        dggrs_dict[dggrsid] = DggrsItem(id=dggrsid, title=dggrs_config['title'], links=[self_link, dggrs_model_link])
-    return dggrs_dict
 
 
 def get_dggrs_class(dggrsId: str) -> str:
@@ -71,16 +57,14 @@ def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
         logging.error(f"{__name__} no dggrs defined.")
         raise Exception(f"{__name__} no dggrs defined.")
     dggrs_dict = {}
-    tmp = [v.dggrs_indexes for k, v in collections.items()]
+    collection_providers = [v.collection_provider for k, v in collections.items()]
     max_dggrs = {}
-    for t in tmp:
-        for dggrs_key, zone_level in t.items():
-            try:
-                current_max = max_dggrs[dggrs_key]
-                local_max = max(zone_level)
-                max_dggrs[dggrs_key] = local_max if (current_max < local_max) else current_max
-            except KeyError:
-                max_dggrs[dggrs_key] = max(zone_level)
+    for cp in collection_providers:
+        try:
+            current_max = max_dggrs[cp.dggrsId]
+            max_dggrs[cp.dggrsId] = cp.maxzonelevel if (current_max < cp.maxzonelevel) else current_max
+        except KeyError:
+            max_dggrs[cp.dggrsId] = cp.maxzonelevel
     for dggrs in dggrs_indexes:
         dggrsid, dggrs_config = dggrs.popitem()
         self_link = Link(**{'href': '', 'rel': 'self', 'title': 'DGGRS description link'})
