@@ -1,8 +1,6 @@
 from gunicorn.app.wsgiapp import WSGIApplication
 # from gunicorn.app.base import BaseApplication
 from dotenv import load_dotenv
-from pydggsapi.dependencies.authentication import session
-from multiprocessing import Manager
 import os
 
 # Reference from :
@@ -13,7 +11,6 @@ class StandaloneApplication(WSGIApplication):
     def __init__(self, app_uri, options=None, storage=None):
         self.options = options or {}
         self.app_uri = app_uri
-        session.initial_data(storage)
         super().__init__()
 
     def load_config(self):
@@ -28,23 +25,23 @@ class StandaloneApplication(WSGIApplication):
 
 def run():
     load_dotenv()
-    bind = os.environ.get('bind', '0.0.0.0:8454')
+    bind = os.environ.get('bind', '0.0.0.0:8000')
     workers = os.environ.get('workers', 4)
     options = {
         "bind": bind,
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
-    StandaloneApplication("dataserv.api:app", options, Manager().dict()).run()
+    StandaloneApplication("dataserv.api:app", options).run()
 
 
 if __name__ == '__main__':
     load_dotenv()
-    bind = os.environ.get('bind', '0.0.0.0:8454')
+    bind = os.environ.get('bind', '0.0.0.0:8000')
     workers = os.environ.get('workers', 4)
     options = {
         "bind": bind,
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
-    StandaloneApplication("pydggsapi.api:app", options, Manager().dict()).run()
+    StandaloneApplication("pydggsapi.api:app", options).run()

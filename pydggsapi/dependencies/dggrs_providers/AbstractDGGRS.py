@@ -9,6 +9,8 @@ from shapely.geometry import box
 
 class AbstractDGGRS(ABC):
 
+    dggrs_conversion = []
+
     @abstractmethod
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
         raise NotImplementedError

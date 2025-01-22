@@ -2,7 +2,7 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.dependencies.dggrs_providers.dggrid import IGEO7
+from pydggsapi.dependencies.dggrs_providers.igeo7 import IGEO7
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
@@ -23,32 +23,40 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
 
 class H3(AbstractDGGRS):
 
-    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRS]):
-        res_list = [[self.virtualdggrs.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
-        for i, area in enumerate(res_list):
-            for k, v in self.actualdggrs.data.items():
-                if (area[0] > v['Area (km^2)']):
-                    res_list[i][0] = k
-                    break
-        v_ids = []
-        actual_zoneIds = []
-        actual_res_list = []
-        try:
-            # ~ 0.05s for one iter with using actualdggrs.zoneslist
-            # ~ 0.03s for one iter with using get centriod method. (1s reduced in total for 49 zones)
-            for i, res in enumerate(res_list):
-                r = self.actualdggrs.generate_hexcentroid(shapely.box(*res[1].bounds), res[0])
-                selection = [shapely.within(g, res[1]) for g in r['geometry']]
-                selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
-                actual_zoneIds += selection
-                v_ids += [virtual_zoneIds[i]] * len(selection)
-                actual_res_list += [res[0]] * len(selection)
-        except Exception as e:
-            logging.error(f'{__name__} forward transform failed : {e}')
-            raise Exception(f'{__name__} forward transform failed : {e}')
-        if (len(np.unique(actual_zoneIds)) < len(np.unique(virtual_zoneIds))):
-            logging.warn(f'{__name__} forward transform: unique virtual zones id > unique actual zones id ')
-        return DGGRSProviderConversionReturn(virtual_zoneIds=v_ids, actual_zoneIds=actual_zoneIds, actual_res=actual_res_list)
+    def __init__(self):
+        self.dggrs_conversion = ['IGEO7']
+
+    def convert(self, virtual_zoneIds: list, targetdggrs: str):
+        if (targetdggrs.upper() in self.dggrs_conversion):
+            if (targetdggrs.upper() == 'IGEO7'):
+                igeo7 = IGEO7()
+                res_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
+                for i, area in enumerate(res_list):
+                    for k, v in igeo7.data.items():
+                        if (area[0] > v['Area (km^2)']):
+                            res_list[i][0] = k
+                            break
+                v_ids = []
+                actual_zoneIds = []
+                actual_res_list = []
+                try:
+                    # ~ 0.05s for one iter with using actualdggrs.zoneslist
+                    # ~ 0.03s for one iter with using get centriod method. (1s reduced in total for 49 zones)
+                    for i, res in enumerate(res_list):
+                        r = igeo7.generate_hexcentroid(shapely.box(*res[1].bounds), res[0])
+                        selection = [shapely.within(g, res[1]) for g in r['geometry']]
+                        selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
+                        actual_zoneIds += selection
+                        v_ids += [virtual_zoneIds[i]] * len(selection)
+                        actual_res_list += [res[0]] * len(selection)
+                except Exception as e:
+                    logging.error(f'{__name__} forward transform failed : {e}')
+                    raise Exception(f'{__name__} forward transform failed : {e}')
+                if (len(np.unique(actual_zoneIds)) < len(np.unique(virtual_zoneIds))):
+                    logging.warn(f'{__name__} forward transform: unique h3 zones id > unique igeo7 zones id ')
+                return DGGRSProviderConversionReturn(virtual_zoneIds=v_ids, actual_zoneIds=actual_zoneIds, actual_res=actual_res_list)
+        else:
+            raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
 
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
         zoneslevel = []

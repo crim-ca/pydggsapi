@@ -150,11 +150,14 @@ async def conformance(conformance_classes=Depends(get_conformance_classes)):
 async def support_dggs(req: Request, collectionId: Optional[str] = None,
                        collection: Dict[str, Collection] = Depends(_check_collection)):
     logging.info(f'{__name__} called.')
-    global dggrs
+    global dggrs, dggrs_providers
     selected_dggrs = copy.deepcopy(dggrs)
     try:
         if (collectionId is not None):
             selected_dggrs = {collection.collection_provider.dggrsId: selected_dggrs[collection.collection_provider.dggrsId]}
+            for k, v in dggrs_providers.items():
+                if (collection.collection_provider.dggrsId in v.dggrs_conversion):
+                    selected_dggrs[k] = dggrs[k]
         result = query_support_dggs(req.url, selected_dggrs)
     except Exception as e:
         logging.error(f'{__name__} dggrs-list failed: {e}')
