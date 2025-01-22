@@ -19,12 +19,12 @@ cellids = ['841134dffffffff', '841136bffffffff', '841f65bffffffff', '8411345ffff
 #validation_centroids_gdf.set_index('name', inplace=True)
 
 
-def test_core_dggs_zoneinfo_VH3_2_IGEO7():
+def test_core_dggs_zoneinfo_H3_2_IGEO7():
     os.environ['dggs_api_config'] = './dggs_api_config.json'
     app = reload(pydggsapi.api).app
     client = TestClient(app)
-    print(f"Success test case with dggs zone info (VH3_2_IGEO7 {cellids[0]})")
-    response = client.get(f'/dggs-api/v1-pre/dggs/VH3_2_IGEO7/zones/{cellids[0]}')
+    print(f"Success test case with dggs zone info (H3 {cellids[0]})")
+    response = client.get(f'/dggs-api/v1-pre/dggs/H3/zones/{cellids[0]}')
     pprint(response.json())
     zoneinfo = ZoneInfoResponse(**response.json())
     centroid = shapely.from_geojson(json.dumps(zoneinfo.centroid.__dict__))

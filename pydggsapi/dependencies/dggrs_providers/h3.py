@@ -2,7 +2,7 @@
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import VirtualAbstractDGGRS
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.dependencies.dggrs_providers.dggrid import IGEO7
+from pydggsapi.dependencies.dggrs_providers.igeo7 import IGEO7
 from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 from pydggsapi.schemas.api.dggsproviders import VirtualAbstractDGGRSForwardReturn
 
@@ -21,7 +21,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-class VH3_IGEO7(VirtualAbstractDGGRS):
+class H3(VirtualAbstractDGGRS):
 
     def __init__(self):
         super().__init__(h3, IGEO7())
