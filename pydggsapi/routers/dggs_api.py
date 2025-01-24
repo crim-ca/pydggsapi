@@ -7,11 +7,15 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Path
 from typing import Optional, Dict, Union
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
 from pydggsapi.schemas.api.collections import Collection
+from pydggsapi.schemas.ogc_collections.collections import Collections as ogc_Collections
+from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
+
 
 from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_definition, query_zone_info, landingpage
 from pydggsapi.models.ogc_dggs.data_retrieval import query_zone_data
@@ -146,6 +150,22 @@ for dggrsId in dggrs.keys():
 
 for providerId, providerConfig in collection_providers.items():
     collection_providers[providerId] = _import_collection_provider(providerConfig)
+
+
+# Collection landing page
+@router.get("/collections", response_model=ogc_Collections, tags=['ogc-collections-api'])
+async def list_collections(req: Request, collection: Dict[str, Collection] = Depends(_get_collection)):
+    collection_list = []
+    req.url
+    for k, v in collection.items():
+        self_link = Link(**{'href': str(req.url) + f'/{v.collectionid}', 'rel': 'self', 'type': 'application/json',
+                            'title': f'General Description of {v.collectionid}'})
+        dggs_list_link = Link(**{'href': str(req.url) + f'/{v.collectionid}/dggs', 'rel': 'ogc-rel:dggrs-list',
+                                 'type': 'application/json', 'title': 'Available DGGRS for {v.collectionid}'})
+        collection_list.append(CollectionDesc(id=v.collectionid, title=v.title, description=v.description, links=[self_link, dggs_list_link]))
+    self_link = Link(**{'href': str(req.url) + '/collections.json', 'rel': 'self', 'type': 'application/json',
+                        'title': 'collections api'})
+    return ogc_Collections(links=[self_link], collections=collection_list)
 
 
 # Landing page and conformance
