@@ -1,8 +1,9 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
-from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
+from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS, conversion_properties
 from pydggsapi.dependencies.dggrs_providers.igeo7 import IGEO7
+
+from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
@@ -24,11 +25,12 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
 class H3(AbstractDGGRS):
 
     def __init__(self):
-        self.dggrs_conversion = ['IGEO7']
+        igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
+        self.dggrs_conversion = {'igeo7': igeo7_conversion_properties}
 
     def convert(self, virtual_zoneIds: list, targetdggrs: str):
-        if (targetdggrs.upper() in self.dggrs_conversion):
-            if (targetdggrs.upper() == 'IGEO7'):
+        if (targetdggrs in self.dggrs_conversion):
+            if (targetdggrs == 'igeo7'):
                 igeo7 = IGEO7()
                 res_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
                 for i, area in enumerate(res_list):
@@ -62,7 +64,7 @@ class H3(AbstractDGGRS):
         zoneslevel = []
         try:
             for c in cellIds:
-                zoneslevel.append(self.virtualdggrs.get_resolution(c))
+                zoneslevel.append(h3.get_resolution(c))
             return zoneslevel
         except Exception as e:
             logging.error(f'{__name__} zone id {cellIds} dggrid get zone level failed: {e}')
@@ -75,7 +77,7 @@ class H3(AbstractDGGRS):
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:
             for z in zone_levels:
-                children_ids = self.virtualdggrs.cell_to_children(cellId, z)
+                children_ids = h3.cell_to_children(cellId, z)
                 children_geometry = [self._cell_to_shapely(id_, geometry) for id_ in children_ids]
                 children_geometry = [geojson(**shapely.geometry.mapping(g)) for g in children_geometry]
                 children[z] = DGGRSProviderZonesElement(**{'zoneIds': children_ids,
@@ -90,7 +92,7 @@ class H3(AbstractDGGRS):
                   returngeometry: str, compact=True) -> DGGRSProviderZonesListReturn:
         if (bbox is not None):
             try:
-                zoneIds = self.virtualdggrs.h3shape_to_cells(self.virtualdggrs.geo_to_h3shape(bbox), zone_level)
+                zoneIds = h3.h3shape_to_cells(h3.geo_to_h3shape(bbox), zone_level)
                 geometry = [self._cell_to_shapely(z, returngeometry) for z in zoneIds]
                 hex_gdf = gpd.GeoDataFrame({'zoneIds': zoneIds}, geometry=geometry, crs='wgs84').set_index('zoneIds')
             except Exception as e:
@@ -99,7 +101,7 @@ class H3(AbstractDGGRS):
             logging.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
         if (parent_zone is not None):
             try:
-                children_zoneIds = self.virtualdggrs.cell_to_children(parent_zone, zone_level)
+                children_zoneIds = h3.cell_to_children(parent_zone, zone_level)
                 children_geometry = [self._cell_to_shapely(z, returngeometry) for z in children_zoneIds]
                 children_hex_gdf = gpd.GeoDataFrame({'zoneIds': children_zoneIds}, geometry=children_geometry, crs='wgs84').set_index('zoneIds')
                 hex_gdf = hex_gdf.join(children_hex_gdf, how='inner', rsuffix='_p') if (bbox is not None) else children_hex_gdf
@@ -109,11 +111,11 @@ class H3(AbstractDGGRS):
         if (len(hex_gdf) == 0):
             raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
         if (compact):
-            compactIds = self.virtualdggrs.compact_cells(hex_gdf.index.values)
+            compactIds = h3.compact_cells(hex_gdf.index.values)
             geometry = [self._cell_to_shapely(z, returngeometry) for z in compactIds]
             hex_gdf = gpd.GeoDataFrame({'zoneIds': compactIds}, geometry=geometry, crs='wgs84').set_index('zoneIds')
             logging.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
-        returnedAreaMetersSquare = sum([self.virtualdggrs.cell_area(z, 'm^2') for z in hex_gdf.index.values])
+        returnedAreaMetersSquare = sum([h3.cell_area(z, 'm^2') for z in hex_gdf.index.values])
         geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
         geometry = [geotype(**eval(shapely.to_geojson(g))) for g in hex_gdf['geometry'].values.tolist()]
         hex_gdf.reset_index(inplace=True)
@@ -130,7 +132,7 @@ class H3(AbstractDGGRS):
             for c in cellIds:
                 centroid.append(self._cell_to_shapely(c, 'zone-centroid'))
                 hex_geometry.append(self._cell_to_shapely(c, 'zone-region'))
-                total_area.append(self.virtualdggrs.cell_area(c))
+                total_area.append(h3.cell_area(c))
         except Exception as e:
             logging.error(f'{__name__} zone id {cellIds} dggrid convert failed: {e}')
             raise Exception(f'{__name__} zone id {cellIds} dggrid convert failed: {e}')
@@ -146,7 +148,7 @@ class H3(AbstractDGGRS):
 
     # source : https://medium.com/@jesse.b.nestler/how-to-convert-h3-cell-boundaries-to-shapely-polygons-in-python-f7558add2f63
     def _cell_to_shapely(self, cellid, geometry):
-        method = self.virtualdggrs.cell_to_boundary if (geometry == 'zone-region') else self.virtualdggrs.cell_to_latlng
+        method = h3.cell_to_boundary if (geometry == 'zone-region') else h3.cell_to_latlng
         GEO = shapely.Polygon if (geometry == 'zone-region') else shapely.Point
         points = method(cellid)
         points = [points] if (geometry != 'zone-region') else points

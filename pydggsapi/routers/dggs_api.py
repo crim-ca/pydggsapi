@@ -22,8 +22,9 @@ from pydggsapi.dependencies.api.collection_providers import get_collection_provi
 from pydggsapi.dependencies.api.dggrs import get_dggrs_descriptions, get_dggrs_class, get_conformance_classes
 
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
 
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 import logging
 import copy
 import pyproj
@@ -36,7 +37,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 router = APIRouter()
 
-dggrs, dggrs_providers, collections, collections_provider = {}, {}, {}, {}
+dggrs, dggrs_providers, collections, collection_providers = {}, {}, {}, {}
 
 
 def _import_dggrs_class(dggrsId):
@@ -74,37 +75,46 @@ def _get_dggrs_provider(dggrsId):
     try:
         return dggrs_providers[dggrsId]
     except KeyError:
-        logging.error(f'{__name__} : {dggrsId} not found in dggrs providers')
-        raise HTTPException(status_code=500, detail=f'{__name__} : {dggrsId} not found in dggrs providers')
+        logging.error(f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
+        raise HTTPException(status_code=500, detail=f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
 
 
-def _get_collection_provider(providerId):
+def _get_collection_provider(providerId=None):
     global collection_providers
+    if (providerId is None):
+        return collection_providers
     try:
-        return collection_providers[providerId]
+        return {providerId: collection_providers[providerId]}
     except KeyError:
-        logging.error(f'{__name__} : {providerId} not found in collection providers')
-        raise HTTPException(status_code=500, detail=f'{__name__} : {providerId} not found in collection providers')
+        logging.error(f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
+        raise HTTPException(status_code=500, detail=f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
 
 
-def _check_dggrs_description(dggrsId: str = Path(...)):
+def _get_dggrs_description(dggrsId: str = Path(...)):
     global dggrs
     try:
         return dggrs[dggrsId]
     except KeyError as e:
         logging.error(f'{__name__} {dggrsId} not supported : {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} {dggrsId} not supported: {e}')
+        raise HTTPException(status_code=400, detail=f'{__name__}  _get_dggrs_description failed:  {dggrsId} not supported: {e}')
 
 
-def _check_collection(collectionId=None):
-    global collections
+def _get_collection(collectionId=None, dggrsId=None):
+    global collections, dggrs_providers
     if (collectionId is None):
         return collections
     try:
-        return collections[collectionId]
+        c = {collectionId: collections[collectionId]}
     except KeyError:
         logging.error(f'{__name__} : {collectionId} not found')
-        raise HTTPException(status_code=500, detail=f'{__name__} : {collectionId} not found')
+        raise HTTPException(status_code=400, detail=f'{__name__}  _get_collection failed: {collectionId} not found')
+    collection_dggrs = c[collectionId].collection_provider.dggrsId
+    if (dggrsId is not None):
+        _get_dggrs_description(dggrsId)
+        if (collection_dggrs != dggrsId):
+            if (collection_dggrs not in dggrs_providers[dggrsId].dggrs_conversion.keys()):
+                raise HTTPException(status_code=400, detail=f"{__name__} _get_collection failed: collection don't support {dggrsId}.")
+    return c
 
 
 def _get_return_type(req: Request, support_returntype, default_return='application/json'):
@@ -119,16 +129,23 @@ def _get_return_type(req: Request, support_returntype, default_return='applicati
 try:
     dggrs = get_dggrs_descriptions()
     collections = get_collections_info()
-    collections_provider = get_collection_providers()
+    collection_providers = get_collection_providers()
 except Exception as e:
     logging.error(f'{__name__} {e}')
     raise Exception(f'{__name__} {e}')
 
+# check if dggrs and collection providerID defined in collections are exists
+c1 = set([v.collection_provider.dggrsId for k, v in collections.items()]) <= set(dggrs.keys())
+c2 = set([v.collection_provider.providerId for k, v in collections.items()]) <= set(collection_providers.keys())
+if (c1 is False or c2 is False):
+    logging.error(f'{__name__} collection_provider: either collection providerId or dggrsId not exists ')
+    raise Exception(f'{__name__} collection_provider: either collection providerId or dggrsId not exists ')
+
 for dggrsId in dggrs.keys():
     dggrs_providers[dggrsId] = _import_dggrs_class(dggrsId)
 
-for providerId, providerConfig in collections_provider.items():
-    collections_provider[providerId] = _import_collection_provider(providerConfig)
+for providerId, providerConfig in collection_providers.items():
+    collection_providers[providerId] = _import_collection_provider(providerConfig)
 
 
 # Landing page and conformance
@@ -148,16 +165,21 @@ async def conformance(conformance_classes=Depends(get_conformance_classes)):
 @router.get("/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
 async def support_dggs(req: Request, collectionId: Optional[str] = None,
-                       collection: Dict[str, Collection] = Depends(_check_collection)):
+                       collection: Dict[str, Collection] = Depends(_get_collection)):
     logging.info(f'{__name__} called.')
     global dggrs, dggrs_providers
     selected_dggrs = copy.deepcopy(dggrs)
     try:
         if (collectionId is not None):
-            selected_dggrs = {collection.collection_provider.dggrsId: selected_dggrs[collection.collection_provider.dggrsId]}
+            collection = collection[collectionId]
+            dggrsId = collection.collection_provider.dggrsId
+            selected_dggrs = {dggrsId: selected_dggrs[dggrsId]}
+            selected_dggrs[dggrsId].maxRefinementLevel = collection.collection_provider.maxzonelevel
+            # find other dggrs provider support for conversion
             for k, v in dggrs_providers.items():
-                if (collection.collection_provider.dggrsId in v.dggrs_conversion):
+                if (dggrsId in v.dggrs_conversion.keys()):
                     selected_dggrs[k] = dggrs[k]
+                    selected_dggrs[k].maxRefinementLevel = collection.collection_provider.maxzonelevel - v.dggrs_conversion[dggrsId].zonelevel_offset
         result = query_support_dggs(req.url, selected_dggrs)
     except Exception as e:
         logging.error(f'{__name__} dggrs-list failed: {e}')
@@ -168,10 +190,18 @@ async def support_dggs(req: Request, collectionId: Optional[str] = None,
 # dggrs description
 @router.get("/dggs/{dggrsId}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}", response_model=DggrsDescription, tags=['ogc-dggs-api'],
-            dependencies=[Depends(_check_collection)])
+            dependencies=[])
 async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = Depends(),
-                            dggrs_description: DggrsDescription = Depends(_check_dggrs_description)):
+                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
+                            collection: Dict[str, Collection] = Depends(_get_collection),
+                            dggrs_provider=Depends(_get_dggrs_provider)):
     current_url = str(req.url)
+    if (dggrs_req.collectionId is not None):
+        collection = collection[dggrs_req.collectionId]
+        dggrs_description.maxRefinementLevel = collection.collection_provider.maxzonelevel
+        # update the maxRefinementLevel if it is belongs to dggrs conversion
+        if (dggrs_req.dggrsId != collection.collection_provider.dggrsId):
+            dggrs_description.maxRefinementLevel += dggrs_provider.dggrs_conversion[collection.collection_provider.dggrsId].zonelevel_offset
     return query_dggrs_definition(current_url, dggrs_description)
 
 
@@ -179,37 +209,51 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
 @router.get("/dggs/{dggrsId}/zones/{zoneId}",  response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(),
-                          dggrs_descrption: DggrsDescription = Depends(_check_dggrs_description),
+                          dggrs_descrption: DggrsDescription = Depends(_get_dggrs_description),
                           dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
-                          collections: Dict[str, Collection] = Depends(_check_collection)):
+                          collection: Dict[str, Collection] = Depends(_get_collection),
+                          collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)):
     try:
-        info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrs_provider)
+        info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrs_provider, collection, collection_provider)
     except Exception as e:
         logging.error(f'{__name__} query zone info fail: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone info fail: {e}')
+    if (info is None):
+        return Response(status_code=204)
     return info
 
 
 # Zone query conformance class
 
 @router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
-                           dggrs_descrption: DggrsDescription = Depends(_check_dggrs_description),
-                           dggrid: AbstractDGGRS = Depends(_import_dggrs_class)):
+                           dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
+                           dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
+                           collection: Dict[str, Collection] = Depends(_get_collection),
+                           collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)):
 
     returntype = _get_return_type(req, zone_query_support_returntype, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
-    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_descrption.defaultDepth
+    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_description.defaultDepth
     compact_zone = zonesReq.compact_zone if (zonesReq.compact_zone is not None) else True
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
     bbox = zonesReq.bbox
-
+    # Parameters checking
     if (parent_zone is not None):
-        parent_level = dggrid.get_cells_zone_level([parent_zone])[0]
+        parent_level = dggrs_provider.get_cells_zone_level([parent_zone])[0]
         if (parent_level > zone_level):
             logging.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
-            raise HTTPException(status_code=500, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")
+            raise HTTPException(status_code=400, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")
+    for k, v in collection.items():
+        max_ = v.collection_provider.maxzonelevel
+        # if the dggrsId is not the primary dggrs supported by the collection.
+        if (zonesReq.dggrsId != v.collection_provider.dggrsId):
+            max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
+        if (zone_level > max_):
+            logging.error(f'{__name__} query zones list, zone level {zone_level} > {max_}')
+            raise HTTPException(status_code=400, detail=f"{__name__} query zones list, zone level {zone_level} > {max_}")
     if (bbox is not None):
         try:
             bbox = box(*bbox)
@@ -221,9 +265,12 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
                 logging.info(f'{__name__} query zones list {zonesReq.dggrsId}, transformed bbox: {bbox}')
         except Exception as e:
             logging.error(f'{__name__} query zones list, bbox converstion failed : {e}')
-            raise HTTPException(status_code=500, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
+            raise HTTPException(status_code=400, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
     try:
-        result = query_zones_list(bbox, zone_level, limit, dggrid, compact_zone, zonesReq.parent_zone, returntype, returngeometry)
+        result = query_zones_list(bbox, zone_level, limit, dggrs_description, dggrs_provider, collection, collection_provider,
+                                  compact_zone, zonesReq.parent_zone, returntype, returngeometry)
+        if (result is None):
+            return Response(status_code=204)
         return result
     except Exception as e:
         logging.error(f'{__name__} query zones list failed: {e}')
@@ -235,9 +282,10 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
 @router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
-                           dggrs_info: DggrsDescription = Depends(_check_dggrs_description), dggrid: AbstractDGGRS = Depends(_import_dggrs_class),
-                           collections=Depends(_check_collection)) -> ZonesDataDggsJsonResponse | FileResponse:
-
+                           dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
+                           dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
+                           collection: Dict[str, Collection] = Depends(_get_collection),
+                           collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)) -> ZonesDataDggsJsonResponse | FileResponse:
     returntype = _get_return_type(req, support_returntype, 'application/json')
     zoneId = zonedataReq.zoneId
     depth = zonedataReq.depth
@@ -247,7 +295,7 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     # prepare zone levels from zoneId + depth
     # The first element of zone_level will be the zoneId's level, follow by the required relative depth (zoneId's level + d)
     try:
-        zone_level.append(dggrid.get_cells_zone_level([zoneId])[0])
+        zone_level.append(dggrs_provider.get_cells_zone_level([zoneId])[0])
     except Exception as e:
         logging.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
@@ -256,20 +304,25 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
             exclude = False if depth[0] == 0 else exclude
             depth = list(range(depth[0], depth[1] + 1))
         zone_level = zone_level + [zone_level[0] + d for d in depth if d > 0]
-    for z in zone_level:
-        if (z > dggrs_info.maxRefinementLevel):
-            logging.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
-            raise HTTPException(status_code=500,
-                                detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
-    collections_provider = [_import_collection_provider(c) for c in collections]
-    link = [link.href for link in dggrs_info.links if (link.rel == 'ogc-rel:dggrs-definition')][0]
+    for k, v in collection.items():
+        max_ = v.collection_provider.maxzonelevel
+        # if the dggrsId is not the primary dggrs supported by the collection.
+        if (zonedataReq.dggrsId != v.collection_provider.dggrsId):
+            max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
+        for z in zone_level:
+            if (z > max_):
+                logging.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
+                raise HTTPException(status_code=400,
+                                    detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
     try:
-        result = query_zone_data(zoneId, zone_level, zonedataReq.dggrsId, link,
-                                 dggrid, collections_provider, returntype, returngeometry, exclude)
+        result = query_zone_data(zoneId, zone_level, dggrs_description,
+                                 dggrs_provider, collections, collection_providers, returntype, returngeometry, exclude)
+        if (result is None):
+            return Response(status_code=204)
         return result
     except Exception as e:
         logging.error(f'{__name__} data_retrieval failed: {e}')
-        raise HTTPException(status_code=500, detail=f'{__name__} data_retrieval failed: {e}')
+        raise HTTPException(status_code=400, detail=f'{__name__} data_retrieval failed: {e}')
 
 
 

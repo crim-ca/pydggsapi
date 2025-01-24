@@ -1,6 +1,7 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement

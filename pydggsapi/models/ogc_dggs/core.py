@@ -2,7 +2,10 @@ from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate, L
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem, DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
+from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
+
+from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
 
 
 from typing import Dict
@@ -53,22 +56,36 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     return dggrs_description
 
 
-def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrid: AbstractDGGRS):
+def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrs_provider: AbstractDGGRS,
+                    collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider]):
     logging.info(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
     zoneId = zoneinfoReq.zoneId
-    zoneinfo = dggrid.zonesinfo([zoneId])
-    dggs_link = '/'.join(str(current_url).split('/')[:-3])
-    dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
-    data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})
-    return_ = {'id': str(zoneId)}
-    return_['level'] = zoneinfo.zone_level
-    return_['links'] = [data_link, dggs_link]
-    return_['shapeType'] = zoneinfo.shapeType
-    return_['crs'] = dggs_info.crs
-    return_['centroid'] = zoneinfo.centroids[0]
-    return_['bbox'] = zoneinfo.bbox[0]
-    return_['geometry'] = zoneinfo.geometry[0]
-    return_['areaMetersSquare'] = zoneinfo.areaMetersSquare
-    logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
-    return ZoneInfoResponse(**return_)
+    zonelevel = dggrs_provider.get_cells_zone_level([zoneId])[0]
+    filter_ = 0
+    for k, v in collection.items():
+        if (v.collection_provider.dggrsId != dggs_info.id):
+            converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId)
+            zoneId = converted_zones.actual_zoneIds
+            zonelevel = converted_zones.actual_res[0]
+        params = v.collection_provider.getdata_params
+        data = collection_provider[v.collection_provider.providerId].get_data(zoneId, zonelevel, **params)
+        filter_ += len(data.zoneIds)
+    zoneId = zoneinfoReq.zoneId
+    if (filter_ > 0):
+        zoneinfo = dggrs_provider.zonesinfo([zoneId])
+        dggs_link = '/'.join(str(current_url).split('/')[:-3])
+        dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
+        data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})
+        return_ = {'id': str(zoneId)}
+        return_['level'] = zoneinfo.zone_level
+        return_['links'] = [data_link, dggs_link]
+        return_['shapeType'] = zoneinfo.shapeType
+        return_['crs'] = dggs_info.crs
+        return_['centroid'] = zoneinfo.centroids[0]
+        return_['bbox'] = zoneinfo.bbox[0]
+        return_['geometry'] = zoneinfo.geometry[0]
+        return_['areaMetersSquare'] = zoneinfo.areaMetersSquare
+        logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
+        return ZoneInfoResponse(**return_)
+    return None
 

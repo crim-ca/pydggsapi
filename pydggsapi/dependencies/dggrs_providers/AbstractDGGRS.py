@@ -1,15 +1,20 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
 from abc import ABC, abstractmethod
-from typing import List, Any, Union, Tuple
+from typing import List, Any, Union, Tuple, Dict, Optional
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn
+from pydantic import BaseModel
 from shapely.geometry import box
+
+
+class conversion_properties(BaseModel):
+    zonelevel_offset: int
 
 
 class AbstractDGGRS(ABC):
 
-    dggrs_conversion = []
+    dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
 
     @abstractmethod
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
