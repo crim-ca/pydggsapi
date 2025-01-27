@@ -44,6 +44,7 @@ export POETRY_DOTENV_LOCATION=.env.sample && poetry run python pydggsapi/main.py
 
 ## Mini Howto (restructure_of_providers)
 
+
 ### Collections, Collection Providers and DGGRS providers
 
 The are two parts of configurations. 
@@ -57,6 +58,7 @@ System configurations:
  - Collection Providers : A data access implementation for accessing the data.
  - DGGRS  providers : A dggrs implementation to support API endpoint operations
 
+Each data collection must be already formatted  in one of the supported DGGRS implementation (like at least one columns to represent the zone ID)
 
 #### An example on Collections definition (in TinyDB): 
 
@@ -67,8 +69,8 @@ The below example on collections defines :
 3. collection provider : 
 
      - providerId          : the collection provider id that defined in [collection_providers section](#collection_provider_id)
-     - dggrsId               : the dggrs ID that defined in dggrs section. It is the dggrs that comes with the data.
-     - maxzonelevel    : the maximum refinement level that is support by the data.
+     - dggrsId               : the dggrs ID that defined in [dggrs section](#dggrs_provider_id). It indicate the dggrs that comes with the data.
+     - maxzonelevel    : the maximum refinement level that is support by the data with the dggrs defined above.
      - getdata_params :  it is collections provider specific, It use to provide details parameters for the get_data function implemented by collection providers.
 ```
 "collections": {"1": 
@@ -90,7 +92,7 @@ The below example on collections defines :
 				  			 	 }
 				  		}
 				  	}
-				}
+				} 
 			}
 ```
 
@@ -101,7 +103,7 @@ The following configuration defines a collection provider with :
 <a name="collection_provider_id"></a>
 1. collection provider ID : clickhouse (this will be used in the collections config under the collection_provider section)
 
-2. classname : ["db\.Clickhouse"](pydggsapi/dependencies/collections_providers/db.py) the implementation class info (under [dependencies folder](pydggsapi/dependencies/collections_providers))
+2. classname : ["db\.Clickhouse"](pydggsapi/dependencies/collections_providers/db.py) the implementation class info (under [dependencies/collections_providers folder](pydggsapi/dependencies/collections_providers))
 
 3. initial_params : parameters for initializing the class
 
@@ -123,9 +125,38 @@ The following configuration defines a collection provider with :
 
 #### An example on DGGRS providers definition (in TinyDB): 
 
+The following configuration defines a dggrs provider with : 
 
-"dggrs": {"1": {"igeo7": {"title": "ISEA7H z7string", "description": "desc", "crs": "wgs84", "shapeType": "hexagon", "definition_link": "http://testing", "defaultDepth": 5, "classname": "igeo7.IGEO7" }}, "2": {"h3": {"title": "h3", "description": "desc", "crs": "wgs84", "shapeType": "hexagon", "definition_link": "http://h3test", "defaultDepth": 5, "classname": "h3.H3"}}}
+<a name="dggrs_provider_id"></a>
+1. dggrs provider ID : igeo7 and h3 (this will be used in the collections config under the collection_provider section)
 
+2. ogc dggs API required descriptions for dggrs. (ex. title, shapeType etc.)
+
+2. classname : "igeo\.IGEO7", "h3\.H3" the implementation class info (under [dependencies/dggrs_providers folder](pydggsapi/dependencies/dggrs_providers))
+
+```
+"dggrs": {"1": 
+		{"igeo7": 
+			{"title": "ISEA7H z7string",
+			 "description": "desc", 
+			 "crs": "wgs84", 
+			 "shapeType": "hexagon", 
+			 "definition_link": "http://testing", 
+			 "defaultDepth": 5, 
+			 "classname": "igeo7.IGEO7" }
+		},
+		"2": 
+		{"h3": 
+			{"title": "h3", 
+			"description": "desc", 
+			"crs": "wgs84", 
+			"shapeType": "hexagon", 
+			"definition_link": "http://h3test", 
+			"defaultDepth": 5, 
+			"classname": "h3.H3"}
+		}
+}
+```
 
 
 
