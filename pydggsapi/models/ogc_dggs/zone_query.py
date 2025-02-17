@@ -6,7 +6,6 @@ from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
 from fastapi.exceptions import HTTPException
-from pys2index import S2PointIndex
 import numpy as np
 import geopandas as gdf
 import shapely

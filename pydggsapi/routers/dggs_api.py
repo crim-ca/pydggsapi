@@ -11,6 +11,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest,
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ApiCollections, ApiCollection, Link
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
 from pydggsapi.schemas.api.config import Collection
 
@@ -29,6 +30,8 @@ import pyproj
 import importlib
 from shapely.geometry import box
 from shapely.ops import transform
+
+import traceback, sys
 
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
@@ -113,6 +116,96 @@ def _import_collection_provider(collectionId: str):
 @router.get("/", tags=['ogc-dggs-api'])
 async def landing_page(req: Request):
     return landingpage(req.url)
+
+@router.get("/collections", tags=['ogc-dggs-api'])
+async def collections(req: Request, response_model=ApiCollections):
+    collectionsResponse = ApiCollections(
+        links=[
+            Link(
+                href=f"{req.url}",
+                rel="self",
+                type="application/json",
+                title="this document"
+            )
+        ],
+        collections=[]
+    )
+    try:
+        collections_info = get_collections_info()
+        # logging.info(f'{collections_info.keys()}')
+        for collectionId, collection in collections_info.items():
+            # logging.info(f'{dir(collection)}')
+            collection_links = [
+                Link(
+                    href=f"{req.url}/{collectionId}",
+                    rel="self",
+                    type="application/json",
+                    title="this document"
+                ),
+                Link(
+                    href=f"{req.url}/{collectionId}/dggs",
+                    rel="dggs",
+                    type="application/json",
+                    title="DGGS list"
+                )
+            ]
+            new_collection = ApiCollection(
+                    id=collectionId,
+                    title=collection.title,
+                    description=collection.description,
+                    links=collection_links,
+                    # extent=collection.extent,
+                    # itemType=collection.itemType,
+                    # crs=collection.crs,
+                    # dggsInfo
+                )
+            collectionsResponse.collections.append(new_collection)
+    except Exception as e:
+        logging.error(f'{__name__} {e}')
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f'{__name__} {e}')
+    
+    # return JSONResponse(content=collectionsResponse)
+    return collectionsResponse
+
+
+@router.get("/collections/{collectionId}", tags=['ogc-dggs-api'])
+async def collection_by_id(collectionId: str, req: Request, response_model=ApiCollection):
+
+    collections_info = get_collections_info()
+    # logging.info(f'{collections_info.keys()}')
+    if collectionId in collections_info.keys():
+        collection = collections_info[collectionId]
+        collection_links = [
+            Link(
+                href=f"{req.url}",
+                rel="self",
+                type="application/json",
+                title="this document"
+            ),
+            Link(
+                href=f"{req.url}/dggs",
+                rel="dggs",
+                type="application/json",
+                title="DGGS list"
+            )
+        ]
+        new_collection = ApiCollection(
+            id=collectionId,
+            title=collection.title,
+            description=collection.description,
+            links=collection_links,
+            # extent=collection.extent,
+            # itemType=collection.itemType,
+            # crs=collection.crs,
+            dggsInfo=collection.dggrs_indexes
+
+        )
+
+        return new_collection
+    else:
+        raise HTTPException(status_code=404, detail=f'{__name__} {collectionId} not found')
+
 
 
 @router.get("/conformance", tags=['ogc-dggs-api'])

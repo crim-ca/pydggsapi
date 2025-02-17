@@ -17,22 +17,28 @@ micromamba create -n <name>  -f micromamba_env.yaml
 mircomamba activate <name>
 ```
 
+In order to use DGGRID, the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
+
+```
+micromamba install -c conda-forge dggrid
+```
+
 2. run poetry to install dependencies
 
 ```
 poetry install
 ```
 
-3. update .env.sample 
+3. create local .env fiel from .env.sample 
 
 ```
 dggs_api_config=<Path to TinyDB>
 DGGRID_PATH=<Path to dggrid executable>
 ```
 
-4. Start the server: 
+4. Start the server for development: 
 ```
-export POETRY_DOTENV_LOCATION=.env.sample && poetry run python pydggsapi/main.py 
+export POETRY_DOTENV_LOCATION=.env && poetry run python pydggsapi/main.py 
 ```
 
 ## TinyDB Configuration 
@@ -41,13 +47,13 @@ export POETRY_DOTENV_LOCATION=.env.sample && poetry run python pydggsapi/main.py
 
 The DB consist of 2 tables to define dggrs providers and collections that will served by the API.
 
-1. collections - describe which dggrs to be supported and how to access the collection
+1. collections - describe a data collection and in which dggrs its supported to access
 2. dggrs - ogc dggrs description and the implementation class
 
 ### Collections 
 An example to define a collection : 
 
-The key will be the collection ID, and it consist of : 
+The key is the collection ID, and consists of:
 
 1. dggrs_indexes, define which dggrs is supported.
 2. provider, define how to access the data 

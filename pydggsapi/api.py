@@ -50,25 +50,24 @@ logging.basicConfig(level=logging.INFO)
 
 def my_schema():
     openapi_schema = get_openapi(
-        title="HyTruck Spatial Planning Toolkit",
+        title="pydggsapi: A python FastAPI OGC DGGS API implementation",
         version="1.0-beta",
         routes=app.routes
     )
 
     openapi_schema["info"] = {
-        "title" : "HyTruck Spatial Planning Toolkit",
+        "title" : "pydggsapi: A python FastAPI OGC DGGS API implementation",
         "version" : "1.0-beta",
-        "description" : "The HyTruck project helps public authorities design a network of hydrogen refuelling stations for large trucks, bringing the region closer to zero–emissions in road freight transport.",
-        "termsOfService": "https://interreg-baltic.eu/project/hytruck/",
+        "description" : "A python FastAPI OGC DGGS API implementation",
+        "termsOfService": "https://creativecommons.org/licenses/by/4.0/",
         "contact": {
             "name": "Contact project lead",
-            "url": "https://landscape-geoinformatics.ut.ee/projects/hytruck/",
+            "url": "https://landscape-geoinformatics.ut.ee/expertise/dggs/",
             "email": "alexander.kmoch@ut.ee"
         },
         "license": {
-            "private": True,
-            "name": "All rights reserved.",
-            "url": "https://landscape-geoinformatics.ut.ee/team/"
+            "name": "AGPL-3.0",
+            "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
         },
     }
 
