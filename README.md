@@ -60,10 +60,10 @@ The key is the collection ID, and consists of:
 
 ```
 "suitability_hytruck": {
-          "dggrs_indexes": {"IGEO7": [5, 6, 7, 8, 9], "H3": [3, 4, 5, 6, 7]},
+          "dggrs_indexes": {"IGEO7": [5, 6, 7, 8, 9]},
            "title": "Suitability Modelling for Hytruck", 
            "description": "Desc", 
-           "provider": {"providerClassName": "db.Clickhouse", 
+           "provider": {"providerClassName": "ClickhouseCollectionProvider.ClickhouseCollectionProvider", 
                                 "providerParams": {"uid": "suitability_hytruck",
                                                                 "host": "127.0.0.1", 
                                                                 "user": "default", 

@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-class Clickhouse(AbstractCollectionProvider):
+class ClickhouseCollectionProvider(AbstractCollectionProvider):
     host: str
     port: int
     user: str

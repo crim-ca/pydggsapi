@@ -1,4 +1,4 @@
-from pydggsapi.schemas.api.collectionproviders import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
 from abc import ABC, abstractmethod
 from typing import List, Any, Union, Dict

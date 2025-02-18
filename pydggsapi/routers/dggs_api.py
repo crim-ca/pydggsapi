@@ -22,7 +22,7 @@ from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 from pydggsapi.dependencies.config.collections import get_collections_info
 from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
 from pydggsapi.dependencies.config.api import get_conformance_classes
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRS
 
 from fastapi.responses import JSONResponse, FileResponse
 import logging

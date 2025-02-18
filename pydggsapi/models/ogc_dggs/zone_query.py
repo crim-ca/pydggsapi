@@ -3,7 +3,7 @@ from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate, F
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRS
 
 from fastapi.exceptions import HTTPException
 import numpy as np

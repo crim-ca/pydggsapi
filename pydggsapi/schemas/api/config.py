@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any
 
 
-class Data_Provider(BaseModel):
+class DataProvider(BaseModel):
     providerClassName: str
     providerParams: list[str]
 
