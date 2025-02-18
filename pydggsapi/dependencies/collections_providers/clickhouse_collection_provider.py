@@ -1,5 +1,5 @@
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
-from pydggsapi.schemas.api.collectionproviders import CollectionProviderGetDataReturn
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
 from clickhouse_driver import Client
 from typing import List

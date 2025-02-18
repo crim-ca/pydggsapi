@@ -1,8 +1,8 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggsproviders import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.api.dggs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
 import os
 import tempfile
@@ -17,7 +17,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-class IGEO7(AbstractDGGRS):
+class IGEO7(AbstractDGGRSProvider):
 
     def __init__(self):
         executable = os.environ['DGGRID_PATH']

@@ -22,7 +22,7 @@ from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 from pydggsapi.dependencies.config.collections import get_collections_info
 from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dggrs_descriptions, get_dggrs_class
 from pydggsapi.dependencies.config.api import get_conformance_classes
-from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 
 from fastapi.responses import JSONResponse, FileResponse
 import logging
@@ -88,7 +88,7 @@ def _import_dggrs_class(dggrsId: str = Path(...)):
         raise HTTPException(status_code=500, detail=f'{__name__} {e}')
     try:
         module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
-        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{module}'), classname)
+        cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{module}_dggrs_provider'), classname)
         return cls_()
     except Exception as e:
         logging.error(f'{__name__} {dggrsId} class: {classname} not imported, {e}')
@@ -248,7 +248,7 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(),
                           dggrs_descrption: DggrsDescription = Depends(_check_dggrs_description),
-                          dggrid: AbstractDGGRS = Depends(_import_dggrs_class),
+                          dggrid: AbstractDGGRSProvider = Depends(_import_dggrs_class),
                           collections: Dict[str, Collection] = Depends(_check_collection)):
     try:
         info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrid)
@@ -263,7 +263,7 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 @router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
                            dggrs_descrption: DggrsDescription = Depends(_check_dggrs_description),
-                           dggrid: AbstractDGGRS = Depends(_import_dggrs_class)):
+                           dggrid: AbstractDGGRSProvider = Depends(_import_dggrs_class)):
 
     returntype = _get_return_type(req, zone_query_support_returntype, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
@@ -303,7 +303,7 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
 @router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
-                           dggrs_info: DggrsDescription = Depends(_check_dggrs_description), dggrid: AbstractDGGRS = Depends(_import_dggrs_class),
+                           dggrs_info: DggrsDescription = Depends(_check_dggrs_description), dggrid: AbstractDGGRSProvider = Depends(_import_dggrs_class),
                            collections=Depends(_check_collection)) -> ZonesDataDggsJsonResponse | FileResponse:
 
     returntype = _get_return_type(req, support_returntype, 'application/json')
