@@ -9,7 +9,7 @@ from typing import Optional, Dict, Union
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse, DggrsItem
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, ZonesDataGeoJson, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ApiCollections, ApiCollection, Link
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
@@ -24,7 +24,7 @@ from pydggsapi.dependencies.config.dggrs_indexes import get_dggrs_items, get_dgg
 from pydggsapi.dependencies.config.api import get_conformance_classes
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 import logging
 import pyproj
 import importlib
@@ -300,11 +300,13 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
 # Data-retrieval conformance class
 
 
-@router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
+# @router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
 async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
-                           dggrs_info: DggrsDescription = Depends(_check_dggrs_description), dggrid: AbstractDGGRSProvider = Depends(_import_dggrs_class),
-                           collections=Depends(_check_collection)) -> ZonesDataDggsJsonResponse | FileResponse:
+                           dggrs_info: DggrsDescription = Depends(_check_dggrs_description),
+                           dggrid: AbstractDGGRSProvider = Depends(_import_dggrs_class),
+                           collections=Depends(_check_collection)
+                        ) -> Union[ZonesDataDggsJsonResponse, FileResponse, ZonesDataGeoJson, Response]:
 
     returntype = _get_return_type(req, support_returntype, 'application/json')
     zoneId = zonedataReq.zoneId

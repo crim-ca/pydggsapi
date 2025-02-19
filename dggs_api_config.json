@@ -14,12 +14,12 @@
                 "title": "Suitability Modelling for Hytruck",
                 "description": "Desc",
                 "provider": {
-                    "providerClassName": "ClickhouseCollectionProvider.ClickhouseCollectionProvider",
+                    "providerClassName": "clickhouse_collection_provider.ClickhouseCollectionProvider",
                     "providerParams": {
                         "uid": "suitability_hytruck",
                         "host": "127.0.0.1",
                         "user": "default",
-                        "password": "user",
+                        "password": "",
                         "port": 9000,
                         "database": "default",
                         "table": "testing_suitability_IGEO7",
