@@ -45,6 +45,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             convert = True
         for z, v in result.relative_zonelevels.items():
             g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
+            org_z = z
             if (convert):
                 converted = dggrs_provider.convert(v.zoneIds, c.collection_provider.dggrsId)
                 tmp = gpd.GeoDataFrame({'vid': v.zoneIds}, geometry=g).set_index('vid')
@@ -72,9 +73,9 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                     master.set_index('zoneId', inplace=True)
                 master = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry'])
                 try:
-                    data[z].join(master)
+                    data[org_z].join(master)
                 except KeyError:
-                    data[z] = master
+                    data[org_z] = master
     if (len(data.keys()) == 0):
         return None
     zarr_root, tmpfile = None, None
@@ -92,6 +93,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             geometry = d['geometry'].values
             geojson = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
             d = d.drop(columns='geometry')
+            d['depth'] = z
             feature = d.to_dict(orient='records')
             feature = [Feature(**{'type': "Feature", 'id': id_ + i, 'geometry': geojson(**shapely.geometry.mapping(geometry[i])), 'properties': f}) for i, f in enumerate(feature)]
             features += feature
