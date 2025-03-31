@@ -32,7 +32,7 @@ def run():
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
-    StandaloneApplication("dataserv.api:app", options).run()
+    StandaloneApplication("pydggsapi.api:app", options).run()
 
 
 if __name__ == '__main__':
