@@ -300,7 +300,7 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
 
 
 @router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
+@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
 async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
                            dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
