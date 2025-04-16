@@ -112,17 +112,16 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                 values[column].append(Value(**{'depth': z, 'shape': {'count': len(v[i, :])}, "data": v[i, :].tolist()}))
                 if (zarr_root is not None):
                     root = zarr_root
-                    if (z != zone_levels[0]):
-                        if (f'zone_level_{z}' not in zarr_root.group_keys()):
-                            root = zarr_root.create_group(f'zone_level_{z}')
-                            root.attrs.update({k: v.__dict__ for k, v in properties.items()})
-                        else:
-                            root = zarr_root[f'zone_level_{z}']
+                    if (f'zone_level_{z}' not in zarr_root.group_keys()):
+                        root = zarr_root.create_group(f'zone_level_{z}')
+                    else:
+                        root = zarr_root[f'zone_level_{z}']
                     compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
                     if ('zoneId' not in root.array_keys()):
                         sub_zarr = root.create_dataset('zoneId', data=zoneIds, compressor=compressor)
-                        sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ['zoneId']})
+                        sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
                     sub_zarr = root.create_dataset(f'{column}_zone_level_' + str(z), data=v[i, :].astype(data_type[column].lower()), compressor=compressor)
+                    sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
     if (zarr_root is not None):
         zarr_root.attrs.update({k: v.__dict__ for k, v in properties.items()})
         zarr.consolidate_metadata(zipstore)
