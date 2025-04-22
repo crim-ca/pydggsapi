@@ -11,55 +11,59 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-class Zarr_collection_parameters(BaseModel):
+class Zarr_datasource_parameters(BaseModel):
     filepath: str
-    zones_grps: Dict[int, str]
-    variable_cols: Optional[List[str]] = None
+    zones_grps: Dict[str, str]
     filehandle: object = None
 
 
 # Zarr with Xarray DataTree
 class Zarr(AbstractCollectionProvider):
-    collections: Dict[str, Zarr_collection_parameters] = {}
+    datasources: Dict[str, Zarr_datasource_parameters] = {}
 
     def __init__(self, params):
         try:
-            filelist = params.get('filelist')
+            filelist = params.get('datasources')
             if (filelist is not None):
                 for k, v in filelist.items():
-                    param = Zarr_collection_parameters(**v)
+                    param = Zarr_datasource_parameters(**v)
                     param.filehandle = xr.open_datatree(param.filepath)
-                    self.collections[k] = param
+                    self.datasources[k] = param
         except Exception as e:
             logging.error(f'{__name__} class initial failed: {e}')
             raise Exception(f'{__name__} class initial failed: {e}')
 
-    def get_data(self, zoneIds: List[str], res: int, collection_name: str, filepath: str = None,
-                 zones_grps: Dict[int, str] = None, variable_cols: list = None) -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, datasource_id: str, filepath: str = None,
+                 zones_grps: Dict[int, str] = None) -> CollectionProviderGetDataReturn:
+        datatree = None
+        result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
-            self.collections[collection_name]
+            datatree = self.datasources[datasource_id]
         except KeyError:
             try:
-                param = Zarr_collection_parameters(filepath, zones_grps, variable_cols)
+                param = Zarr_datasource_parameters(filepath, zones_grps)
                 param.filehandle = xr.open_datatree(param.filepath)
-                self.collections[collection_name] = param
+                self.datasources[datasource_id] = param
+                datatree = self.datasources[datasource_id]
+                logging.info(f'{__name__} new datasource: {datasource_id} added.')
             except Exception as e:
                 logging.error(f'{__name__} initial zarr collection failed: {e}')
-                raise Exception(f'{__name__} initial zarr collection failed: {e}')
-        zarr_obj = self.collections[collection_name]
-        zone_grp = zarr_obj.zones_grps[res]
-        datatree = zarr_obj.filehandle[zone_grp]
+                return result
+        try:
+            zone_grp = datatree.zones_grps[str(res)]
+        except KeyError as e:
+            logging.error(f'{__name__} get zone_grp for resolution {res} failed: {e}')
+            return result
+        datatree = datatree.filehandle[zone_grp]
         # in future, we may consider using xdggs-dggrid4py
-        result = datatree.sel({f'{zones_grps}': np.array(zoneIds, dtype=zone_grp.dtype)})
-        result = result.to_dataset().to_array()
-        if (len(result[0]) > 0):
-            data = np.array(result[0])
-            zoneIds = data[:, zone_idx].tolist()
-            data = np.delete(data, zone_idx, axis=-1).tolist()
-            cols_meta = {r[0]: r[1] for r in result[1] if (r[0] != res_col)}
-        result = CollectionProviderGetDataReturn(zoneIds=zoneIds, cols_meta=cols_meta, data=data)
+        try:
+            zarr_result = datatree.sel({f'{zone_grp}': np.array(zoneIds, dtype=datatree[zone_grp].dtype)})
+        except Exception as e:
+            logging.error(f'{__name__} datatree sel failed: {e}')
+            return result
+        cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
+        zarr_result = zarr_result.to_dataset().to_array()
+        zoneIds = zarr_result[zone_grp].values.astype(str).tolist()
+        data = zarr_result.data.T.tolist()
+        result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
-
-
-
-

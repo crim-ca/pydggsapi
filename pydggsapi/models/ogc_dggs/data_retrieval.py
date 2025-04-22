@@ -63,7 +63,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                 tmp = pd.DataFrame(np.concatenate([id_, collection_result.data], axis=-1),
                                    columns=['zoneId'] + list(cols_name.keys())).set_index('zoneId')
                 master = master.join(tmp)
-                master = master.astype(data_type)
+                master = master.astype(cols_name)
                 if (convert):
                     master.reset_index(inplace=True)
                     tmp_geo = master.groupby('vid')['geometry'].last()
@@ -73,7 +73,8 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                     master.set_index('zoneId', inplace=True)
                 master = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry'])
                 try:
-                    data[org_z].join(master)
+                    data[org_z] = data[org_z].join(master, rsuffix=cid)
+                    data[org_z] = data[org_z].drop(columns=[f'geometry{cid}'], errors='ignore')
                 except KeyError:
                     data[org_z] = master
     if (len(data.keys()) == 0):
@@ -103,11 +104,10 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             zoneIds = d.index.values.astype(str).tolist()
             d = d.T
             v = d.values
-            if (len(properties.keys()) == 0):
-                properties = {c: Property(**{'type': data_type[c]}) for c in d.index}
-            if (len(values.keys()) == 0):
-                for c in properties.keys():
-                    values[c] = []
+            diff = set(list(d.index)) - set(list(properties.keys()))
+            properties.update({c: Property(**{'type': data_type[c]}) for c in diff})
+            diff = set(list(d.index)) - set(list(values.keys()))
+            values.update({c: [] for c in diff})
             for i, column in enumerate(d.index):
                 values[column].append(Value(**{'depth': z, 'shape': {'count': len(v[i, :])}, "data": v[i, :].tolist()}))
                 if (zarr_root is not None):

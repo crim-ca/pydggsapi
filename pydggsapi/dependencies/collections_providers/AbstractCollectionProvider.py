@@ -11,6 +11,7 @@ class AbstractCollectionProvider(ABC):
     # 3. The zoneIds is the list of zoneID , its length must align with data's length
     # 4. cols_name and cols_dtype lenght must align
     # 5. data is the data :P
+    # 6. In case of exception, return a empty CollectionProviderGetDataReturn, ie. all with []
     @abstractmethod
     def get_data(self, zoneIds: List[str], res: int) -> CollectionProviderGetDataReturn:
         raise NotImplementedError
