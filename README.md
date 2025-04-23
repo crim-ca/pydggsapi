@@ -127,13 +127,13 @@ The following configuration defines a collection provider with :
 
 Collection provider to support Zarr data format with Xarray DataTree.
 
-- The Zarr collection provider use xarray to support Zarr data format
+- The Zarr collection provider uses xarray to support Zarr data format
 - Each refinement level (resolution) is treated as a group in Zarr
 - It will return all data variables
 - It holds a dictionary to the xarray object for each data source.
 - Data sources (folder path) can be specified in either:
-     - initial_params, it will load the data source on start
-     - Collection's getdata_params , it will load the data source at run-time.  
+     - initial_params will load the data source at the start.
+     - Collection's getdata_params will load the data source at run-time.
 
 
 Data source defined in init_params
