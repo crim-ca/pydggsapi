@@ -336,7 +336,7 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
                                     detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
     try:
         result = query_zone_data(zoneId, zone_level, dggrs_description,
-                                 dggrs_provider, collections, collection_providers, returntype, returngeometry, exclude)
+                                 dggrs_provider, collection, collection_providers, returntype, returngeometry, exclude)
         if (result is None):
             return Response(status_code=204)
         return result
