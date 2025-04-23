@@ -51,16 +51,16 @@ The are two parts of configurations.
 
 User Configurations:
 
- - Collections : to define a collection with meta data, how to access the data and which dggrs it support.
+ - Collections : to define a collection with meta data, how to access the data (collection provider) and which dggrs it support (dggrs provider).
 
 System configurations:
 
- - Collection Providers : A data access implementation for accessing the data.
- - DGGRS  providers : A dggrs implementation to support API endpoint operations
+ - Collection Providers : Implementation to access the data.
+ - DGGRS  providers :  Implementation to support API endpoint operations for DGGS
 
-Each data collection must be already formatted  in one of the supported DGGRS implementation (like at least one columns to represent the zone ID)
+Each data collection must be already formatted  in one of the supported DGGRS implementation (ie. at least one columns to represent the zone ID)
 
-#### An example on Collections definition (in TinyDB): 
+#### An example for Collections definition (in TinyDB): 
 
 The below example on collections defines : 
 
@@ -96,7 +96,7 @@ The below example on collections defines :
 			}
 ```
 
-#### An example on Collection Providers definition (in TinyDB): 
+#### An example for Collection Providers definition (in TinyDB): 
 
 The following configuration defines a collection provider with : 
 
@@ -105,7 +105,7 @@ The following configuration defines a collection provider with :
 
 2. classname : ["db\.Clickhouse"](pydggsapi/dependencies/collections_providers/db.py) the implementation class info (under [dependencies/collections_providers folder](pydggsapi/dependencies/collections_providers))
 
-3. initial_params : parameters for initializing the class
+3. initial_params : parameters to initializing the class
 
 ```
 "collection_providers": {"1": 
@@ -123,7 +123,62 @@ The following configuration defines a collection provider with :
 ```
 
 
-#### An example on DGGRS providers definition (in TinyDB): 
+**Collection provider - Zarr**
+
+Collection provider to support Zarr data format with Xarray DataTree.
+
+- The Zarr collection provider use xarray to support Zarr data format
+- Each refinement level (resolution) is treated as a group in Zarr
+- It will return all data variables
+- It holds a dictionary to the xarray object for each data source.
+- Data sources (folder path) can be specified in either:
+     - initial_params, it will load the data source on start
+     - Collection's getdata_params , it will load the data source at run-time.  
+
+
+Data source defined in init_params
+```
+"collection_providers": {"2": 
+		{"zarr": 
+			{"classname": "filebase.Zarr", 
+			  "initial_params": { 
+			  			"datasources": {
+			  						"my_zarr_data": {
+			  									  "filepath": "<path to zarr folder>",
+			  									 "zones_grps" : { "4": "res4", "5": "res5"}
+			  					      } 
+			  		 	} 
+			  		 }
+			  }
+		}
+}
+```
+
+
+Data source defined in Collections
+```
+"collections": {"2": 
+				{"suitability_hytruck_zarr": 
+					{"title": "Suitability Modelling for Hytruck for Zarr Data format",
+				 	 "description": "Desc", 
+				  	"collection_provider": {
+				  			"providerId": "zarr", 
+				  			"dggrsId": "igeo7",
+				  			 "maxzonelevel": 9,
+				  			 "getdata_params": { 
+				  			 		datasource_id: "my_zarr_data",
+			  						"filepath": "<path to zarr folder>",
+			  						"zones_grps" : { "4": "res4", "5": "res5"}
+			  					} 
+				  			 }
+				  		}
+				  	}
+				} 
+			}
+```
+
+
+#### An example for DGGRS providers definition (in TinyDB): 
 
 The following configuration defines a dggrs provider with : 
 
