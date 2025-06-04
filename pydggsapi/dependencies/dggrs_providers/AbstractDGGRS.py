@@ -17,6 +17,10 @@ class AbstractDGGRS(ABC):
     dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
 
     @abstractmethod
+    def get_zone_level_by_cls(self, cls_km: float) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
         raise NotImplementedError
 

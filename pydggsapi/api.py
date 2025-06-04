@@ -8,6 +8,7 @@ import logging
 
 import pydggsapi.request_example as request_example
 from pydggsapi.routers import dggs_api
+from pydggsapi.routers import tiles_api
 
 import os
 
@@ -29,6 +30,7 @@ app.add_middleware(
 
 
 app.include_router(dggs_api.router, prefix='/dggs-api/v1-pre')
+app.include_router(tiles_api.router, prefix='/tiles-api')
 
 
 # set up logging for app as console output

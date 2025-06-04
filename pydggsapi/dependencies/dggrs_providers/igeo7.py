@@ -87,6 +87,11 @@ class IGEO7(AbstractDGGRS):
         gdf = self.dggrid_instance.grid_cellids_for_extent('IGEO7', zoomlevel, clip_geom=clip_geom, output_address_type='Z7_STRING')
         return gdf
 
+    def get_zone_level_by_cls(self, cls_km: float):
+        for k, v in self.data.items():
+            if v["CLS (km)"] < cls_km:
+                return k
+
     def get_cells_zone_level(self, cellIds: List[str]):
         try:
             zones_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')

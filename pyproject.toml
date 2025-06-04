@@ -15,7 +15,7 @@ mapbox-vector-tile = "^2.0.1"
 pyproj = "^3.6.1"
 pyjwt = {extras = ["crypto"], version = "^2.9.0"}
 clickhouse-cityhash = "^1.0.2.4"
-dggrid4py = "0.3.1"
+dggrid4py = "0.3.2"
 python-dotenv = "^1.0.0"
 gunicorn = "^23.0.0"
 numpy = "^1.26.3"
@@ -25,12 +25,17 @@ pytest = "^8.3.4"
 fastapi = "^0.115.6"
 h3 = "^4.1.2"
 scipy = "^1.15.0"
+xarray = {extras = ["io"], version = "^2025.3.1"}
+nest-asyncio = "^1.6.0"
 
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+pydggsapi = "pydggsapi.main:run"
 
 
 [tool.pytest.ini_options]

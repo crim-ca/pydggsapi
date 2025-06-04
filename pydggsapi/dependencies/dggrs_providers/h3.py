@@ -60,6 +60,12 @@ class H3(AbstractDGGRS):
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
 
+    def get_zone_level_by_cls(self, cls_km) -> int:
+        for i in range(0, 16):
+            length = h3.average_hexagon_edge_length(i, unit='km')
+            if (length < cls_km):
+                return i
+
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
         zoneslevel = []
         try:
