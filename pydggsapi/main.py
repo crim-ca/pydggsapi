@@ -8,7 +8,7 @@ import os
 
 
 class StandaloneApplication(WSGIApplication):
-    def __init__(self, app_uri, options=None, storage=None):
+    def __init__(self, app_uri, options=None):
         self.options = options or {}
         self.app_uri = app_uri
         super().__init__()
