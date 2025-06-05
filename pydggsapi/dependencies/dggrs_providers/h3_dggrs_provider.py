@@ -29,19 +29,19 @@ class H3Provider(AbstractDGGRSProvider):
         igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
         self.dggrs_conversion = {'igeo7': igeo7_conversion_properties}
 
-    def convert(self, virtual_zoneIds: list, targetdggrs: str):
+    def convert(self, zoneIds: list, targetdggrs: str):
         if (targetdggrs in self.dggrs_conversion):
             if (targetdggrs == 'igeo7'):
                 igeo7 = IGEO7Provider()
-                res_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
+                res_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in zoneIds]
                 for i, area in enumerate(res_list):
                     for k, v in igeo7.data.items():
                         if (area[0] > v['Area (km^2)']):
                             res_list[i][0] = k
                             break
                 v_ids = []
-                actual_zoneIds = []
-                actual_res_list = []
+                target_zoneIds = []
+                target_res_list = []
                 try:
                     # ~ 0.05s for one iter with using actualdggrs.zoneslist
                     # ~ 0.03s for one iter with using get centriod method. (1s reduced in total for 49 zones)
@@ -49,15 +49,15 @@ class H3Provider(AbstractDGGRSProvider):
                         r = igeo7.generate_hexcentroid(shapely.box(*res[1].bounds), res[0])
                         selection = [shapely.within(g, res[1]) for g in r['geometry']]
                         selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
-                        actual_zoneIds += selection
-                        v_ids += [virtual_zoneIds[i]] * len(selection)
-                        actual_res_list += [res[0]] * len(selection)
+                        target_zoneIds += selection
+                        v_ids += [zoneIds[i]] * len(selection)
+                        target_res_list += [res[0]] * len(selection)
                 except Exception as e:
                     logging.error(f'{__name__} forward transform failed : {e}')
                     raise Exception(f'{__name__} forward transform failed : {e}')
-                if (len(np.unique(actual_zoneIds)) < len(np.unique(virtual_zoneIds))):
+                if (len(np.unique(target_zoneIds)) < len(np.unique(zoneIds))):
                     logging.warn(f'{__name__} forward transform: unique h3 zones id > unique igeo7 zones id ')
-                return DGGRSProviderConversionReturn(virtual_zoneIds=v_ids, actual_zoneIds=actual_zoneIds, actual_res=actual_res_list)
+                return DGGRSProviderConversionReturn(zoneIds=v_ids, target_zoneIds=target_zoneIds, target_res=target_res_list)
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
 

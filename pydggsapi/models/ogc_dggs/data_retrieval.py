@@ -49,9 +49,9 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             if (convert):
                 converted = dggrs_provider.convert(v.zoneIds, c.collection_provider.dggrsId)
                 tmp = gpd.GeoDataFrame({'vid': v.zoneIds}, geometry=g).set_index('vid')
-                master = pd.DataFrame({'vid': converted.virtual_zoneIds, 'zoneId': converted.actual_zoneIds}).set_index('vid')
+                master = pd.DataFrame({'vid': converted.zoneIds, 'zoneId': converted.target_zoneIds}).set_index('vid')
                 master = master.join(tmp).reset_index().set_index('zoneId')
-                z = converted.actual_res[0]
+                z = converted.target_res[0]
             else:
                 master = gpd.GeoDataFrame(v.zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
             idx = master.index.values.tolist()

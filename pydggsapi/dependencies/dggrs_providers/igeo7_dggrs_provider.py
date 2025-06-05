@@ -47,7 +47,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
 
-    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
+    def convert(self, zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
         pass
 
     def get(self, zoom):

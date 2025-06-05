@@ -40,6 +40,6 @@ class AbstractDGGRSProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def convert(self, virtual_zoneIds: list, targetdggrs: Any) -> DGGRSProviderConversionReturn:
+    def convert(self, zoneIds: list, targetdggrs: Any) -> DGGRSProviderConversionReturn:
         raise NotImplementedError
 

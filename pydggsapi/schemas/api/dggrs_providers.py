@@ -37,14 +37,14 @@ class DGGRSProviderGetRelativeZoneLevelsReturn(BaseModel):
 
 
 class DGGRSProviderConversionReturn(BaseModel):
-    virtual_zoneIds: List[Any]
-    actual_zoneIds: List[Any]
-    actual_res: List[int]
+    zoneIds: List[Any]
+    target_zoneIds: List[Any]
+    target_res: List[int]
 
     @model_validator(mode='after')
     def validator(self) -> Self:
-        if ((len(self.virtual_zoneIds) != len(self.actual_zoneIds)) or (len(self.virtual_zoneIds) != len(self.actual_res))):
-            raise ValueError('length virtual, actual zones id and res list must be equal.')
+        if ((len(self.zoneIds) != len(self.target_zoneIds)) or (len(self.zoneIds) != len(self.target_res))):
+            raise ValueError('length zoneIds, target zones id and res list must be equal.')
         return self
 
 

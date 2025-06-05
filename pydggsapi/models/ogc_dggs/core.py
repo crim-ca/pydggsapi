@@ -65,8 +65,8 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
     for k, v in collection.items():
         if (v.collection_provider.dggrsId != dggs_info.id):
             converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId)
-            zoneId = converted_zones.actual_zoneIds
-            zonelevel = converted_zones.actual_res[0]
+            zoneId = converted_zones.target_zoneIds
+            zonelevel = converted_zones.target_res[0]
         params = v.collection_provider.getdata_params
         data = collection_provider[v.collection_provider.providerId].get_data(zoneId, zonelevel, **params)
         filter_ += len(data.zoneIds)
