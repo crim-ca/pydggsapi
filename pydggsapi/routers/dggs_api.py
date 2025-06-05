@@ -153,20 +153,6 @@ for providerId, providerConfig in collection_providers.items():
 
 
 
-# Collection landing page
-@router.get("/collections", response_model=ogc_Collections, tags=['ogc-collections-api'])
-async def list_collections(req: Request, collection: Dict[str, Collection] = Depends(_get_collection)):
-    collection_list = []
-    req.url
-    for k, v in collection.items():
-        self_link = Link(**{'href': str(req.url) + f'/{v.collectionid}', 'rel': 'self', 'type': 'application/json',
-                            'title': f'General Description of {v.collectionid}'})
-        dggs_list_link = Link(**{'href': str(req.url) + f'/{v.collectionid}/dggs', 'rel': 'ogc-rel:dggrs-list',
-                                 'type': 'application/json', 'title': 'Available DGGRS for {v.collectionid}'})
-        collection_list.append(CollectionDesc(id=v.collectionid, title=v.title, description=v.description, links=[self_link, dggs_list_link]))
-    self_link = Link(**{'href': str(req.url) + '/collections.json', 'rel': 'self', 'type': 'application/json',
-                        'title': 'collections api'})
-    return ogc_Collections(links=[self_link], collections=collection_list)
 
 # Landing page and conformance
 @router.get("/", tags=['ogc-dggs-api'])
