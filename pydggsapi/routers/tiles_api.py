@@ -83,7 +83,7 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     #loop.close()
     features = [{'geometry': shapely.from_geojson(json.dumps(i.geometry.__dict__)), 'properties': i.properties}
                 for t in tasks if (type(t) is not Response) for i in t.features]
-    content = mapbox_vector_tile.encode({"name": 'weighted_suitability', "features": features},
+    content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": features},
                                         quantize_bounds=bbox,
                                         default_options={"transformer": transformer.transform})
     return Response(bytes(content), media_type="application/x-protobuf")
