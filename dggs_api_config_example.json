@@ -1,0 +1,97 @@
+{
+  "collections": {
+    "1": {
+      "suitability_hytruck": {
+        "title": "Suitability Modelling for Hytruck",
+        "description": "Desc",
+        "collection_provider": {
+          "providerId": "clickhouse",
+          "dggrsId": "igeo7",
+          "maxzonelevel": 9,
+          "getdata_params": {
+            "table": "<table name>",
+            "zoneId_cols": {
+              "9": "column of refinement level 9",
+              "8": "column of refinement level 8", 
+              "7": "column of refinement level 7",
+              "6": "column of refinement level 6",
+              "5": "column of refinement level 5"
+            },
+            "data_cols": [
+				"data column names"
+            ]
+          }
+        }
+      }
+    },
+    "2": {
+      "suitability_hytruck_zarr": {
+        "title": "Suitability Modelling for Hytruck in Zarr format",
+        "description": "Desc",
+        "collection_provider": {
+          "providerId": "zarr",
+          "dggrsId": "igeo7",
+          "maxzonelevel": 9,
+          "getdata_params": {
+            "datasource_id": "zarr_hytruck"
+          }
+        }
+      }
+    }
+  },
+  "dggrs": {
+    "1": {
+      "igeo7": {
+        "title": "ISEA7H z7string",
+        "description": "desc",
+        "crs": "wgs84",
+        "shapeType": "hexagon",
+        "definition_link": "http://testing",
+        "defaultDepth": 5,
+        "classname": "igeo7_dggrs_provider.IGEO7Provider"
+      }
+    },
+    "2": {
+      "h3": {
+        "title": "h3",
+        "description": "desc",
+        "crs": "wgs84",
+        "shapeType": "hexagon",
+        "definition_link": "http://h3test",
+        "defaultDepth": 5,
+        "classname": "h3_dggrs_provider.H3Provider"
+      }
+    }
+  },
+  "collection_providers": {
+    "1": {
+      "clickhouse": {
+        "classname": "clickhouse_collection_provider.ClickhouseCollectionProvider",
+        "initial_params": {
+          "host": "127.0.0.1",
+          "user": ,
+          "password": ,
+          "port": 9000,
+          "database": "DevelopmentTesting"
+        }
+      }
+    },
+    "2": {
+      "zarr": {
+        "classname": "zarr_collection_provider.ZarrCollectionProvider",
+        "initial_params": {
+          "datasources": {
+            "zarr_hytruck": {
+              "filepath": "./aggregated_tree.zarr",
+              "zones_grps": {
+                "4": "res4",
+                "5": "res5",
+                "6": "res6"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

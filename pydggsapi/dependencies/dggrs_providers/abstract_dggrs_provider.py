@@ -1,12 +1,25 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
 from abc import ABC, abstractmethod
-from typing import List, Any, Union, Tuple
-from pydggsapi.schemas.api.dggs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
+from typing import List, Any, Union, Tuple, Dict, Optional
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn
+from pydantic import BaseModel
 from shapely.geometry import box
 
 
+class conversion_properties(BaseModel):
+    zonelevel_offset: int
+
+
+
 class AbstractDGGRSProvider(ABC):
+
+    dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
+
+    @abstractmethod
+    def get_zone_level_by_cls(self, cls_km: float) -> int:
+        raise NotImplementedError
 
     @abstractmethod
     def get_cells_zone_level(self, cellIds: list) -> List[int]:
@@ -25,3 +38,8 @@ class AbstractDGGRSProvider(ABC):
     @abstractmethod
     def zonesinfo(self, cellIds: list) -> DGGRSProviderZoneInfoReturn:
         raise NotImplementedError
+
+    @abstractmethod
+    def convert(self, virtual_zoneIds: list, targetdggrs: Any) -> DGGRSProviderConversionReturn:
+        raise NotImplementedError
+

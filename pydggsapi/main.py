@@ -32,7 +32,9 @@ def run():
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
-    StandaloneApplication("dataserv.api:app", options).run()
+    if (os.environ.get('dggs_api_config') is None):
+        raise Exception("Env variable dggs_api_config is not set.")
+    StandaloneApplication("pydggsapi.api:app", options).run()
 
 
 if __name__ == '__main__':
@@ -44,4 +46,6 @@ if __name__ == '__main__':
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
+    if (os.environ.get('dggs_api_config') is None):
+        raise Exception("Env variable dggs_api_config is not set.")
     StandaloneApplication("pydggsapi.api:app", options).run()

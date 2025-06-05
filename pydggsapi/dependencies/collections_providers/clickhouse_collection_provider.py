@@ -19,14 +19,10 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
 
     def __init__(self, params):
         try:
-            super().__init__(params['uid'])
             self.host = params['host']
             self.user = params['user']
             self.port = params['port']
             self.password = params['password']
-            self.table = params['table']
-            self.res_cols = params['res_cols']
-            self.data_cols = params['data_cols']
             self.compression = params.get('compression', False)
             self.database = params.get('database', 'default')
         except Exception as e:
@@ -39,24 +35,26 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             logging.error(f'{__name__} class initial failed: {e}')
             raise Exception(f'{__name__} class initial failed: {e}')
 
-    def get_data(self, zoneIds: List[str], res: int, aggregation: str = 'mode') -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, table, zoneId_cols, data_cols, aggregation: str = 'mode') -> CollectionProviderGetDataReturn:
+        result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
-            res_col = self.res_cols[str(res)]
-        except Exception as e:
-            logging.error(f'{__name__} get res_cols for resolution {res} failed: {e}')
-            raise Exception(f'{__name__} get res_cols for resolution {res} failed: {e}')
+            res_col = zoneId_cols[str(res)]
+        except KeyError as e:
+            logging.error(f'{__name__} get zoneId_cols for resolution {res} failed: {e}')
+            return result
         if (aggregation == 'mode'):
-            cols = [f'arrayMax(topK(1)({l})) as {l}' for l in self.data_cols]
+            cols = [f'arrayMax(topK(1)({l})) as {l}' for l in data_cols]
             cols = ",".join(cols)
         cols += f', {res_col}'
-        query = f'select {cols} from {self.table} where {res_col} in (%(cellid_list)s) group by {res_col}'
-        result = self.db.execute(query, {'cellid_list': zoneIds}, with_column_types=True)
-        zone_idx = [i for i, r in enumerate(result[1]) if (r[0] == res_col)][0]
-        data = np.array(result[0])
-        zoneIds = data[:, zone_idx]
-        data = np.delete(data, zone_idx, axis=-1)
-        cols_meta = {r[0]: r[1] for r in result[1] if (r[0] != res_col)}
-        result = CollectionProviderGetDataReturn(zoneIds=zoneIds.tolist(), cols_meta=cols_meta, data=data.tolist())
+        query = f'select {cols} from {table} where {res_col} in (%(cellid_list)s) group by {res_col}'
+        db_result = self.db.execute(query, {'cellid_list': zoneIds}, with_column_types=True)
+        zone_idx = [i for i, r in enumerate(db_result[1]) if (r[0] == res_col)][0]
+        if (len(db_result[0]) > 0):
+            data = np.array(db_result[0])
+            zoneIds = data[:, zone_idx].tolist()
+            data = np.delete(data, zone_idx, axis=-1).tolist()
+            cols_meta = {r[0]: r[1] for r in db_result[1] if (r[0] != res_col)}
+            result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
 
 

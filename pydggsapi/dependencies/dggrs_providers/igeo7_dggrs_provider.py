@@ -1,8 +1,10 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
+
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
+from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
 
 import os
 import tempfile
@@ -10,14 +12,17 @@ import logging
 from typing import Union, List
 from dggrid4py import DGGRIDv7
 import shapely
+from dotenv import load_dotenv
 from shapely.geometry import box
 import numpy as np
 
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
+load_dotenv()
 
-class IGEO7(AbstractDGGRSProvider):
+
+class IGEO7Provider(AbstractDGGRSProvider):
 
     def __init__(self):
         executable = os.environ['DGGRID_PATH']
@@ -41,6 +46,9 @@ class IGEO7(AbstractDGGRSProvider):
             14: {"Cells": 6782230728492, "Area (km^2)": 0.0000752, "CLS (km)": 0.0097855},
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
+
+    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
+        pass
 
     def get(self, zoom):
         # zoom must be integer and between 0 and 15 inclusive
@@ -78,6 +86,11 @@ class IGEO7(AbstractDGGRSProvider):
     def cellids_from_extent(self, clip_geom, zoomlevel):
         gdf = self.dggrid_instance.grid_cellids_for_extent('IGEO7', zoomlevel, clip_geom=clip_geom, output_address_type='Z7_STRING')
         return gdf
+
+    def get_zone_level_by_cls(self, cls_km: float):
+        for k, v in self.data.items():
+            if v["CLS (km)"] < cls_km:
+                return k
 
     def get_cells_zone_level(self, cellIds: List[str]):
         try:
@@ -177,8 +190,3 @@ class IGEO7(AbstractDGGRSProvider):
         return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['name'].values.astype(str).tolist(),
                                                'geometry': geometry,
                                                'returnedAreaMetersSquare': returnedAreaMetersSquare})
-
-
-
-
-
