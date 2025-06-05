@@ -1,4 +1,4 @@
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
 from pydantic import BaseModel
@@ -18,7 +18,7 @@ class Zarr_datasource_parameters(BaseModel):
 
 
 # Zarr with Xarray DataTree
-class Zarr(AbstractCollectionProvider):
+class ZarrCollectionProvider(AbstractCollectionProvider):
     datasources: Dict[str, Zarr_datasource_parameters] = {}
 
     def __init__(self, params):

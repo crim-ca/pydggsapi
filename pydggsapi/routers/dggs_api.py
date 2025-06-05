@@ -7,11 +7,11 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Path
 from typing import Optional, Dict, Union
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, support_returntype
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, ZonesDataGeoJson, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ApiCollections, ApiCollection, Link
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.ogc_collections.collections import Collections as ogc_Collections
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
@@ -25,8 +25,8 @@ from pydggsapi.dependencies.api.collections import get_collections_info
 from pydggsapi.dependencies.api.collection_providers import get_collection_providers
 from pydggsapi.dependencies.api.dggrs import get_dggrs_descriptions, get_dggrs_class, get_conformance_classes
 
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 
 from fastapi.responses import JSONResponse, FileResponse, Response
 import logging
@@ -152,6 +152,7 @@ for providerId, providerConfig in collection_providers.items():
     collection_providers[providerId] = _import_collection_provider(providerConfig)
 
 
+
 # Collection landing page
 @router.get("/collections", response_model=ogc_Collections, tags=['ogc-collections-api'])
 async def list_collections(req: Request, collection: Dict[str, Collection] = Depends(_get_collection)):
@@ -167,11 +168,102 @@ async def list_collections(req: Request, collection: Dict[str, Collection] = Dep
                         'title': 'collections api'})
     return ogc_Collections(links=[self_link], collections=collection_list)
 
-
 # Landing page and conformance
 @router.get("/", tags=['ogc-dggs-api'])
 async def landing_page(req: Request):
     return landingpage(req.url)
+
+
+@router.get("/collections", tags=['ogc-dggs-api'])
+async def list_collections(req: Request, response_model=ApiCollections):
+    collectionsResponse = ApiCollections(
+        links=[
+            Link(
+                href=f"{req.url}",
+                rel="self",
+                type="application/json",
+                title="this document"
+            )
+        ],
+        collections=[]
+    )
+    try:
+        collections_info = _get_collection()
+        # logging.info(f'{collections_info.keys()}')
+        for collectionId, collection in collections_info.items():
+            # logging.info(f'{dir(collection)}')
+            collection_links = [
+                Link(
+                    href=f"{req.url}/{collectionId}",
+                    rel="self",
+                    type="application/json",
+                    title="this document"
+                ),
+                Link(
+                    href=f"{req.url}/{collectionId}/dggs",
+                    rel="dggs",
+                    type="application/json",
+                    title="DGGS list"
+                )
+            ]
+            new_collection = ApiCollection(
+                    id=collectionId,
+                    title=collection.title,
+                    description=collection.description,
+                    links=collection_links,
+                    # extent=collection.extent,
+                    # itemType=collection.itemType,
+                    # crs=collection.crs,
+                    # dggsInfo
+                )
+            collectionsResponse.collections.append(new_collection)
+    except Exception as e:
+        logging.error(f'{__name__} {e}')
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f'{__name__} {e}')
+
+    # return JSONResponse(content=collectionsResponse)
+    return collectionsResponse
+
+
+@router.get("/collections/{collectionId}", tags=['ogc-dggs-api'])
+async def list_collection_by_id(collectionId: str, req: Request, response_model=ApiCollection):
+
+    collections_info = _get_collection()
+    # logging.info(f'{collections_info.keys()}')
+    if collectionId in collections_info.keys():
+        collection = collections_info[collectionId]
+        collection_links = [
+            Link(
+                href=f"{req.url}",
+                rel="self",
+                type="application/json",
+                title="this document"
+            ),
+            Link(
+                href=f"{req.url}/dggs",
+                rel="dggs",
+                type="application/json",
+                title="DGGS list"
+            )
+        ]
+        dggrs_info = _get_dggrs_description(collection.collection_provider.dggrsId)
+        new_collection = ApiCollection(
+            id=collectionId,
+            title=collection.title,
+            description=collection.description,
+            links=collection_links,
+            # extent=collection.extent,
+            # itemType=collection.itemType,
+            # crs=collection.crs,
+            # dggsInfo=collection.dggrs_indexes
+            dggsInfo=dggrs_info.__dict__
+
+        )
+
+        return new_collection
+    else:
+        raise HTTPException(status_code=404, detail=f'{__name__} {collectionId} not found')
 
 
 @router.get("/conformance", tags=['ogc-dggs-api'])
@@ -230,7 +322,7 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
 async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends(),
                           dggrs_descrption: DggrsDescription = Depends(_get_dggrs_description),
-                          dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
+                          dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                           collection: Dict[str, Collection] = Depends(_get_collection),
                           collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)):
     try:
@@ -249,7 +341,7 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
-                           dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
+                           dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)):
 
@@ -303,7 +395,7 @@ async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
 async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
-                           dggrs_provider: AbstractDGGRS = Depends(_get_dggrs_provider),
+                           dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)) -> ZonesDataDggsJsonResponse | FileResponse:
     returntype = _get_return_type(req, support_returntype, 'application/json')

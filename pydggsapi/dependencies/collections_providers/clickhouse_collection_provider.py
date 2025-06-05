@@ -1,5 +1,4 @@
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
-
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
 from clickhouse_driver import Client
@@ -11,7 +10,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-class Clickhouse(AbstractCollectionProvider):
+class ClickhouseCollectionProvider(AbstractCollectionProvider):
     host: str
     port: int
     user: str

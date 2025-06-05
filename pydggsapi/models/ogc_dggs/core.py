@@ -5,11 +5,11 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInf
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 
 
 from typing import Dict
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pprint import pprint
 import logging
 logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
@@ -56,7 +56,7 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     return dggrs_description
 
 
-def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrs_provider: AbstractDGGRS,
+def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider]):
     logging.info(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
     zoneId = zoneinfoReq.zoneId

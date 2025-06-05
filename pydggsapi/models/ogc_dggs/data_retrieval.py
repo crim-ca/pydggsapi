@@ -4,8 +4,8 @@ from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZonesElement
 from pydggsapi.schemas.api.collections import Collection
 
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 
 from fastapi.responses import FileResponse
 from urllib import parse
@@ -24,7 +24,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 
-def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description: DggrsDescription, dggrs_provider: AbstractDGGRS,
+def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: List[AbstractCollectionProvider],
                     returntype='application/dggs-json', returngeometry='zone-region', exclude=True):
     logging.info(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}, zonelevel: {zone_levels}, return: {returntype}, geometry: {returngeometry}')

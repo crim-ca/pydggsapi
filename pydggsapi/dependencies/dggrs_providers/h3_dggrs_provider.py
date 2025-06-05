@@ -1,7 +1,7 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS, conversion_properties
-from pydggsapi.dependencies.dggrs_providers.igeo7 import IGEO7
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider, conversion_properties
+from pydggsapi.dependencies.dggrs_providers.igeo7_dggrs_provider import IGEO7Provider
 
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
@@ -23,7 +23,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
 
 
 
-class H3(AbstractDGGRS):
+class H3Provider(AbstractDGGRSProvider):
 
     def __init__(self):
         igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
@@ -32,7 +32,7 @@ class H3(AbstractDGGRS):
     def convert(self, virtual_zoneIds: list, targetdggrs: str):
         if (targetdggrs in self.dggrs_conversion):
             if (targetdggrs == 'igeo7'):
-                igeo7 = IGEO7()
+                igeo7 = IGEO7Provider()
                 res_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in virtual_zoneIds]
                 for i, area in enumerate(res_list):
                     for k, v in igeo7.data.items():

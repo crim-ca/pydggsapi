@@ -12,7 +12,8 @@ class conversion_properties(BaseModel):
     zonelevel_offset: int
 
 
-class AbstractDGGRS(ABC):
+
+class AbstractDGGRSProvider(ABC):
 
     dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
 
@@ -41,3 +42,4 @@ class AbstractDGGRS(ABC):
     @abstractmethod
     def convert(self, virtual_zoneIds: list, targetdggrs: Any) -> DGGRSProviderConversionReturn:
         raise NotImplementedError
+

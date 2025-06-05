@@ -3,8 +3,9 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesResponse, ZonesGeoJson
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.api.collections import Collection
 
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
-from pydggsapi.dependencies.collections_providers.AbstractCollectionProvider import AbstractCollectionProvider
+
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 
 from typing import Dict
 import logging
@@ -12,7 +13,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
                     datefmt='%Y-%m-%d,%H:%M:%S', level=logging.DEBUG)
 
 
-def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggrs_provider: AbstractDGGRS,
+def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                      collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider],
                      compact=True, parent_zone=None, returntype='application/json', returngeometry='zone-region'):
     logging.info(f'{__name__} query zones list: {bbox}, {zone_level}, {limit}, {parent_zone}, {compact}')

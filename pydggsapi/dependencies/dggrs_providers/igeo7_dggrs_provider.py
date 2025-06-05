@@ -1,7 +1,7 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.AbstractDGGRS import AbstractDGGRS
 
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
@@ -22,7 +22,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [
 load_dotenv()
 
 
-class IGEO7(AbstractDGGRS):
+class IGEO7Provider(AbstractDGGRSProvider):
 
     def __init__(self):
         executable = os.environ['DGGRID_PATH']
@@ -47,7 +47,7 @@ class IGEO7(AbstractDGGRS):
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
 
-    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRS]):
+    def convert(self, virtual_zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
         pass
 
     def get(self, zoom):
@@ -190,8 +190,3 @@ class IGEO7(AbstractDGGRS):
         return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['name'].values.astype(str).tolist(),
                                                'geometry': geometry,
                                                'returnedAreaMetersSquare': returnedAreaMetersSquare})
-
-
-
-
-

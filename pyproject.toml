@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "pydggsapi"
-version = "0.1.0"
-description = ""
-authors = ["Tik <tik65536@gmail.com>"]
+version = "0.1.1"
+description = "A python FastAPI OGC DGGS API implementation"
+authors = ["Wai Tik Chan <wai.tik.chan@ut.ee>", "Alexander Kmoch <alexander.kmoch@ut.ee>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -13,12 +13,10 @@ shapely = "^2.0.2"
 morecantile = "^5.0.0"
 mapbox-vector-tile = "^2.0.1"
 pyproj = "^3.6.1"
-pyjwt = {extras = ["crypto"], version = "^2.9.0"}
 clickhouse-cityhash = "^1.0.2.4"
 dggrid4py = "0.3.2"
 python-dotenv = "^1.0.0"
 gunicorn = "^23.0.0"
-numpy = "^1.26.3"
 tinydb = "^4.8.2"
 pytest = "^8.3.4"
 fastapi = "^0.115.6"
