@@ -13,4 +13,4 @@ tinydb
 fastapi
 h3 
 scipy 
-xarray==2025
+xarray==2025.3.1
