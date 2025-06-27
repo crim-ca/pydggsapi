@@ -1,0 +1,16 @@
+sphinx==8
+sphinx-rtd-theme==3
+myst-parser==4
+dggrid4py==0.4.1
+uvicorn==23
+clickhouse-driver 
+shapely 
+morecantile
+mapbox-vector-tile
+pyproj 
+python-dotenv==1
+tinydb
+fastapi
+h3 
+scipy 
+xarray==2025
