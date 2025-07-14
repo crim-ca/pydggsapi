@@ -29,4 +29,4 @@ OGC API - DGGS specifies an API for accessing data organised according to a Disc
 
    introduction
    Configuration <tinydb_configuration/index>
-   Abstract providers <providers/index>
+   providers/index
