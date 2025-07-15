@@ -12,8 +12,49 @@ This structure provides two abstract class definitions that allow developers to 
 
 * Collection provider: clickhouse, zarr
 
-Quick setup
------------
+Quick setup 
+---------------------------
+1. Install pydggsapi using pypi inside virtual environment
+
+
+.. code-block:: bash
+
+    micromamba create -n my_pydggsapi python=3.10
+
+    pip install pydggsapi
+    
+
+or install it using pypi
+
+.. code-block:: bash
+
+    pip install pydggsapi
+
+* In order to work with IGEO7 (using `DGGRIG <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
+
+.. code-block:: bash
+
+    micromamba install -c conda-forge dggrid
+
+2. create a local ``.env`` file from the ``env.sample``. Change the environment variables according to your local environment setup. Please refer to the :doc:`configuration </tinydb_configuration/index>` for more details.
+
+.. code-block:: bash
+    
+    dggs_api_config=<Path to TinyDB>
+    DGGRID_PATH=<Path to dggrid executable>
+
+3. Start the server:
+   
+.. code-block:: bash
+
+   micromamba activate my_pydggsapi
+
+   pydggsapi
+
+
+
+Quick setup for development
+---------------------------
 1. setup virtual environment with micromamba file and active it. 
 
 .. code-block:: bash
@@ -22,13 +63,12 @@ Quick setup
     mircomamba activate <name>
 
 
-In order to work with IGEO7 (using `DGGRIG <https://github.com/sahrk/DGGRID>`_ and python library `dggrid4py <https://github.com/allixender/dggrid4py>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
+In order to work with IGEO7 (using `DGGRIG <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
 
 
 .. code-block:: bash
 
     micromamba install -c conda-forge dggrid
-    pip install dggrid4py
 
 
 2. run poetry to install dependencies
@@ -37,14 +77,14 @@ In order to work with IGEO7 (using `DGGRIG <https://github.com/sahrk/DGGRID>`_ a
 
    poetry install
 
-3. create local .env file from env.sample. Change the environment variables according to your local environment setup. 
+3. create a local ``.env`` file from the ``env.sample``. Change the environment variables according to your local environment setup. 
 
 .. code-block:: bash
     
     dggs_api_config=<Path to TinyDB>
     DGGRID_PATH=<Path to dggrid executable>
 
-4. Start the server for development: 
+4. Start the server: 
    
 .. code-block:: bash
 

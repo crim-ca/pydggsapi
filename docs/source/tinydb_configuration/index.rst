@@ -22,6 +22,9 @@ You can find the details of those three tables in the upcoming sections.
 
 
 
+
+.. _collections:
+
 collections
 -----------
 
@@ -61,7 +64,7 @@ The dictionary associated with the collection ID defines metadata and methods to
    
    - maxzonelevel: the maximum refinement level of the data. 
    
-   - getdata_params: It depends on which collection provider is in use. It provides detailed parameters for the get_data function implemented by collection providers.
+   - getdata_params: It depends on which collection provider is in use. It provides detailed parameters for the get_data function implemented by collection providers. Details can be found in the :ref:`Abstract collection providers <parameters_for_get_data>`.
 
 Here is an example on how to define a collection that uses clickhouse as collection provider (i.e. the data is stored in clickhouse DB).
 
@@ -150,7 +153,9 @@ The dictionary associated with the collection provider ID defines the implementa
 
 Here is an example on how to define a collection provier for clickhouse.
 
+
 .. code-block:: json
+   :name: _collection_provider_config_example
 
     "collection_providers": {"1": 
             {"clickhouse": 
