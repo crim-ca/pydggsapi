@@ -2,6 +2,8 @@
 
 A python FastAPI OGC DGGS API implementation
 
+https://pydggsapi.readthedocs.io/en/latest/
+
 ## OGC API - Discrete Global Grid Systems
 
 https://ogcapi.ogc.org/dggs/
