@@ -11,17 +11,28 @@ For ``initial_params`` uses in :ref:`collection_providers <collection_providers>
 
 It is a nested dictionary. At the root level, the dictionary ``datasources`` contains information about one or more Zarr data sources in the form of a child dictionary. The key of the child dictionary represents the unique ID for the Zarr data. Currently, only local storage is supported.
 
+An example to define a Zarr collection provider:
 
 .. code-block:: json
 
-    "datasources": {
-                   "my_zarr_data": {
-                             "filepath": "<path to zarr folder>",
-                             "zones_grps" : { "4": "res4", "5": "res5"}
-                    } 
-    } 
+    "collection_providers": {"1": 
+            {"zarr": 
+                {"classname": "zarr_collection_provider.ZarrCollectionProvider", 
+                  "initial_params": 
+                          { "datasources": {
+                                    "my_zarr_data": {
+                                        "filepath": "<path to zarr folder>",
+                                        "zones_grps" : { "4": "res4", "5": "res5"}
+                                    } 
+                            } 
+                        }
+                }
+            }
+    }
 
-For each Zarr data, two parameters is required: 
+   
+
+For each Zarr data, two parameters are required: 
 
 * ``filepath``   : the local directory path of the data.
 * ``zones_grps`` : a dictionary that maps refinement level to group name of the data

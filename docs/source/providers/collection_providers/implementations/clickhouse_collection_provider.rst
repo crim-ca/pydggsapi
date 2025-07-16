@@ -19,6 +19,25 @@ For ``initla_param`` uses in :ref:`collection_providers <collection_providers>`
 * ``compression (default: False)``
 * ``database (default: 'default')``
 
+An example to define a Clickhouse collection provider:
+
+.. code-block:: json
+
+    "collection_providers": {"1": 
+            {"clickhouse": 
+                {"classname": "clickhouse_collection_provider.ClickhouseCollectionProvider", 
+                  "initial_params": 
+                          {"host": "127.0.0.1", 
+                           "user": "user",
+                           "password": "password", 
+                           "port": 9000, 
+                           "database": "DevelopmentTesting"} 
+                  }
+            }
+    }
+
+
+
 get_data parameters
 ----------------------
 
