@@ -26,9 +26,8 @@ The ``conversion_properties`` class stores the necessary conversion info if need
 Implementations
 ---------------
 .. toctree::
-   :maxdepth: 2
    :glob:
-   :hidden:
+   :titlesonly:
 
    implementations/*
 

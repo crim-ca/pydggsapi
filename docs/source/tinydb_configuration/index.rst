@@ -18,10 +18,6 @@ Generally, users mostly work with the ``collections`` table to publish the colle
 
 Developers implementing new DGGRS and collections providers must register the latest providers in the tables ``dggrs`` or ``collection_providers`` with a unique ID such that the implementation can be referenced in the collections table.
 
-You can find the details of those three tables in the upcoming sections.
-
-
-
 
 .. _collections:
 
@@ -52,19 +48,19 @@ Inside the collections table, each document represents a collection. The documen
 
 The dictionary associated with the collection ID defines metadata and methods to access the data. 
 
-1. collections ID:  The unique ID for the collection.
+1. ``collections ID``:  The unique ID for the collection.
 
-2. metadata:  title, description
+2. metadata:  ``title``, ``description``
 
-3. collection_provider: a dictionary that describes how to access the data.
+3. ``collection_provider``: a dictionary that describes how to access the data.
 
-   - providerId: :ref:`the collection provider ID  <collection_providers>`
+   - ``providerId``: :ref:`the collection provider ID  <collection_providers>`
 
-   - dggrsId: :ref:`the dggrs provider ID <dggrs>`
+   - ``dggrsId``: :ref:`the dggrs provider ID <dggrs>`
    
-   - maxzonelevel: the maximum refinement level of the data. 
+   - ``maxzonelevel``: the maximum refinement level of the data. 
    
-   - getdata_params: It depends on which collection provider is in use. It provides detailed parameters for the get_data function implemented by collection providers. Details can be found in the :ref:`Abstract collection providers <parameters_for_get_data>`.
+   - ``getdata_params``: It depends on which collection provider is in use. It provides detailed parameters for the get_data function implemented by collection providers. Details can be found in the :ref:`implementations of collection providers <collection_providers_implementation>`.
 
 Here is an example on how to define a collection that uses clickhouse as collection provider (i.e. the data is stored in clickhouse DB).
 
@@ -104,11 +100,11 @@ Inside the dggrs table, each document represents a dggrs provider. The document 
 
 The dictionary associated with the dggrs ID defines metadata and the actual implementation of the DGGRS. 
 
-    1. dggrs ID : The unique ID for the DGGRS, it is used in the :ref:`dggrsId inside a collection <_collectionexample>`.
+    1. ``dggrs ID`` : The unique ID for the DGGRS, it is used in the :ref:`dggrsId inside a collection <_collectionexample>`.
 
     2. metadata : OGC DGGS API required description fields of the DGGRS. (e.g. title, shapeType etc.)
 
-    3. classname : The actual implementation module under dependencies/dggrs_providers
+    3. ``classname`` : The actual implementation module under dependencies/dggrs_providers
 
 Here is an example on how to define DGGRS for IGEO7 and H3. 
 
@@ -145,11 +141,11 @@ Inside the collection_providers table, each document represents a collection pro
 
 The dictionary associated with the collection provider ID defines the implementation module and initialization parameters. 
 
-    1. collection provider ID : The unique ID for the collection provider, it is used in the :ref:`providerId inside a collection <_collectionexample>`.
+    1. ``collection provider ID`` : The unique ID for the collection provider, it is used in the :ref:`providerId inside a collection <_collectionexample>`.
 
-    2. classname : The actual implementation module under dependencies/collections_providers
+    2. ``classname`` : The actual implementation module under dependencies/collections_providers
     
-    3. initial_params : A dictionary with parameters to initializ the provider
+    3. ``initial_params`` : A dictionary with parameters to initializ the provider
 
 Here is an example on how to define a collection provier for clickhouse.
 

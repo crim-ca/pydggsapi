@@ -1,7 +1,8 @@
 Introduction
 =======================
 
-pydggsapi runs on python3. It uses FastAPI as the core component to implement the OGC DGGS API standard. pydggsapi aims to provide a flexible structure that can easily extend to support different DGGRS and data storage. The following diagram shows the overall structure of pydggsapi:
+pydggsapi runs on python3. It provides an easy setup for users to publish DGGS-enabled data sources. It uses FastAPI as the core component to implement the OGC DGGS API standard. pydggsapi also aims to provide a flexible structure that can easily extend to support different DGGRS and data storage. The following diagram shows the overall structure of pydggsapi:
+
 |overall_structure|
 
 pydggsapi uses TinyDB(in json format) to store DGGRS and collections information. You can specify the path of the json db in the environment variable ``dggs_api_config``.

@@ -37,12 +37,13 @@ The pydggsapi creates collection provider objects at the beginning, and data sou
                       "data_cols" : ["modelled_fuel_stations","modelled_seashore","modelled_solar_wind"]
                     }
 
+.. _collection_providers_implementation:
+
 Implementations
 ---------------
 .. toctree::
-   :maxdepth: 2
    :glob:
-   :hidden:
+   :titlesonly:
 
    implementations/*
 

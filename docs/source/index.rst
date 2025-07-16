@@ -23,9 +23,9 @@ OGC API - DGGS specifies an API for accessing data organised according to a Disc
    :width: 300
 
 .. toctree::
-   :maxdepth: 2
    :glob:
    :hidden:
+   
 
    introduction
    Configuration <tinydb_configuration/index>
