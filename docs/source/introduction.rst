@@ -5,17 +5,17 @@ pydggsapi runs on python3. It provides an easy setup for users to publish DGGS-e
 
 |overall_structure|
 
-pydggsapi uses TinyDB(in json format) to store DGGRS and collections information. You can specify the path of the json db in the environment variable ``dggs_api_config``.
+pydggsapi uses TinyDB to store the definitions of collections, DGGRS providers and collection providers. You can specify the path of the DB in the environment variable ``dggs_api_config``.
 
-This structure provides two abstract class definitions that allow developers to implement new DGGRS and Collection providers easily and quickly to work with pydggsapi. The DGGRS and collections providers serve as accessors to collections. Currently, it supports: 
+This structure provides two abstract class definitions that allow developers to quickly implement new DGGRS and Collection providers to work with pydggsapi. The DGGRS and collections providers serve as accessors to collections. Currently, it supports: 
 
 * DGGRS: `IGEO7 <https://agile-giss.copernicus.org/articles/6/32/2025/>`_ ,  `H3 <https://h3geo.org/>`_
 
-* Collection provider: clickhouse, zarr
+* Collection provider: Clickhouse, Zarr
 
 Quick setup 
 ---------------------------
-1. Install pydggsapi using pypi inside virtual environment
+1. Install pydggsapi using pypi inside a virtual environment
 
 
 .. code-block:: bash

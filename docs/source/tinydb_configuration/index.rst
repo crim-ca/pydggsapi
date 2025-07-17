@@ -8,7 +8,8 @@ pydggsapi uses TinyDB to store all information it needs in three tables:
 2. dggrs - the table to store dggrs providers info
 3. collection_providers - the table to store collection providers' info
 
-Generally, users mostly work with the ``collections`` table to publish the collection. The record defines a collection with a unique collection ID, metadata, how to access the data (collection provider) and which DGGRS it supports (DGGRS provider).So, to publish a collection through pydggsapi, the users need to provide the following details : 
+
+Generally, users mostly work with the ``collections`` table to publish collections. Each record defines a collection with metadata, how to access the data (collection provider) and which DGGRS it supports (DGGRS provider). So, to publish a collection through pydggsapi, the users need to provide the following details : 
 
 1. A DGGS-ready dataset. The dataset is converted/regridded into one of the supported DGGRS by pydggsapi.
 
@@ -16,7 +17,7 @@ Generally, users mostly work with the ``collections`` table to publish the colle
 
 3. The collection provider ID that is supported by pydggsapi to access the data.
 
-Developers implementing new DGGRS and collections providers must register the latest providers in the tables ``dggrs`` or ``collection_providers`` with a unique ID such that the implementation can be referenced in the collections table.
+Developers implementing new DGGRS and collection providers must register them in the tables ``dggrs`` or ``collections_providers`` with a unique ID such that they can be referenced in the collections table. 
 
 
 .. _collections:

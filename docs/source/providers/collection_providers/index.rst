@@ -11,7 +11,6 @@ Class constructor
 The :ref:`collection_providers <collection_providers>` configuration provides a parameters dictionary with the key ``inital_params`` to supply necessary info when initialising the collection provider.  Users can reference the full example :ref:`here <_collection_provider_config_example>`.
 
 .. code-block:: json
-   :caption: Example for clickhouse collection provider
     
     "initial_params":
                        {"host": "127.0.0.1",
@@ -29,7 +28,6 @@ The pydggsapi creates collection provider objects at the beginning, and data sou
 
 
 .. code-block:: json
-   :caption: Example for clickhouse collection provider
    
    "getdata_params":
                     { "table": "testing_suitability_IGEO7",

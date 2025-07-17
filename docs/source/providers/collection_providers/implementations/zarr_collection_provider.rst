@@ -3,6 +3,10 @@ Zarr Collection Provider
 
 The implementation uses `xarray.Datatree <https://docs.xarray.dev/en/latest/generated/xarray.DataTree.html>`_ as the driver to access Zarr data. The provider serves multiple Zarr data sources. At the initialisation stage, it loads the ``datasources`` setting from the ``initial_params`` to get each Zarr data configuration, then it creates an xarray datatree handler for each of them and stores it under ``self.datasources`` with the id as the key.
 
+Each group of the Zarr data source represents data from the same refinement level, with zone IDs as the index. Here is an example of how Zarr data is organised. 
+
+|zarr_data_example|
+
 
 Constructor parameters
 ----------------------
@@ -66,3 +70,7 @@ A collection example of using Zarr collection provider :
                         }
                     }
                 } 
+
+
+.. |zarr_data_example| image:: ../../../images/zarr_data_example.png
+   :width: 600
