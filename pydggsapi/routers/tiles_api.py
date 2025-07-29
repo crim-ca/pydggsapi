@@ -23,8 +23,9 @@ from shapely.geometry import box, shape
 from shapely.ops import transform
 import mapbox_vector_tile
 import logging
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+# logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
+#                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+logger = logging.getLogger()
 nest_asyncio.apply()
 
 router = APIRouter()
@@ -40,7 +41,7 @@ transformer = pyproj.Transformer.from_crs(crs_from=SRID_LNGLAT, crs_to=SRID_SPHE
 @router.get("/{collectionId}/{dggrsId}/{z}/{x}/{y}", tags=['tiles-api'])
 async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                           mercator=Depends(Mercator)):
-    logging.info(f'{__name__} tiles info: {tilesreq.collectionId} {tilesreq.dggrsId} {tilesreq.z} {tilesreq.x} {tilesreq.y}')
+    logger.debug(f'{__name__} tiles info: {tilesreq.collectionId} {tilesreq.dggrsId} {tilesreq.z} {tilesreq.x} {tilesreq.y}')
     collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId)
     if (tilesreq.dggrsId is None):
         tilesreq.dggrsId = collection_info[tilesreq.collectionId].collection_provider.dggrsId
@@ -50,12 +51,14 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     res_info = mercator.get(tile.z)
     tile_width_km = float(res_info["Tile width deg lons"]) / 0.01 * 0.4  # in tile_width_km
     zone_level = dggrs.get_zone_level_by_cls(tile_width_km)
+    if (tilesreq.relative_depth != 0):
+        zone_level += tilesreq.relative_depth
     clip_bound = box(bbox.left, bbox.bottom, bbox.right, bbox.top)
     clip_bound = shapely.total_bounds(transform(project, clip_bound))
     if zone_level > collection_info[tilesreq.collectionId].collection_provider.maxzonelevel:
         zone_level = collection_info[tilesreq.collectionId].collection_provider.maxzonelevel
 
-    logging.info(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
+    logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
     zonesReq = ZonesRequest(collectionId=tilesreq.collectionId, dggrsId=tilesreq.dggrsId, zone_level=zone_level,
                             compact_zone=False, bbox=clip_bound)
     collection_provider = _get_collection_provider(collection_info[tilesreq.collectionId].collection_provider.providerId)
@@ -67,7 +70,7 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                                             quantize_bounds=bbox,
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
-    logging.info(f'{__name__} zones id list length: {len(zones_id_response.zones)}')
+    logger.info(f'{__name__} zones id list length: {len(zones_id_response.zones)}')
     new_header = MutableHeaders(req._headers)
     new_header['accept'] = 'application/geo+json'
     req._headers = new_header

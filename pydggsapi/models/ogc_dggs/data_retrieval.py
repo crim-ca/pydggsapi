@@ -20,14 +20,13 @@ import geopandas as gpd
 import pandas as pd
 import json
 import logging
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
+logger = logging.getLogger()
 
 def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: List[AbstractCollectionProvider],
                     returntype='application/dggs-json', returngeometry='zone-region', exclude=True):
-    logging.info(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}, zonelevel: {zone_levels}, return: {returntype}, geometry: {returngeometry}')
+    logger.debug(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}, zonelevel: {zone_levels}, return: {returntype}, geometry: {returngeometry}')
     # generate cell ids, geometry for relative_depth
     result = dggrs_provider.get_relative_zonelevels(zoneId, zone_levels[0], zone_levels[1:], returngeometry)
     if (exclude is False):
@@ -99,7 +98,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             feature = [Feature(**{'type': "Feature", 'id': id_ + i, 'geometry': geojson(**shapely.geometry.mapping(geometry[i])), 'properties': f}) for i, f in enumerate(feature)]
             features += feature
             id_ += len(d)
-            logging.info(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
+            logger.debug(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
         else:
             zoneIds = d.index.values.astype(str).tolist()
             d = d.T

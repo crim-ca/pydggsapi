@@ -1,6 +1,7 @@
 from gunicorn.app.wsgiapp import WSGIApplication
 # from gunicorn.app.base import BaseApplication
 from dotenv import load_dotenv
+import logging
 import os
 
 # Reference from :
@@ -32,6 +33,10 @@ def run():
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
+    log_level = os.environ.get('LOGLEVEL', logging.INFO)
+    # set up logging for app as console output
+    logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
+                        datefmt='%Y-%m-%d,%H:%M:%S', level=int(log_level))
     if (os.environ.get('dggs_api_config') is None):
         raise Exception("Env variable dggs_api_config is not set.")
     StandaloneApplication("pydggsapi.api:app", options).run()
@@ -46,6 +51,11 @@ if __name__ == '__main__':
         "workers": workers,
         "worker_class": "uvicorn.workers.UvicornWorker",
     }
+
+    log_level = os.environ.get('LOGLEVEL', logging.INFO)
+    # set up logging for app as console output
+    logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
+                        datefmt='%Y-%m-%d,%H:%M:%S', level=int(log_level))
     if (os.environ.get('dggs_api_config') is None):
         raise Exception("Env variable dggs_api_config is not set.")
     StandaloneApplication("pydggsapi.api:app", options).run()

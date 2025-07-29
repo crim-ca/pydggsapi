@@ -18,9 +18,7 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import box
 
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
-
+logger = logging.getLogger()
 
 
 class H3Provider(AbstractDGGRSProvider):
@@ -53,10 +51,10 @@ class H3Provider(AbstractDGGRSProvider):
                         v_ids += [zoneIds[i]] * len(selection)
                         target_res_list += [res[0]] * len(selection)
                 except Exception as e:
-                    logging.error(f'{__name__} forward transform failed : {e}')
+                    logger.error(f'{__name__} forward transform failed : {e}')
                     raise Exception(f'{__name__} forward transform failed : {e}')
                 if (len(np.unique(target_zoneIds)) < len(np.unique(zoneIds))):
-                    logging.warn(f'{__name__} forward transform: unique h3 zones id > unique igeo7 zones id ')
+                    logger.warn(f'{__name__} forward transform: unique h3 zones id > unique igeo7 zones id ')
                 return DGGRSProviderConversionReturn(zoneIds=v_ids, target_zoneIds=target_zoneIds, target_res=target_res_list)
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
@@ -74,7 +72,7 @@ class H3Provider(AbstractDGGRSProvider):
                 zoneslevel.append(h3.get_resolution(c))
             return zoneslevel
         except Exception as e:
-            logging.error(f'{__name__} zone id {cellIds} dggrid get zone level failed: {e}')
+            logger.error(f'{__name__} zone id {cellIds} dggrid get zone level failed: {e}')
             raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed: {e}')
 
     def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int],
@@ -90,7 +88,7 @@ class H3Provider(AbstractDGGRSProvider):
                 children[z] = DGGRSProviderZonesElement(**{'zoneIds': children_ids,
                                                            'geometry': children_geometry})
         except Exception as e:
-            logging.error(f'{__name__} get_relative_zonelevels, get children failed {e}')
+            logger.error(f'{__name__} get_relative_zonelevels, get children failed {e}')
             raise Exception(f'{__name__} get_relative_zonelevels, get children failed {e}')
 
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
@@ -103,9 +101,9 @@ class H3Provider(AbstractDGGRSProvider):
                 geometry = [self._cell_to_shapely(z, returngeometry) for z in zoneIds]
                 hex_gdf = gpd.GeoDataFrame({'zoneIds': zoneIds}, geometry=geometry, crs='wgs84').set_index('zoneIds')
             except Exception as e:
-                logging.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
+                logger.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
                 raise Exception(f"{__name__} query zones list, bbox: {bbox} dggrid convert failed {e}")
-            logging.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
+            logger.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
         if (parent_zone is not None):
             try:
                 children_zoneIds = h3.cell_to_children(parent_zone, zone_level)
@@ -113,7 +111,7 @@ class H3Provider(AbstractDGGRSProvider):
                 children_hex_gdf = gpd.GeoDataFrame({'zoneIds': children_zoneIds}, geometry=children_geometry, crs='wgs84').set_index('zoneIds')
                 hex_gdf = hex_gdf.join(children_hex_gdf, how='inner', rsuffix='_p') if (bbox is not None) else children_hex_gdf
             except Exception as e:
-                logging.error(f'{__name__} query zones list, parent_zone: {parent_zone} get children failed {e}')
+                logger.error(f'{__name__} query zones list, parent_zone: {parent_zone} get children failed {e}')
                 raise Exception(f'parent_zone: {parent_zone} get children failed {e}')
         if (len(hex_gdf) == 0):
             raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
@@ -121,7 +119,7 @@ class H3Provider(AbstractDGGRSProvider):
             compactIds = h3.compact_cells(hex_gdf.index.values)
             geometry = [self._cell_to_shapely(z, returngeometry) for z in compactIds]
             hex_gdf = gpd.GeoDataFrame({'zoneIds': compactIds}, geometry=geometry, crs='wgs84').set_index('zoneIds')
-            logging.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
+            logger.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
         returnedAreaMetersSquare = sum([h3.cell_area(z, 'm^2') for z in hex_gdf.index.values])
         geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
         geometry = [geotype(**eval(shapely.to_geojson(g))) for g in hex_gdf['geometry'].values.tolist()]
@@ -141,7 +139,7 @@ class H3Provider(AbstractDGGRSProvider):
                 hex_geometry.append(self._cell_to_shapely(c, 'zone-region'))
                 total_area.append(h3.cell_area(c))
         except Exception as e:
-            logging.error(f'{__name__} zone id {cellIds} dggrid convert failed: {e}')
+            logger.error(f'{__name__} zone id {cellIds} dggrid convert failed: {e}')
             raise Exception(f'{__name__} zone id {cellIds} dggrid convert failed: {e}')
         geometry, bbox, centroids = [], [], []
         for g in hex_geometry:

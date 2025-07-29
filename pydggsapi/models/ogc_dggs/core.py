@@ -12,8 +12,7 @@ from typing import Dict
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pprint import pprint
 import logging
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+logger = logging.getLogger()
 
 
 def landingpage(current_url):
@@ -29,21 +28,21 @@ def landingpage(current_url):
 
 def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription]):
     # DGGRID_ISEA7H_seqnum
-    logging.info(f'{__name__} support dggs')
+    logger.debug(f'{__name__} support dggs')
     support_dggrs = []
     for k, v in selected_dggrs.items():
         for i, link in enumerate(v.links):
             if link.rel == 'self':
                 v.links[i].href = str(current_url) + f'/{k}'
         support_dggrs.append(DggrsItem(id=k, title=v.title, links=v.links))
-    logging.info(f'{__name__} support dggs ({len(support_dggrs)})')
+    logger.debug(f'{__name__} support dggs ({len(support_dggrs)})')
     landing_page = '/'.join(str(current_url).split('/')[:-1])
     dggs_landing_page = Link(**{'href': landing_page, 'rel': 'ogc-rel:dggrs-list', 'title': 'DGGS API landing page'})
     return DggrsListResponse(**{'links': [dggs_landing_page], 'dggrs': support_dggrs})
 
 
 def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
-    logging.info(f'{__name__} query dggrs model {dggrs_description.id}')
+    logger.debug(f'{__name__} query dggrs model {dggrs_description.id}')
     for i, link in enumerate(dggrs_description.links):
         if link.rel == 'self':
             dggrs_description.links[i].href = str(current_url)
@@ -52,13 +51,13 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
                                      'title': 'Dggrs zone-query link'})
     dggrs_description.links.append(zone_query_link)
     dggrs_description.linkTemplates = [zone_data_link]
-    logging.debug(f'{__name__} query dggrs model: {pprint(dggrs_description)}')
+    logger.debug(f'{__name__} query dggrs model: {pprint(dggrs_description)}')
     return dggrs_description
 
 
 def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider]):
-    logging.info(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
+    logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
     zoneId = zoneinfoReq.zoneId
     zonelevel = dggrs_provider.get_cells_zone_level([zoneId])[0]
     filter_ = 0
@@ -85,7 +84,7 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
         return_['bbox'] = zoneinfo.bbox[0]
         return_['geometry'] = zoneinfo.geometry[0]
         return_['areaMetersSquare'] = zoneinfo.areaMetersSquare
-        logging.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
+        logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
         return ZoneInfoResponse(**return_)
     return None
 

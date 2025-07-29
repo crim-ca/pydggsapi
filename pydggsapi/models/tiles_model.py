@@ -9,8 +9,6 @@ from datetime import datetime
 import os
 import logging
 
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
 
 SRID_LNGLAT = 4326
 SRID_SPHERICAL_MERCATOR = 3857

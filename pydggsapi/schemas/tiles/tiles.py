@@ -1,4 +1,4 @@
-from pydantic import BaseModel, model_validator, AnyUrl
+from pydantic import BaseModel, model_validator, AnyUrl, Field
 from fastapi import Path
 from typing import List, Optional, Dict, Any
 
@@ -8,6 +8,7 @@ class TilesRequest(BaseModel):
     z: int = Path(...,ge=0, le=25)
     x: int = Path(...)
     y: int = Path(...)
+    relative_depth: int = Field(0, ge=-2, le=2)
 
 class TilesFeatures(BaseModel):
     features: List[Dict[str,Any]]

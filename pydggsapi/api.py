@@ -3,7 +3,6 @@ from fastapi import FastAPI, Depends, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
-import logging
 
 
 import pydggsapi.request_example as request_example
@@ -32,9 +31,6 @@ app.add_middleware(
 app.include_router(dggs_api.router, prefix='/dggs-api/v1-pre')
 app.include_router(tiles_api.router, prefix='/tiles-api')
 
-
-# set up logging for app as console output
-logging.basicConfig(level=logging.INFO)
 
 
 # set up a landing page GET /

@@ -9,14 +9,14 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
 
 from typing import Dict
 import logging
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.DEBUG)
+
+logger = logging.getLogger()
 
 
 def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                      collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider],
                      compact=True, parent_zone=None, returntype='application/json', returngeometry='zone-region'):
-    logging.info(f'{__name__} query zones list: {bbox}, {zone_level}, {limit}, {parent_zone}, {compact}')
+    logger.debug(f'{__name__} query zones list: {bbox}, {zone_level}, {limit}, {parent_zone}, {compact}')
     result = dggrs_provider.zoneslist(bbox, zone_level, parent_zone, returngeometry, compact)
     converted_zones = result.zones
     converted_level = zone_level
@@ -31,7 +31,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         filter_ += len(data.zoneIds)
     if (filter_ == 0):
         return None
-    logging.info(f'{__name__} query zones list result: {len(result.zones)}, returnedAreaMetersSquare: {result.returnedAreaMetersSquare}')
+    logger.debug(f'{__name__} query zones list result: {len(result.zones)}, returnedAreaMetersSquare: {result.returnedAreaMetersSquare}')
     if (returntype == 'application/geo+json'):
         features = [Feature(**{'type': 'Feature', 'id': i, 'geometry': geo, 'properties': {'zoneId': result.zones[i]}}) for i, geo in enumerate(result.geometry[:limit])]
         return ZonesGeoJson(**{'type': 'FeatureCollection', 'features': features})

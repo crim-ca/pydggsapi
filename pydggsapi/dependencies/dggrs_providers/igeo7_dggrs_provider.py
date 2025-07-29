@@ -11,13 +11,13 @@ import tempfile
 import logging
 from typing import Union, List
 from dggrid4py import DGGRIDv7
+import dggrid4py
 import shapely
 from dotenv import load_dotenv
 from shapely.geometry import box
 import numpy as np
 
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+logger = logging.getLogger()
 
 load_dotenv()
 
@@ -94,10 +94,10 @@ class IGEO7Provider(AbstractDGGRSProvider):
 
     def get_cells_zone_level(self, cellIds: List[str]):
         try:
-            zones_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')
-            return zones_level['resolution'].values.tolist()
-        except Exception:
-            logging.error(f'{__name__} zone id {cellIds} dggrid get zone level failed')
+            zones_level = dggrid4py.igeo7.get_z7string_resolution(cellIds[0])
+            return [zones_level]
+        except Exception as e:
+            logger.error(f'{__name__} zone id {cellIds} dggrid get zone level failed : {e}')
             raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed')
 
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
@@ -114,18 +114,18 @@ class IGEO7Provider(AbstractDGGRSProvider):
                                                            'geometry': g})
 
         except Exception as e:
-            logging.error(f'{__name__} get_relative_zonelevels, get children failed {e}')
+            logger.error(f'{__name__} get_relative_zonelevels, get children failed {e}')
             raise Exception(f'{__name__} get_relative_zonelevels, get children failed {e}')
 
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
     def zonesinfo(self, cellIds: List[str]):
-        zone_level = self.dggrid_instance.guess_zstr_resolution(cellIds, 'IGEO7', input_address_type='Z7_STRING')['resolution'][0]
+        zone_level = dggrid4py.igeo7.get_z7string_resolution(cellIds[0])
         try:
             centroid = self.centroid_from_cellid(cellIds, zone_level).geometry
             hex_geometry = self.hexagon_from_cellid(cellIds, zone_level).geometry
         except Exception:
-            logging.error(f'{__name__} zone id {cellIds} dggrid convert failed')
+            logger.error(f'{__name__} zone id {cellIds} dggrid convert failed')
             raise Exception(f'{__name__} zone id {cellIds} dggrid convert failed')
         geometry, bbox, centroids = [], [], []
         for g in hex_geometry:
@@ -142,9 +142,9 @@ class IGEO7Provider(AbstractDGGRSProvider):
             try:
                 hex_gdf = self.generate_hexgrid(bbox, zone_level)
             except Exception as e:
-                logging.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
+                logger.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
                 raise Exception(f"{__name__} query zones list, bbox: {bbox} dggrid convert failed {e}")
-            logging.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
+            logger.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
         if (parent_zone is not None):
             try:
                 parent_zone_level = self.get_cells_zone_level([parent_zone])[0]
@@ -156,7 +156,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
                 childern_hex_gdf.set_index('name', inplace=True)
                 hex_gdf = hex_gdf.join(childern_hex_gdf, how='inner', rsuffix='_p') if (bbox is not None) else childern_hex_gdf
             except Exception as e:
-                logging.error(f'{__name__} query zones list, parent_zone: {parent_zone} get children failed {e}')
+                logger.error(f'{__name__} query zones list, parent_zone: {parent_zone} get children failed {e}')
                 raise Exception(f'parent_zone: {parent_zone} get children failed {e}')
         if (len(hex_gdf) == 0):
             raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
@@ -180,7 +180,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
                 else:
                     i = -1
             hex_gdf = hex_gdf.drop_duplicates(subset=['name'])
-            logging.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
+            logger.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
         if (returngeometry != 'zone-region'):
             hex_gdf = self.centroid_from_cellid(hex_gdf['name'].values, zone_level)
         returnedAreaMetersSquare = self.data[zone_level]['Area (km^2)'] * len(hex_gdf) * 1000000

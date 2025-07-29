@@ -6,8 +6,7 @@ from typing import List
 import numpy as np
 import logging
 
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+logger = logging.getLogger()
 
 
 class ClickhouseCollectionProvider(AbstractCollectionProvider):
@@ -26,13 +25,13 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             self.compression = params.get('compression', False)
             self.database = params.get('database', 'default')
         except Exception as e:
-            logging.error(f'{__name__} class initial failed: {e}')
+            logger.error(f'{__name__} class initial failed: {e}')
             raise Exception(f'{__name__} class initial failed: {e}')
         try:
             self.db = Client(host=self.host, port=self.port, user=self.user, password=self.password,
                              database=self.database, compression=self.compression)
         except Exception as e:
-            logging.error(f'{__name__} class initial failed: {e}')
+            logger.error(f'{__name__} class initial failed: {e}')
             raise Exception(f'{__name__} class initial failed: {e}')
 
     def get_data(self, zoneIds: List[str], res: int, table, zoneId_cols, data_cols, aggregation: str = 'mode') -> CollectionProviderGetDataReturn:
@@ -40,7 +39,7 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
         try:
             res_col = zoneId_cols[str(res)]
         except KeyError as e:
-            logging.error(f'{__name__} get zoneId_cols for resolution {res} failed: {e}')
+            logger.error(f'{__name__} get zoneId_cols for resolution {res} failed: {e}')
             return result
         if (aggregation == 'mode'):
             cols = [f'arrayMax(topK(1)({l})) as {l}' for l in data_cols]

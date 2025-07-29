@@ -7,9 +7,7 @@ from tinydb import TinyDB
 import logging
 import os
 
-
-logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
-                    datefmt='%Y-%m-%d,%H:%M:%S', level=logging.INFO)
+logger = logging.getLogger()
 
 
 def get_conformance_classes():
@@ -23,7 +21,7 @@ def get_conformance_classes():
 def _checkIfTableExists():
     db = TinyDB(os.environ.get('dggs_api_config'))
     if ('dggrs' not in db.tables()):
-        logging.error(f"{__name__} dggrs table not found.")
+        logger.error(f"{__name__} dggrs table not found.")
         raise Exception(f"{__name__} dggrs table not found.")
     return db
 
@@ -32,7 +30,7 @@ def get_dggrs_class(dggrsId: str) -> str:
     try:
         db = _checkIfTableExists()
     except Exception as e:
-        logging.error(f"{__name__} {e}")
+        logger.error(f"{__name__} {e}")
         raise Exception(f"{__name__} {e}")
     dggrs_indexes = db.table('dggrs')
     for dggrs in dggrs_indexes:
@@ -47,14 +45,14 @@ def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
         db = _checkIfTableExists()
         collections = get_collections_info()
     except Exception as e:
-        logging.error(f"{__name__} {e}")
+        logger.error(f"{__name__} {e}")
         raise Exception(f"{__name__} {e}")
     if (len(collections.keys()) == 0):
-        logging.error(f"{__name__} no collections found")
+        logger.error(f"{__name__} no collections found")
         raise Exception(f"{__name__} no collections found")
     dggrs_indexes = db.table('dggrs').all()
     if (len(dggrs_indexes) == 0):
-        logging.error(f"{__name__} no dggrs defined.")
+        logger.error(f"{__name__} no dggrs defined.")
         raise Exception(f"{__name__} no dggrs defined.")
     dggrs_dict = {}
     collection_providers = [v.collection_provider for k, v in collections.items()]
