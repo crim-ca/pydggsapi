@@ -31,7 +31,7 @@ or install it using pypi
 
     pip install pydggsapi
 
-* In order to work with IGEO7 (using `DGGRIG <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
+* In order to work with IGEO7 (using `DGGRID <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
 
 .. code-block:: bash
 
@@ -64,7 +64,7 @@ Quick setup for development
     mircomamba activate <name>
 
 
-In order to work with IGEO7 (using `DGGRIG <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
+In order to work with IGEO7 (using `DGGRID <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
 
 
 .. code-block:: bash
