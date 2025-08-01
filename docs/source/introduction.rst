@@ -15,27 +15,25 @@ This structure provides two abstract class definitions that allow developers to 
 
 Quick setup 
 ---------------------------
-1. Install pydggsapi using pypi inside a virtual environment
-
-
-.. code-block:: bash
-
-    micromamba create -n my_pydggsapi python=3.10
-
-    pip install pydggsapi
-    
-
-or install it using pypi
-
-.. code-block:: bash
-
-    pip install pydggsapi
 
 * In order to work with IGEO7 (using `DGGRID <https://github.com/sahrk/DGGRID>`_), the dggrid executable needs to be available. You can compile it yourself, or install into the conda/micromamba environment from conda-forge:
 
 .. code-block:: bash
 
     micromamba install -c conda-forge dggrid
+    export DGGRID_PATH = <path to dggrid executable>
+
+1. Install pydggsapi using pypi (under the same virtual environment of ``dggrid``):
+
+.. code-block:: bash
+
+    pip install pydggsapi
+
+or install the latest updates from GitHub (under the same virtual environment of ``dggrid``):
+
+.. code-block:: bash
+
+    pip install git+https://github.com/LandscapeGeoinformatics/pydggsapi.git
 
 2. create a local ``.env`` file from the ``env.sample``. Change the environment variables according to your local environment setup. Please refer to the :doc:`configuration </tinydb_configuration/index>` for more details.
 
@@ -48,8 +46,6 @@ or install it using pypi
    
 .. code-block:: bash
 
-   micromamba activate my_pydggsapi
-
    pydggsapi
 
 
@@ -60,6 +56,8 @@ Quick setup for development
 
 .. code-block:: bash
 
+    git clone https://github.com/LandscapeGeoinformatics/pydggsapi.git
+    cd pydggsapi
     micromamba create -n <name>  -f micromamba_env.yaml
     mircomamba activate <name>
 
