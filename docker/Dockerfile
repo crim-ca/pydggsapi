@@ -55,8 +55,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # setup directory and config structure
-RUN mkdir -p ${APP_CONFIG_DIR} \
-    && touch ${APP_CONFIG_DIR}/pydggsapi-config.json
+# NOTE:
+#   minimal TinyDB definition is not useful and MUST be overriden by volume mount of custom config
+#   only provided to have the minimal application setup to start the API and obtain relevant error messages
+RUN mkdir -p ${APP_CONFIG_DIR}
+COPY dggs_api_config_example.json ${APP_CONFIG_DIR}/pydggsapi-config.json
 ENV dggs_api_config=${APP_CONFIG_DIR}/pydggsapi-config.json
 ENV DGGRID_PATH=/usr/local/bin/dggrid
 
