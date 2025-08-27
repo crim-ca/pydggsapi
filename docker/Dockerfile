@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p DGGRID-${DGGRID_VERSION}/build \
     && cd DGGRID-${DGGRID_VERSION}/build \
     && cmake -D CMAKE_BUILD_TYPE=Release .. \
-    && make -j $(npoc) \
+    && make -j $(nproc) \
     && cp src/apps/dggrid/dggrid /usr/local/bin/dggrid \
     # cleanup
     && apt-get remove -y \
