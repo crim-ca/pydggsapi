@@ -1,4 +1,4 @@
-FROM python:3.12.11-slim
+FROM python:3.12-slim
 LABEL description.short="DGGS API"
 LABEL description.long="OGC API for DGGS (Discretized Global Grid System) data management and processing."
 LABEL maintainer="Francis Charette-Migneault <francis.charette-migneault@crim.ca>"
