@@ -44,7 +44,7 @@ dggrs, dggrs_providers, collections, collection_providers = {}, {}, {}, {}
 
 def _import_dggrs_class(dggrsId):
     try:
-        classname = get_dggrs_class(dggrsId)
+        classname, initial_params = get_dggrs_class(dggrsId)
         if (classname is None):
             logger.error(f'{__name__} {dggrsId} class not found.')
             raise Exception(f'{__name__} {dggrsId} class not found.')
@@ -54,7 +54,7 @@ def _import_dggrs_class(dggrsId):
     try:
         module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
         cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.dggrs_providers.{module}'), classname)
-        return cls_()
+        return cls_(**initial_params)
     except Exception as e:
         logger.error(f'{__name__} {dggrsId} class: {classname} not imported, {e}')
         raise Exception(f'{__name__} {dggrsId} class: {classname} not imported, {e}')

@@ -26,7 +26,7 @@ def _checkIfTableExists():
     return db
 
 
-def get_dggrs_class(dggrsId: str) -> str:
+def get_dggrs_class(dggrsId: str) -> (str, dict):
     try:
         db = _checkIfTableExists()
     except Exception as e:
@@ -36,7 +36,7 @@ def get_dggrs_class(dggrsId: str) -> str:
     for dggrs in dggrs_indexes:
         id_, dggrs_config = dggrs.popitem()
         if (id_ == dggrsId):
-            return dggrs_config['classname']
+            return (dggrs_config['classname'], dggrs_config.get('initial_params', {}))
     return None
 
 
