@@ -49,6 +49,17 @@ or install the latest updates from GitHub (under the same virtual environment of
    pydggsapi
 
 
+Docker build
+------------
+
+We have now a Dockerfile (thanks to CRIM/https://github.com/fmigneault) that allows you to easily build and run pydggsapi in a containerized environment.
+
+You can build the docker image using the following command:
+
+.. code-block:: bash
+
+   docker build -t pydggsapi:tag -f docker/Dockerfile .
+   
 
 Quick setup for development
 ---------------------------
@@ -93,3 +104,4 @@ In order to work with IGEO7 (using `DGGRID <https://github.com/sahrk/DGGRID>`_),
 
 .. |overall_structure| image:: ./images/pydggsapi_overall_structure.png
    :width: 600
+

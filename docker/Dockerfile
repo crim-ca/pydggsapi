@@ -1,4 +1,4 @@
-FROM python:3.12.11-slim
+FROM python:3.12-slim
 LABEL description.short="DGGS API"
 LABEL description.long="OGC API for DGGS (Discretized Global Grid System) data management and processing."
 LABEL maintainer="Francis Charette-Migneault <francis.charette-migneault@crim.ca>"
@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir -p DGGRID-${DGGRID_VERSION}/build \
     && cd DGGRID-${DGGRID_VERSION}/build \
     && cmake -D CMAKE_BUILD_TYPE=Release .. \
-    && make -j $(npoc) \
+    && make -j $(nproc) \
     && cp src/apps/dggrid/dggrid /usr/local/bin/dggrid \
     # cleanup
     && apt-get remove -y \
