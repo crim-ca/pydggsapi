@@ -67,7 +67,7 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
             zoneId = converted_zones.target_zoneIds
             zonelevel = converted_zones.target_res[0]
         params = v.collection_provider.getdata_params
-        data = collection_provider[v.collection_provider.providerId].get_data(zoneId, zonelevel, **params)
+        data = collection_provider[v.collection_provider.providerId].get_data([zoneId], zonelevel, **params)
         filter_ += len(data.zoneIds)
     zoneId = zoneinfoReq.zoneId
     if (filter_ > 0):
@@ -87,4 +87,3 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
         logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
         return ZoneInfoResponse(**return_)
     return None
-
