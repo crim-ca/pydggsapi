@@ -43,7 +43,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             return result
         cols = f"{','.join(datasource.data_cols)},{datasource.id_col}" if ("*" not in datasource.data_cols) else "*"
         sql = f"""select {cols} from read_parquet('{datasource.filepath}')
-                  where {datasource.id_col} in (SELECT UNNEST(?))"""
+                  where {datasource.id_col} in (SELECT ?)"""
         try:
             result_df = datasource.conn.sql(sql, params=[zoneIds]).df()
         except Exception as e:
