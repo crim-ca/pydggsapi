@@ -4,9 +4,9 @@ Parquet Collection Provider
 The implementation uses `duckdb <https://duckdb.org/>`_ as the driver to access the data in parquet format. The duckdb starts in `in-memory` mode and uses the extension ``httpfs`` for cloud storage access. Each data source has its own ``duckdb.DuckDBPyConnection`` object from the ``duckdb.connect()`` function, and sets up the secret if needed for the connection. 
 Therefore, multiple cloud providers can be supported by the same parquet providers and different bucket credentials. All data source info are stored as a dictionary in ``self.datasources`` for retrieval. The key of the dictionary represents the ID of the data source. 
 
-Organisation of data with multiple refinement levels
------------------------------------------------------
-The user must arrange all zone IDs at different refinement levels into a single column (e.g. `cell_id`). Users must also ensure that the data at coarser refinement levels is aggregated; the provider doesn't perform any aggregation on the fly. An example screenshot of a parquet dataset with multiple refinement levels is shown below.
+Organisation of the dataset with multiple refinement levels
+-----------------------------------------------------------
+The user must arrange all zone IDs at different refinement levels into a single column (e.g. `cell_id`), and ensure that the data at coarser refinement levels is aggregated; the provider doesn't perform any aggregation on the fly. An example screenshot of a parquet dataset with multiple refinement levels is shown below.
 
 |parquet_data_example|
 
