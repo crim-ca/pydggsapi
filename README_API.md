@@ -26,7 +26,7 @@ OGC GitHub: https://github.com/opengeospatial/ogcapi-discrete-global-grid-system
 - we will have to fill this based on our experience, should consider this also with DGGS type info in XDGGS
 
 
-### GET /dggs-api/v1​/dggs/{dggrsId}/zones Listing zones
+### GET /dggs-api/v1/dggs/{dggrsId}/zones Listing zones
 - requirements: https://docs.ogc.org/DRAFTS/21-038.html#_listing_zones_dggsdggrsidzones
 - encoding rules: https://docs.ogc.org/DRAFTS/21-038.html#zone-list-encodings-section
 - only `JSON zone list`, `GeoJSON zone list`, maybe also `JSON-FG zone list` 
@@ -67,3 +67,11 @@ OGC GitHub: https://github.com/opengeospatial/ogcapi-discrete-global-grid-system
 
 - add a description for ISEA7H/IGEO7 https://docs.ogc.org/DRAFTS/21-038.html#annex-dggrs-def
 - 
+
+
+## Build Docker
+
+```shell
+VERSION=latest
+docker build -f docker/Dockerfile -t crim-ca/pydggsapi:${VERSION} .
+```

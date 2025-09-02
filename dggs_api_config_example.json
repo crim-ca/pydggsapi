@@ -18,7 +18,7 @@
               "5": "column of refinement level 5"
             },
             "data_cols": [
-				"data column names"
+              "data column names"
             ]
           }
         }
@@ -83,8 +83,8 @@
         "classname": "clickhouse_collection_provider.ClickhouseCollectionProvider",
         "initial_params": {
           "host": "127.0.0.1",
-          "user": ,
-          "password": ,
+          "user": null,
+          "password": null,
           "port": 9000,
           "database": "DevelopmentTesting"
         }
