@@ -62,7 +62,8 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                 tmp = pd.DataFrame(np.concatenate([id_, collection_result.data], axis=-1),
                                    columns=['zoneId'] + list(cols_name.keys())).set_index('zoneId')
                 master = master.join(tmp)
-                master = master.astype(cols_name)
+                pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
+                master = master.astype(pre_numeric_cols).astype(cols_name)
                 if (convert):
                     master.reset_index(inplace=True)
                     tmp_geo = master.groupby('vid')['geometry'].last()
@@ -132,16 +133,3 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
     return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': zone_levels if (exclude is False) else zone_levels[1:],
                'properties': properties, 'values': values}
     return ZonesDataDggsJsonResponse(**return_)
-
-
-
-
-
-
-
-
-
-
-
-
-
