@@ -13,8 +13,9 @@ logger = logging.getLogger()
 class STAC_datasource_parameters(BaseModel):
     catalog_url: str
     collection_id: str
-    client: STACClient = None
     zones_grps: Dict[str, str] = None
+
+    _client: STACClient = None
 
 
 class STACCollectionProvider(AbstractCollectionProvider):
@@ -26,7 +27,7 @@ class STACCollectionProvider(AbstractCollectionProvider):
             if (filelist is not None):
                 for k, v in filelist.items():
                     param = STAC_datasource_parameters(**v)
-                    param.client = STACClient.open(param.catalog_url)
+                    param._client = STACClient.open(param.catalog_url)
                     self.datasources[k] = param
         except Exception as e:
             logger.error(f'{__name__} class initial failed: {e}')
