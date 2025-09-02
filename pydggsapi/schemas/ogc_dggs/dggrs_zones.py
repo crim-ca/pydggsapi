@@ -11,7 +11,7 @@ zone_query_support_returntype = ['application/json', 'application/geo+json']
 zone_query_support_geometry = ['zone-centroid', 'zone-region']
 
 
-def bbox_converter(bbox: Optional[str]) -> Optional[List[float]]:
+def bbox_converter(bbox: Optional[str] = None) -> Optional[List[float]]:
     if not bbox:
         return None
     if isinstance(bbox, str):
