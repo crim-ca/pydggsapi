@@ -75,3 +75,18 @@ OGC GitHub: https://github.com/opengeospatial/ogcapi-discrete-global-grid-system
 VERSION=latest
 docker build -f docker/Dockerfile -t crim-ca/pydggsapi:${VERSION} .
 ```
+
+## Bump Version
+
+Setup (as needed).
+
+```shell
+poetry install --only dev
+```
+
+Bump version check. Remove `--dry-run` to actually perform the version bump.
+
+```shell
+VERSION=1.2.3  # can have '-rc#', '-dev#' suffixes
+bump-my-version bump --new-version ${VERSION} --dry-run --allow-dirty --verbose
+```
