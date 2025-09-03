@@ -16,6 +16,7 @@ class parquet_source():
     id_col: str
     conn: duckdb.DuckDBPyConnection
     data_cols: List[str] = field(default_factory=["*"])
+    exclude_data_cols: List[str] = field(default_factory=list)
 
 
 # Parquet with in memory duckdb
@@ -41,7 +42,11 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found')
             return result
-        cols = f"{','.join(datasource.data_cols)},{datasource.id_col}" if ("*" not in datasource.data_cols) else "*"
+        if ("*" in datasource.data_cols):
+            cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})"
+        else:
+            cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+            cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
         sql = f"""select {cols} from read_parquet('{datasource.filepath}')
                   where {datasource.id_col} in (SELECT UNNEST(?))"""
         try:

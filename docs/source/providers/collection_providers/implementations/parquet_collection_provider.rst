@@ -29,9 +29,10 @@ An example to define a Parquet collection provider:
           "datasources": {
             "hytruck": {
               "filepath": "gcs://<path to parquet file>",
-			  "id_col": "cell_ids",
-			  "data_cols": ["*"], 
-              "credential" "TYPE gcs, KEY_ID 'myKEY', SECRET 'secretKEY'" 
+              "id_col": "cell_ids",
+              "data_cols": ["*"], 
+              "exclude_data_cols": ["data_1"],
+              "credential": "TYPE gcs, KEY_ID 'myKEY', SECRET 'secretKEY'" 
             }
           }
         }
@@ -46,7 +47,8 @@ To define a parquet data source, two mandatory parameters are required:
 
 Optional parameters:
 
-* ``data_cols``: A list of strings specifying a set of data column names used to serve queries. In the case of all columns, the user can use the short form:  ``["*"]``. Default to ``["*"]``
+* ``data_cols``: A list of strings specifying a set of column names from the dataset used in the data query. In the case of all columns, the user can use the short form:  ``["*"]``. Default to ``["*"]``
+* ``exclude_data_cols``: A list of strings specifying a set of column names from the dataset that are excluded from the data query. Default to ``[]``
 * ``credential``: a string that is in the form of `temporary secrets from duckdb <https://duckdb.org/docs/stable/configuration/secrets_manager.html>`_. To specify a custom s3 endpoint, please refer `here <https://duckdb.org/docs/stable/core_extensions/httpfs/s3api.html>`_.
 
 
