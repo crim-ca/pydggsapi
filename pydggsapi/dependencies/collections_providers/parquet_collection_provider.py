@@ -43,7 +43,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} {datasource_id} not found')
             return result
         if ("*" in datasource.data_cols):
-            cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})"
+            cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
         else:
             cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
             cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
