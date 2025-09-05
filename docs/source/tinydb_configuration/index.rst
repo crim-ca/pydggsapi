@@ -53,13 +53,17 @@ The dictionary associated with the collection ID defines metadata and methods to
 
 2. metadata:  ``title``, ``description``
 
-3. ``collection_provider``: a dictionary that describes how to access the data.
+3. ``bonds``: the extent of the dataset in a list of four wgs84 coordinates in the form of [xmin,ymin,xmax,ymax], default to ``[]``
+
+4. ``collection_provider``: a dictionary that describes how to access the data.
 
    - ``providerId``: :ref:`the collection provider ID  <collection_providers>`
 
    - ``dggrsId``: :ref:`the dggrs provider ID <dggrs>`
    
    - ``maxzonelevel``: the maximum refinement level of the data. 
+
+   - ``bonds``: the extent of the dataset in a list of four wgs84 coordinates in the form of [xmin,ymin,xmax,ymax], default to ``[]``
    
    - ``getdata_params``: It depends on which collection provider is in use. It provides detailed parameters for the get_data function implemented by collection providers. Details can be found in the :ref:`implementations of collection providers <collection_providers_implementation>`.
 
@@ -72,6 +76,7 @@ Here is an example on how to define a collection that uses clickhouse as collect
               {"suitability_hytruck": 
                   {"title": "Suitability Modelling for Hytruck",
                     "description": "Desc", 
+                    "bonds": [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125],
                     "collection_provider": {
                             "providerId": "clickhouse", 
                             "dggrsId": "igeo7",

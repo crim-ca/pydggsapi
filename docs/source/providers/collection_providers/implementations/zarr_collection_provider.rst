@@ -26,6 +26,7 @@ An example to define a Zarr collection provider:
                           { "datasources": {
                                     "my_zarr_data": {
                                         "filepath": "<path to zarr folder>",
+                                        "id_col": "zoneId",
                                         "zones_grps" : { "4": "res4", "5": "res5"}
                                     } 
                             } 
@@ -39,7 +40,8 @@ An example to define a Zarr collection provider:
 For each Zarr data, two parameters are required: 
 
 * ``filepath``   : the local directory path of the data.
-* ``zones_grps`` : a dictionary that maps refinement level to group name of the data
+* ``zones_grps`` : a dictionary that maps refinement level to group name of the data.
+* ``id_col``     : the coordinate name of the zone IDs, assume that all groups share the same coordinate name. If not supplied, the ``zones_grps`` value is used.
 
 
 

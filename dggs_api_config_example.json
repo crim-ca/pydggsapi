@@ -4,6 +4,7 @@
       "suitability_hytruck": {
         "title": "Suitability Modelling for Hytruck",
         "description": "Desc",
+		"bonds": [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125],
         "collection_provider": {
           "providerId": "clickhouse",
           "dggrsId": "igeo7",

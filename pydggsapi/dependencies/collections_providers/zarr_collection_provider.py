@@ -1,5 +1,5 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
-from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 
 from pydantic import BaseModel
 import xarray as xr
@@ -13,6 +13,7 @@ class Zarr_datasource_parameters(BaseModel):
     filepath: str
     zones_grps: Dict[str, str]
     filehandle: object = None
+    id_col: str = ""
 
 
 # Zarr with Xarray DataTree
@@ -52,10 +53,11 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         except KeyError as e:
             logger.error(f'{__name__} get zone_grp for resolution {res} failed: {e}')
             return result
+        id_col = datatree.id_col if (datatree.id_col == "") else zone_grp
         datatree = datatree.filehandle[zone_grp]
         # in future, we may consider using xdggs-dggrid4py
         try:
-            zarr_result = datatree.sel({f'{zone_grp}': np.array(zoneIds, dtype=datatree[zone_grp].dtype)})
+            zarr_result = datatree.sel({id_col: np.array(zoneIds, dtype=datatree[zone_grp].dtype)})
         except Exception as e:
             logger.error(f'{__name__} datatree sel failed: {e}')
             return result
@@ -65,3 +67,19 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         data = zarr_result.data.T.tolist()
         result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
+
+    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
+        datatree = None
+        result = CollectionProviderGetDataDictReturn(data={})
+        try:
+            datatree = self.datasources[datasource_id]
+        except KeyError as e:
+            logger.error(f'{__name__} {datasource_id} not found: {e}.')
+            return result
+        datatree = datatree.filehandle[list(datatree.zones_grps.values())[0]]
+        data = {i[0]: str(i[1].dtype) for i in datatree.data_vars.items()}
+        return CollectionProviderGetDataDictReturn(data=data)
+
+
+
+
