@@ -1,4 +1,4 @@
-from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 
 from abc import ABC, abstractmethod
 from typing import List, Any, Union, Dict
@@ -14,6 +14,10 @@ class AbstractCollectionProvider(ABC):
     # 6. In case of exception, return a empty CollectionProviderGetDataReturn, ie. all with []
     @abstractmethod
     def get_data(self, zoneIds: List[str], res: int) -> CollectionProviderGetDataReturn:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_datadictionary() -> CollectionProviderGetDataReturn:
         raise NotImplementedError
 
 
