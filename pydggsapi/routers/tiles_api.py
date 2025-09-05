@@ -105,8 +105,9 @@ async def get_tiles_json(req: Request, collectionId: str):
             conversion_dggrsId.append(id_)
     collection_provider = _get_collection_provider(collection_providerId)[collection_providerId]
     fields = collection_provider.get_datadictionary(**collection_info.collection_provider.getdata_params).data
-    urls = ['/'.join(str(req.url).split('.')[:-1]) + '/{z}/{x}/{y}']
-    urls += ['/'.join(str(req.url).split('.')[:-1]) + '/{z}/{x}/{y}?'+ f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
+    baseurl = str(req.url).replace('.json','')
+    urls = [baseurl + '/{z}/{x}/{y}']
+    urls += [baseurl + '/{z}/{x}/{y}?'+ f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
 
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
                  'bounds': collection_info.bounds, 'description': collection_info.description, 'name': collectionId})
