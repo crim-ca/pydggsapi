@@ -58,8 +58,9 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
 def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider]):
     logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
-    zoneId = zoneinfoReq.zoneId
-    zonelevel = dggrs_provider.get_cells_zone_level([zoneId])[0]
+    zoneId = [zoneinfoReq.zoneId]
+    zonelevel = dggrs_provider.get_cells_zone_level(zoneId)[0]
+    zoneinfo = dggrs_provider.zonesinfo(zoneId)
     filter_ = 0
     for k, v in collection.items():
         if (v.collection_provider.dggrsId != dggs_info.id):
@@ -69,9 +70,8 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
         params = v.collection_provider.getdata_params
         data = collection_provider[v.collection_provider.providerId].get_data(zoneId, zonelevel, **params)
         filter_ += len(data.zoneIds)
-    zoneId = zoneinfoReq.zoneId
+    zoneId = zoneinfoReq.zoneId  # reset the zoneId to original one as string
     if (filter_ > 0):
-        zoneinfo = dggrs_provider.zonesinfo([zoneId])
         dggs_link = '/'.join(str(current_url).split('/')[:-3])
         dggs_link = Link(**{'href': dggs_link, 'rel': 'ogc-rel:dggrs', 'title': 'Link back to /dggs (get list of supported dggs)'})
         data_link = Link(**{'href': str(current_url) + '/data', 'rel': 'ogc-rel:dggrs-zone-data', 'title': 'Link to data-retrieval for the zoneId)'})

@@ -4,7 +4,7 @@
 # in the main api.py under /dggs-api/v1-pre
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Path
-from typing import Optional, Dict, Union
+from typing import Annotated, Optional, Dict, Union
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
@@ -33,6 +33,7 @@ import logging
 import copy
 import pyproj
 import importlib
+import traceback
 from shapely.geometry import box
 from shapely.ops import transform
 
@@ -237,7 +238,7 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
             title=collection.title,
             description=collection.description,
             links=collection_links,
-            # extent=collection.extent,
+            #extent=collection.bounds,
             # itemType=collection.itemType,
             # crs=collection.crs,
             # dggsInfo=collection.dggrs_indexes
@@ -323,7 +324,7 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 
 @router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
-async def list_dggrs_zones(req: Request, zonesReq: ZonesRequest = Depends(),
+async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depends()],
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
                            dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
@@ -419,6 +420,3 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     except Exception as e:
         logger.error(f'{__name__} data_retrieval failed: {e}')
         raise HTTPException(status_code=400, detail=f'{__name__} data_retrieval failed: {e}')
-
-
-

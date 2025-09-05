@@ -4,6 +4,7 @@
       "suitability_hytruck": {
         "title": "Suitability Modelling for Hytruck",
         "description": "Desc",
+		"bonds": [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125],
         "collection_provider": {
           "providerId": "clickhouse",
           "dggrsId": "igeo7",
@@ -18,7 +19,7 @@
               "5": "column of refinement level 5"
             },
             "data_cols": [
-				"data column names"
+              "data column names"
             ]
           }
         }
@@ -69,8 +70,8 @@
         "classname": "clickhouse_collection_provider.ClickhouseCollectionProvider",
         "initial_params": {
           "host": "127.0.0.1",
-          "user": ,
-          "password": ,
+          "user": null,
+          "password": null,
           "port": 9000,
           "database": "DevelopmentTesting"
         }

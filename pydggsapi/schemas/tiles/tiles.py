@@ -8,6 +8,7 @@ class TilesRequest(BaseModel):
     z: int = Path(...,ge=0, le=25)
     x: int = Path(...)
     y: int = Path(...)
+    dggrsId: str = ""
     relative_depth: int = Field(0, ge=-2, le=2)
 
 class TilesFeatures(BaseModel):
@@ -19,7 +20,7 @@ class VectorLayer(BaseModel):
 
 class TilesJSON(BaseModel):
     tilejson: str
-    tiles: List[AnyUrl]
+    tiles: List[str]
     vector_layers: List[VectorLayer]
     bounds: List[float]
     description: str

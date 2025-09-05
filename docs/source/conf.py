@@ -15,8 +15,8 @@ copyright = '2025, Wai Tik Chan, Alexander Kmoch'
 author = 'Wai Tik Chan, Alexander Kmoch'
 release = '2025'
 
-release = '0.1.2'
-version = '0.1.2'
+release = '0.1.3'
+version = '0.1.3'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -45,22 +45,3 @@ templates_path = ['_templates']
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
-
-
-# Configuration file for the Sphinx documentation builder.
-
-
-
-
-
-# -- General configuration
-
-
-
-
-
-# -- Options for HTML output
-
-
-
-# -- Options for EPUB output
