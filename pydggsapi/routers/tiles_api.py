@@ -44,8 +44,8 @@ transformer = pyproj.Transformer.from_crs(crs_from=SRID_LNGLAT, crs_to=SRID_SPHE
 async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                           mercator=Depends(Mercator)):
     logger.debug(f'{__name__} tiles info: {tilesreq.collectionId} {tilesreq.dggrsId} {tilesreq.z} {tilesreq.x} {tilesreq.y}')
-    tilesreq.dggrsId = None if (tilesreq.dggrsId == '') else tilesreq.dggrsId
-    collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId)
+    collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId if (tilesreq.dggrsId != '') else None)
+    tilesreq.dggrsId = tilesreq.dggrsId if (tilesreq.dggrsId != '') else collection_info[tilesreq.collectionId].collection_provider.dggrsId
     dggrs = _get_dggrs_provider(tilesreq.dggrsId)
 
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
@@ -63,7 +63,6 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     zonesReq = ZonesRequest(collectionId=tilesreq.collectionId, dggrsId=tilesreq.dggrsId, zone_level=zone_level,
                             compact_zone=False, bbox=clip_bound)
     collection_provider = _get_collection_provider(collection_info[tilesreq.collectionId].collection_provider.providerId)
-
     zones_id_response = await list_dggrs_zones(req, zonesReq, _get_dggrs_description(tilesreq.dggrsId), dggrs,
                                                collection_info, collection_provider)
     if (type(zones_id_response) is Response):
