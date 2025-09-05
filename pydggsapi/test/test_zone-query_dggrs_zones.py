@@ -53,7 +53,7 @@ def test_zone_query_dggrs_zones():
     app = reload(pydggsapi.api).app
     client = TestClient(app)
     print("Fail test case with non existing dggrs id")
-    response = client.get('/dggs-api/v1-pre/dggs/non_exist/zones', params={'bbox': [2, 3, 4, 5]})
+    response = client.get('/dggs-api/v1-pre/dggs/non_exist/zones', params={'bbox': "2,3,4,5"})
     pprint(response.json())
     assert "not supported" in response.text
     assert response.status_code == 400
@@ -65,13 +65,14 @@ def test_zone_query_dggrs_zones():
     assert response.status_code == 400
 
     print("Fail test case with dggs zone query (igeo7 , bbox with len!=4)")
-    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": [22, 50, 23]})
+    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": "2,3,4"})
     pprint(response.json())
     assert "bbox lenght is not equal to 4" in response.text
     assert response.status_code == 400
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, compact=False)")
-    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": aoi.bounds, 'compact_zone': False})
+    bounds = list(map(str, aoi.bounds))
+    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'compact_zone': False})
     pprint(response.json())
     zones = ZonesResponse(**response.json())
     return_zones_list = zones.zones
@@ -83,7 +84,7 @@ def test_zone_query_dggrs_zones():
     assert response.status_code == 200
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False)")
-    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": aoi.bounds, 'zone_level': 8, 'compact_zone': False})
+    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'zone_level': 8, 'compact_zone': False})
     pprint(response.json())
     zones = ZonesResponse(**response.json())
     return_zones_list = zones.zones
@@ -96,7 +97,7 @@ def test_zone_query_dggrs_zones():
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
-                          params={"bbox": aoi.bounds, 'zone_level': 8, 'compact_zone': False})
+                          params={"bbox": ",".join(bounds), 'zone_level': 8, 'compact_zone': False})
     pprint(response.json())
     zones_geojson = ZonesGeoJson(**response.json())
     return_features_list = zones_geojson.features
@@ -118,8 +119,9 @@ def test_zone_query_dggrs_zones():
     assert response.status_code == 200
 
     print(f"Empty test case with dggs zones query (igeo7, bbox: {non_exist_aoi.bounds}, zone_level=8, compact=False, geojson)")
+    non_exist_bounds = list(map(str, non_exist_aoi.bounds))
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
-                          params={"bbox": non_exist_aoi.bounds, 'zone_level': 8, 'compact_zone': False})
+                          params={"bbox": ",".join(non_exist_bounds), 'zone_level': 8, 'compact_zone': False})
     assert response.status_code == 204
 
     print(f"Empty test case with dggs zones query (igeo7, parent zone: 055266135, zone_level=8, compact=False, geojson)")
