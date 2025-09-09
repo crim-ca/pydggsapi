@@ -36,6 +36,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
     # get data and form a master dataframe (seleceted providers) for each zone level
     data = {}
     data_type = {}
+    data_col_dims = {}
     for cid, c in collection.items():
         convert = False
         cp = collection_provider[c.collection_provider.providerId]
@@ -77,6 +78,8 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                     data[org_z] = data[org_z].drop(columns=[f'geometry{cid}'], errors='ignore')
                 except KeyError:
                     data[org_z] = master
+                if 'dimensions' in collection_result.cols_meta:
+                    data_col_dims.update(collection_result.cols_meta['dimensions'])
     if (len(data.keys()) == 0):
         return None
     zarr_root, tmpfile = None, None
@@ -132,4 +135,6 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
     link = [k.href for k in dggrs_description.links if (k.rel == 'ogc-rel:dggrs-definition')][0]
     return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': zone_levels if (exclude is False) else zone_levels[1:],
                'properties': properties, 'values': values}
+    if data_col_dims:
+        return_['dimensions'] = [{'name': dim, **dim_info} for dim, dim_info in data_col_dims.items()]
     return ZonesDataDggsJsonResponse(**return_)

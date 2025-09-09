@@ -1,4 +1,5 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Dimension
 from pydggsapi.schemas.api.collection_providers import (
     CollectionProviderGetDataDictReturn,
     CollectionProviderGetDataReturn,
@@ -8,6 +9,8 @@ from pystac_client import Client as STACClient
 from pydantic import BaseModel, Field
 from geopandas import read_file
 import pandas as pd
+import pystac
+import shapely
 
 from typing import List, Dict, Optional
 import logging
@@ -146,8 +149,11 @@ class STACCollectionProvider(AbstractCollectionProvider):
             col_data.append(item_df)
             matched_zones.append(zoneIds[item.id])
 
+        col = datasource._client.get_collection(datasource.collection_id)
+        col_dims = self.get_dimensions_stac2dggs(col)
+
         col_data = pd.concat(col_data, ignore_index=True)
-        col_meta = self.get_datadictionary(datasource_id).data
+        col_meta = self.get_datadictionary(datasource_id, collection=col).data
         col_meta = {var: dtype for var, dtype in col_meta.items() if var in col_data.columns}
 
         result.data = col_data.to_numpy().tolist()
@@ -155,14 +161,40 @@ class STACCollectionProvider(AbstractCollectionProvider):
         result.cols_meta = col_meta
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
+    def get_dimensions_stac2dggs(self, collection: pystac.Collection) -> Dict[str, Dimension]:
+        dims = {}
+        for name, info in collection.to_dict().get("cube:dimensions", {}).items():
+            grid = None
+            # FIXME: no obvious mapping? what about temporal?
+            #   (https://github.com/opengeospatial/ogcapi-discrete-global-grid-systems/issues/94)
+            # step = info.get("step", None)
+            # bbox = info.get("bbox", None)  # if type == "geometry"
+            extent = info.get("extent", None)
+            # values = info.get("values", None)
+            # if step and info.get("type") == "spatial":  #  == "temporal":
+            #     grid = {"coordinates": ...}
+            dim = Dimension(
+                name=name,
+                interval=extent,
+                grid=grid,
+                unit=info.get("unit"),
+                unitLang=info.get("reference_system"),
+            )
+            dims[name] = dim
+        return dims
+
+    def get_datadictionary(
+        self,
+        datasource_id: str,
+        collection: Optional[pystac.Collection] = None,
+    ) -> CollectionProviderGetDataDictReturn:
         result = CollectionProviderGetDataDictReturn(data={})
         datasource = self.get_source(datasource_id)
         if not datasource:
             return result
 
         try:
-            col_obj = datasource._client.get_collection(datasource.collection_id)
+            col_obj = collection or datasource._client.get_collection(datasource.collection_id)
             col_data = col_obj.to_dict()
             cube_vars = col_data["cube:variables"]
             cube_data = {
