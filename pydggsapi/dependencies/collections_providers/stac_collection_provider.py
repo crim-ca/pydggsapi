@@ -19,22 +19,41 @@ class STAC_datasource_parameters(BaseModel):
     collection_id: str
     zone_id_template: str = Field(
         default="{zoneId}",
-        description="Indicate if a custom representation of the STAC Item ID is used to map to a DGGS Zone ID.",
+        description=(
+            "Indicate if a custom representation of the STAC Item ID or 'grid:code' "
+            "is used to map to a DGGS Zone ID. See also 'grid_code_zone_id' parameter."
+        ),
+    )
+    grid_code_zone_id: bool = Field(
+        default=False,
+        description=(
+            "If enabled, look for the the DGGS Zone ID using 'grid:code' property "
+            "from the 'grid' extension (https://github.com/stac-extensions/grid) instead "
+            "of looking for STAC Item IDs directly. Can be used to have multiple DGGRS within "
+            "a STAC Collection. The 'zone_id_template' will be applied to the 'grid:code' value."
+        )
+    )
+    grid_reference: Optional[str] = Field(
+        default=None,
+        description=(
+            "If specified, STAC Item search will filter only to Items containing the corresponding "
+            "'grid:reference' property from the 'grid' extension (https://github.com/stac-extensions/grid)."
+        ),
     )
     data_variables: List[str] = Field(
         default_factory=lambda: ["*"],
         description=(
-            "List of data variables to include in this collection. "
-            "Use '*' to include all variables. "
-            "Extension 'cube:variables' is required in the STAC Collection and Items. "
+            "List of data variables to include in this collection. Use '*' to include all variables. "
+            "The property 'cube:variables' from 'datacube' extension (https://github.com/stac-extensions/datacube) "
+            "is required in the STAC Collection and Items. "
         ),
     )
     exclude_data_variables: List[str] = Field(
         default_factory=list,
         description=(
             "List of data variables to exclude in this collection. "
-            "Use '*' to include all variables. "
-            "Extension 'cube:variables' is required in the STAC Collection and Items. "
+            "The property 'cube:variables' from 'datacube' extension (https://github.com/stac-extensions/datacube) "
+            "is required in the STAC Collection and Items. "
         ),
     )
     asset_variables: Dict[str, List[str]] = Field(
@@ -45,7 +64,8 @@ class STAC_datasource_parameters(BaseModel):
             "If '*' is used, all variables from that asset are included. "
             "If there are conflicting variable names, they will be loaded "
             "in the order by which the assets are listed and returned by the STAC API, "
-            "meaning that the later variables will remain."
+            "meaning that the later variables will remain. "
+            "Variables not resolved from 'data_variables' and 'exclude_data_variables' will be ignored."
         ),
     )
 
@@ -90,10 +110,21 @@ class STACCollectionProvider(AbstractCollectionProvider):
 
         col_data = []
         zoneIds = {self.get_zone_id(z, datasource): z for z in zoneIds}
+        zone_filter = {}
+        zone_filter_ref = {"op": "eq", "args": [{"property": "grid:reference"}, datasource.grid_reference]}
+        zone_filter_ids = {"op": "in", "args": [{"property": "grid:code"}, list(zoneIds)]}
+        if datasource.grid_reference and datasource.grid_code_zone_id:
+            zone_filter = {"op": "and", "args": [zone_filter_ref, zone_filter_ids]}
+        elif datasource.grid_reference:
+            zone_filter = zone_filter_ref
+        elif datasource.grid_code_zone_id:
+            zone_filter = zone_filter_ids
         matched_zones = []
         matched = datasource._client.search(
             collections=[datasource.collection_id],  # FIXME: support joinCollections?
             ids=list(zoneIds),
+            filter=zone_filter,
+            filter_lang="cql2-json" if zone_filter else None,
         )
         for item in matched.items():
             assets = item.get_assets(role="data")
@@ -105,15 +136,23 @@ class STACCollectionProvider(AbstractCollectionProvider):
                 var_data = read_file(asset.href)  # FIXME: maybe help in some edge cases using media-type?
                 if "*" not in variables:
                     var_data = var_data[variables]
+                if "*" not in datasource.data_variables:
+                    var_cols = set(var_data.columns) - set(datasource.data_variables)
+                    var_data = var_data[var_cols]
+                if datasource.exclude_data_variables:
+                    var_data = var_data.drop(columns=datasource.exclude_data_variables, errors='ignore')
                 assets_data.append(var_data)
             item_df = pd.concat(assets_data, ignore_index=True)
             col_data.append(item_df)
             matched_zones.append(zoneIds[item.id])
 
         col_data = pd.concat(col_data, ignore_index=True)
+        col_meta = self.get_datadictionary(datasource_id).data
+        col_meta = {var: dtype for var, dtype in col_meta.items() if var in col_data.columns}
+
         result.data = col_data.to_numpy().tolist()
         result.zoneIds = matched_zones
-        result.cols_meta = self.get_datadictionary(datasource_id).data
+        result.cols_meta = col_meta
         return result
 
     def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
