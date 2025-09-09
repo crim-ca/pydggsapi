@@ -15,7 +15,7 @@ class parquet_source():
     filepath: str
     id_col: str
     conn: duckdb.DuckDBPyConnection
-    data_cols: List[str] = field(default_factory=["*"])
+    data_cols: List[str] = field(default_factory=lambda: ["*"])
     exclude_data_cols: List[str] = field(default_factory=list)
 
 

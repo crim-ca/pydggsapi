@@ -1,4 +1,7 @@
-from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
+from pydggsapi.schemas.api.collection_providers import (
+    CollectionProviderGetDataDictReturn,
+    CollectionProviderGetDataReturn,
+)
 
 from abc import ABC, abstractmethod
 from typing import List, Any, Union, Dict
@@ -17,6 +20,5 @@ class AbstractCollectionProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_datadictionary() -> CollectionProviderGetDataReturn:
+    def get_datadictionary(self) -> CollectionProviderGetDataDictReturn:
         raise NotImplementedError
-

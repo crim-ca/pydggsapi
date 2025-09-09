@@ -1,11 +1,15 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
-from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import (
+    CollectionProviderGetDataDictReturn,
+    CollectionProviderGetDataReturn,
+)
 
 from pystac_client import Client as STACClient
-from pydantic import BaseModel
-import xarray as xr
+from pydantic import BaseModel, Field
+from geopandas import read_file
+import pandas as pd
+
 from typing import List, Dict, Optional
-import numpy as np
 import logging
 
 logger = logging.getLogger()
@@ -13,7 +17,37 @@ logger = logging.getLogger()
 class STAC_datasource_parameters(BaseModel):
     catalog_url: str
     collection_id: str
-    zones_grps: Dict[str, str] = None
+    zone_id_template: str = Field(
+        default="{zoneId}",
+        description="Indicate if a custom representation of the STAC Item ID is used to map to a DGGS Zone ID.",
+    )
+    data_variables: List[str] = Field(
+        default_factory=lambda: ["*"],
+        description=(
+            "List of data variables to include in this collection. "
+            "Use '*' to include all variables. "
+            "Extension 'cube:variables' is required in the STAC Collection and Items. "
+        ),
+    )
+    exclude_data_variables: List[str] = Field(
+        default_factory=list,
+        description=(
+            "List of data variables to exclude in this collection. "
+            "Use '*' to include all variables. "
+            "Extension 'cube:variables' is required in the STAC Collection and Items. "
+        ),
+    )
+    asset_variables: Dict[str, List[str]] = Field(
+        default_factory=lambda: {"data": ["*"]},
+        description=(
+            "Defines a mapping of lookup location for variables, where keys represent the asset names "
+            "and their values are the list of variables that must be extracted from them. "
+            "If '*' is used, all variables from that asset are included. "
+            "If there are conflicting variable names, they will be loaded "
+            "in the order by which the assets are listed and returned by the STAC API, "
+            "meaning that the later variables will remain."
+        ),
+    )
 
     _client: STACClient = None
 
@@ -33,43 +67,76 @@ class STACCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} class initial failed: {e}')
             raise Exception(f'{__name__} class initial failed: {e}')
 
-    def get_data(
-        self,
-        zoneIds: List[str],
-        res: int,
-        datasource_id: str,
-        url: str = None,
-        zones_grps: Dict[int | str, str] = None,
-    ) -> CollectionProviderGetDataReturn:
-
-        result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
+    def get_source(self, datasource_id: str) -> Optional[STAC_datasource_parameters]:
         try:
-            datatree = self.datasources[datasource_id]
+            datasource = self.datasources[datasource_id]
         except KeyError:
-            try:
-                param = STAC_datasource_parameters(url, zones_grps)
-                param.filehandle = xr.open_datatree(param.filepath)
-                self.datasources[datasource_id] = param
-                datatree = self.datasources[datasource_id]
-                logger.info(f'{__name__} new datasource: {datasource_id} added.')
-            except Exception as e:
-                logger.error(f'{__name__} initial zarr collection failed: {e}')
-                return result
-        try:
-            zone_grp = datatree.zones_grps[str(res)]
-        except KeyError as e:
-            logger.error(f'{__name__} get zone_grp for resolution {res} failed: {e}')
+            logger.error(f'{__name__} {datasource_id} not found')
+            return None
+        return datasource
+
+    def get_zone_id(
+        self,
+        zone_id: str,
+        datasource: STAC_datasource_parameters,
+    ) -> str:
+        return datasource.zone_id_template.format(zoneId=zone_id)
+
+    def get_data(self, zoneIds: List[str], res: int, datasource_id: str) -> CollectionProviderGetDataReturn:
+        result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
+        datasource = self.get_source(datasource_id)
+        if not datasource:
             return result
-        datatree = datatree.filehandle[zone_grp]
-        # in future, we may consider using xdggs-dggrid4py
+
+        col_data = []
+        zoneIds = {self.get_zone_id(z, datasource): z for z in zoneIds}
+        matched_zones = []
+        matched = datasource._client.search(
+            collections=[datasource.collection_id],  # FIXME: support joinCollections?
+            ids=list(zoneIds),
+        )
+        for item in matched.items():
+            assets = item.get_assets(role="data")
+            assets_data = []
+            for name, asset in assets.items():
+                if name not in datasource.asset_variables:
+                    continue
+                variables = datasource.asset_variables[name]
+                var_data = read_file(asset.href)  # FIXME: maybe help in some edge cases using media-type?
+                if "*" not in variables:
+                    var_data = var_data[variables]
+                assets_data.append(var_data)
+            item_df = pd.concat(assets_data, ignore_index=True)
+            col_data.append(item_df)
+            matched_zones.append(zoneIds[item.id])
+
+        col_data = pd.concat(col_data, ignore_index=True)
+        result.data = col_data.to_numpy().tolist()
+        result.zoneIds = matched_zones
+        result.cols_meta = self.get_datadictionary(datasource_id).data
+        return result
+
+    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
+        result = CollectionProviderGetDataDictReturn(data={})
+        datasource = self.get_source(datasource_id)
+        if not datasource:
+            return result
+
         try:
-            zarr_result = datatree.sel({f'{zone_grp}': np.array(zoneIds, dtype=datatree[zone_grp].dtype)})
+            col_obj = datasource._client.get_collection(datasource.collection_id)
+            col_data = col_obj.to_dict()
+            cube_vars = col_data["cube:variables"]
+            cube_data = {
+                var: var_data["data_type"]
+                for var, var_data in cube_vars.items()
+                if (
+                    var in datasource.data_variables
+                    or "*" in datasource.data_variables
+                    and var not in datasource.exclude_data_variables
+                )
+            }
         except Exception as e:
-            logger.error(f'{__name__} datatree sel failed: {e}')
+            logger.error(f'{__name__} {datasource_id} error: {e}')
             return result
-        cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
-        zarr_result = zarr_result.to_dataset().to_array()
-        zoneIds = zarr_result[zone_grp].values.astype(str).tolist()
-        data = zarr_result.data.T.tolist()
-        result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
+        result.data = cube_data
         return result
