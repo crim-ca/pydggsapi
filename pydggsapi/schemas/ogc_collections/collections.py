@@ -89,7 +89,7 @@ class CollectionDesc(BaseModel):
             },
         ],
     )
-    #extent: Optional[ExtentUad] = None
+    #extent: Optional[Extent] = None
     itemType: Optional[str] = Field(
         'unknown',
         description='indicator about the type of the items in the collection if the collection has an accessible /collections/{collectionId}/items endpoint',

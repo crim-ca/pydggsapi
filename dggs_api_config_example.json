@@ -4,6 +4,7 @@
       "suitability_hytruck": {
         "title": "Suitability Modelling for Hytruck",
         "description": "Desc",
+		"bonds": [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125],
         "collection_provider": {
           "providerId": "clickhouse",
           "dggrsId": "igeo7",
@@ -34,6 +35,20 @@
           "maxzonelevel": 9,
           "getdata_params": {
             "datasource_id": "zarr_hytruck"
+          }
+        }
+      }
+    },
+    "3": {
+      "suitability_hytruck_parquet": {
+        "title": "Suitability Modelling for Hytruck in parquet format",
+        "description": "Desc",
+        "collection_provider": {
+          "providerId": "parquet",
+          "dggrsId": "igeo7",
+          "maxzonelevel": 9,
+          "getdata_params": {
+            "datasource_id": "hytruck"
           }
         }
       }
@@ -88,6 +103,20 @@
                 "5": "res5",
                 "6": "res6"
               }
+            }
+          }
+        }
+      }
+    },
+    "3": {
+      "parquet": {
+        "classname": "parquet_collection_provider.ParquetCollectionProvider",
+        "initial_params": {
+          "datasources": {
+            "hytruck": {
+              "filepath": "<local file path or path of a cloud bucket>",
+			  "id_col": "cell_ids",
+			  "data_cols": ["*"]
             }
           }
         }

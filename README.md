@@ -1,5 +1,7 @@
 # pydggsapi
 
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
+
 A python FastAPI OGC DGGS API implementation
 
 https://pydggsapi.readthedocs.io/en/latest/

@@ -44,13 +44,13 @@ app.include_router(tiles_api.router, prefix='/tiles-api')
 def my_schema():
     openapi_schema = get_openapi(
         title="pydggsapi: A python FastAPI OGC DGGS API implementation",
-        version="1.0-beta",
+        version="1.3.0",
         routes=app.routes
     )
 
     openapi_schema["info"] = {
         "title" : "pydggsapi: A python FastAPI OGC DGGS API implementation",
-        "version" : "1.0-beta",
+        "version" : "1.3.0",
         "description" : "A python FastAPI OGC DGGS API implementation",
         "termsOfService": "https://creativecommons.org/licenses/by/4.0/",
         "contact": {
@@ -69,5 +69,3 @@ def my_schema():
 
 
 app.openapi = my_schema
-
-

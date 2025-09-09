@@ -5,15 +5,17 @@ from fastapi import APIRouter, Body, HTTPException, Depends, Response, Request
 from typing import Annotated
 
 
-from pydggsapi.schemas.tiles.tiles import TilesRequest
+from pydggsapi.schemas.tiles.tiles import TilesRequest, TilesJSON
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest
 
 from pydggsapi.dependencies.api.mercator import Mercator
 from pydggsapi.routers.dggs_api import _get_collection, _get_dggrs_provider, list_dggrs_zones, dggrs_zones_data, _get_dggrs_description
 from pydggsapi.routers.dggs_api import _get_collection_provider
+from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
 
 from starlette.datastructures import MutableHeaders
+from urllib.parse import urlparse
 import asyncio
 import nest_asyncio
 import pyproj
@@ -38,13 +40,12 @@ transformer = pyproj.Transformer.from_crs(crs_from=SRID_LNGLAT, crs_to=SRID_SPHE
 
 
 @router.get("/{collectionId}/{z}/{x}/{y}", tags=['tiles-api'])
-@router.get("/{collectionId}/{dggrsId}/{z}/{x}/{y}", tags=['tiles-api'])
+#@router.get("/{collectionId}/{dggrsId}/{z}/{x}/{y}", tags=['tiles-api'])
 async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                           mercator=Depends(Mercator)):
     logger.debug(f'{__name__} tiles info: {tilesreq.collectionId} {tilesreq.dggrsId} {tilesreq.z} {tilesreq.x} {tilesreq.y}')
-    collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId)
-    if (tilesreq.dggrsId is None):
-        tilesreq.dggrsId = collection_info[tilesreq.collectionId].collection_provider.dggrsId
+    collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId if (tilesreq.dggrsId != '') else None)
+    tilesreq.dggrsId = tilesreq.dggrsId if (tilesreq.dggrsId != '') else collection_info[tilesreq.collectionId].collection_provider.dggrsId
     dggrs = _get_dggrs_provider(tilesreq.dggrsId)
 
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
@@ -62,11 +63,10 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     zonesReq = ZonesRequest(collectionId=tilesreq.collectionId, dggrsId=tilesreq.dggrsId, zone_level=zone_level,
                             compact_zone=False, bbox=clip_bound)
     collection_provider = _get_collection_provider(collection_info[tilesreq.collectionId].collection_provider.providerId)
-
     zones_id_response = await list_dggrs_zones(req, zonesReq, _get_dggrs_description(tilesreq.dggrsId), dggrs,
                                                collection_info, collection_provider)
     if (type(zones_id_response) is Response):
-        content = mapbox_vector_tile.encode({"name": 'weighted_suitability', "features": []},
+        content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": []},
                                             quantize_bounds=bbox,
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
@@ -92,8 +92,28 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     return Response(bytes(content), media_type="application/x-protobuf")
 
 
-#@router.get("/{layer}.json", tags=['tiles-api'])
-#async def get_layer_json(request: Request, layer: str, client=Depends(get_database_client)):
-#    logging.info(f'{__name__} suitability get_layer_json called')
-#    return get_tiles_json(client, request.url, layer)
+@router.get("/{collectionId}.json", tags=['tiles-api'])
+async def get_tiles_json(req: Request, collectionId: str):
+    logging.debug(f'{__name__} {collectionId} get_tiles_json called')
+    collection_info = _get_collection(collectionId=collectionId)[collectionId]
+    default_dggrsId = collection_info.collection_provider.dggrsId
+    collection_providerId = collection_info.collection_provider.providerId
+    conversion_dggrsId = []
+    for id_, dggrs_provider in global_dggrs_providers.items():
+        if (default_dggrsId in list(dggrs_provider.dggrs_conversion.keys())):
+            conversion_dggrsId.append(id_)
+    collection_provider = _get_collection_provider(collection_providerId)[collection_providerId]
+    fields = collection_provider.get_datadictionary(**collection_info.collection_provider.getdata_params).data
+    baseurl = str(req.url).replace('.json','')
+    urls = [baseurl + '/{z}/{x}/{y}']
+    urls += [baseurl + '/{z}/{x}/{y}?'+ f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
+
+    return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
+                 'bounds': collection_info.bounds, 'description': collection_info.description, 'name': collectionId})
+
+
+
+
+
+
 

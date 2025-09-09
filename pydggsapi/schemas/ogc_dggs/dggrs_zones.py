@@ -1,14 +1,22 @@
 from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest
-from typing import List, Optional, Union
-from fastapi import Query
+from typing import Annotated, List, Optional, Union, Tuple
+from fastapi import Depends
 from fastapi.exceptions import HTTPException
 
-from pydantic import BaseModel, conint, Field, model_validator
+from pydantic import BaseModel, conint, model_validator
 
 zone_query_support_returntype = ['application/json', 'application/geo+json']
 zone_query_support_geometry = ['zone-centroid', 'zone-region']
+
+
+def bbox_converter(bbox: Optional[str] = None) -> Optional[List[float]]:
+    if not bbox:
+        return None
+    if isinstance(bbox, str):
+        bbox = bbox.split(",")
+    return [float(i) for i in bbox]
 
 
 class ZonesRequest(DggrsDescriptionRequest):
@@ -17,7 +25,10 @@ class ZonesRequest(DggrsDescriptionRequest):
     parent_zone: Optional[Union[int, str]] = None
     limit: Optional[int] = None
     bbox_crs: Optional[str] = None
-    bbox: Optional[List[float]] = Field(Query(None))
+    bbox: Annotated[
+        Optional[Union[List[float], Tuple[float, float, float, float]]],
+        Depends(bbox_converter)
+    ] = None
     geometry: Optional[str] = None
 
     @model_validator(mode="after")

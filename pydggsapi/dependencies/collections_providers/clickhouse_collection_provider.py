@@ -1,5 +1,5 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
-from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
+from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 
 from clickhouse_driver import Client
 from typing import List
@@ -46,7 +46,11 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             cols = ",".join(cols)
         cols += f', {res_col}'
         query = f'select {cols} from {table} where {res_col} in (%(cellid_list)s) group by {res_col}'
-        db_result = self.db.execute(query, {'cellid_list': zoneIds}, with_column_types=True)
+        try:
+            db_result = self.db.execute(query, {'cellid_list': zoneIds}, with_column_types=True)
+        except Exception as e:
+            logger.error(f'{__name__} get_data failed : {e}')
+            return result
         zone_idx = [i for i, r in enumerate(db_result[1]) if (r[0] == res_col)][0]
         if (len(db_result[0]) > 0):
             data = np.array(db_result[0])
@@ -55,6 +59,20 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             cols_meta = {r[0]: r[1] for r in db_result[1] if (r[0] != res_col)}
             result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
+
+    def get_datadictionary(self, table, zoneId_cols, data_cols: List[str]) -> CollectionProviderGetDataDictReturn:
+        result = CollectionProviderGetDataDictReturn(data={})
+        try:
+            query = f'DESCRIBE TABLE {table}'
+            db_result = self.db.execute(query)
+        except Exception as e:
+            logger.error(f'{__name__} get_datadictionary failed : {e}')
+            return result
+        data = {r[0]: r[1] for r in db_result if (r[0] in data_cols)}
+        return CollectionProviderGetDataDictReturn(data=data)
+
+
+
 
 
 
