@@ -27,8 +27,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+dggs_prefix = os.environ.get('DGGS_PREFIX', "/v1-pre")
 
-app.include_router(dggs_api.router, prefix='/dggs-api/v1-pre')
+app.include_router(dggs_api.router, prefix=f'/dggs-api{dggs_prefix}')
 app.include_router(tiles_api.router, prefix='/tiles-api')
 
 
@@ -61,7 +62,7 @@ def my_schema():
         "license": {
             "name": "AGPL-3.0",
             "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
-        },
+        }
     }
 
     app.openapi_schema = openapi_schema
