@@ -13,7 +13,18 @@ import os
 
 load_dotenv()
 
-app = FastAPI()
+root_path = os.environ.get('ROOT_PATH')
+openapi_url = os.environ.get('OPENAPI_URL', '/openapi.json')
+docs_url = os.environ.get("DOCS_URL", "/docs")
+redoc_url = os.environ.get("REDOC_URL", "/redoc")
+swagger_ui_oauth2_redirect_url = os.environ.get("SWAGGER_UI_OAUTH2_REDIRECT_URL", "/docs/oauth2-redirect")
+app = FastAPI(
+    root_path=root_path,
+    openapi_url=openapi_url,
+    docs_url=docs_url,
+    redoc_url=redoc_url,
+    swagger_ui_oauth2_redirect_url=swagger_ui_oauth2_redirect_url,
+)
 # initialize logging for Fastapi
 
 # Setting up CORS
@@ -46,7 +57,8 @@ def my_schema():
     openapi_schema = get_openapi(
         title="pydggsapi: A python FastAPI OGC DGGS API implementation",
         version="0.1.3",
-        routes=app.routes
+        routes=app.routes,
+        servers=[{"url": root_path}] if root_path else None,
     )
 
     openapi_schema["info"] = {
