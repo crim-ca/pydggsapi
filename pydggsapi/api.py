@@ -4,17 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
 
-
 import pydggsapi.request_example as request_example
 from pydggsapi.routers import dggs_api
 from pydggsapi.routers import tiles_api
 
 import os
 import json
+import logging
 
+logger = logging.getLogger()
 load_dotenv()
-print(json.dumps(dict(os.environ), indent=2))
+logger.debug("Environment configuration:\n%s", json.dumps(dict(os.environ), indent=2))
 api_title = os.environ.get('API_TITLE', 'University of Tartu, OGC DGGS API v1-pre')
+api_description = os.environ.get('API_DESCRIPTION', 'OGC DGGS API')
 api_contact = json.loads(os.environ.get('API_CONTACT') or '{}') or {
     "name": "Contact project lead",
     "url": "https://landscape-geoinformatics.ut.ee/expertise/dggs/",
@@ -27,6 +29,8 @@ redoc_url = os.environ.get("REDOC_URL", "/redoc")
 swagger_ui_oauth2_redirect_url = os.environ.get("SWAGGER_UI_OAUTH2_REDIRECT_URL", "/docs/oauth2-redirect")
 app = FastAPI(
     title=api_title,
+    description=api_description,
+    version="0.1.3",
     root_path=root_path,
     openapi_url=openapi_url,
     docs_url=docs_url,

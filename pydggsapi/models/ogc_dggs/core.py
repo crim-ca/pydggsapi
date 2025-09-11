@@ -15,6 +15,7 @@ from typing import Dict
 from pprint import pprint
 import logging
 import os
+
 logger = logging.getLogger()
 
 
@@ -22,14 +23,19 @@ def landingpage(current_url: URL, app: FastAPI) -> LandingPageResponse:
     base_url = str(current_url)
     root_url = urljoin(base_url, "/")
     self_link = Link(href=base_url, rel='self', type='application/json', title='Landing Page')
-    service_desc_link = Link(href=urljoin(root_url, app.docs_url), rel='service-desc', type='html', title='Open API swagger interface')
-    service_doc_link = Link(href='https://docs.ogc.org/DRAFTS/21-038.html', rel='service-doc', type='html', title='API Documentation')
+    service_desc_link = Link(href=urljoin(root_url, app.openapi_url), rel='service-desc', type='application/json', title='OpenAPI specification')
+    service_doc_link = Link(href=urljoin(root_url, app.docs_url), rel='service-desc', type='text/html', title='OpenAPI swagger interface')
+    described_by_link = Link(href='https://docs.ogc.org/DRAFTS/21-038.html', rel='describedby', type='text/html', title='API Documentation')
     conformance_link = Link(href=urljoin(base_url, './conformance'), rel='http://www.opengis.net/def/rel/ogc/1.0/conformance',
                             type='application/json', title='Conformance classes implemented by this API.')
     dggs_list_link =Link(href=urljoin(base_url, './dggs'), rel='ogc-rel:dggrs-list', type='application/json',
                          title='List of DGGS implemented by this API.')
-    return LandingPageResponse(title=app.title, description='ogc dggs api',
-                               links=[self_link, service_desc_link, service_doc_link, conformance_link, dggs_list_link])
+    links = [self_link, service_desc_link, service_doc_link, described_by_link, conformance_link, dggs_list_link]
+    service_meta_url = os.environ.get('SERVICE_META_URL', None)
+    if service_meta_url:
+        service_meta_link = Link(href=service_meta_url, rel='service-meta', type='application/json', title='API metadata')
+        links.append(service_meta_link)
+    return LandingPageResponse(title=app.title, description=app.description, links=links)
 
 
 def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription]):
