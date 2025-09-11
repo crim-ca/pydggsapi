@@ -10,15 +10,23 @@ from pydggsapi.routers import dggs_api
 from pydggsapi.routers import tiles_api
 
 import os
+import json
 
 load_dotenv()
-
+print(json.dumps(dict(os.environ), indent=2))
+api_title = os.environ.get('API_TITLE', 'University of Tartu, OGC DGGS API v1-pre')
+api_contact = json.loads(os.environ.get('API_CONTACT') or '{}') or {
+    "name": "Contact project lead",
+    "url": "https://landscape-geoinformatics.ut.ee/expertise/dggs/",
+    "email": "alexander.kmoch@ut.ee"
+}
 root_path = os.environ.get('ROOT_PATH')
 openapi_url = os.environ.get('OPENAPI_URL', '/openapi.json')
 docs_url = os.environ.get("DOCS_URL", "/docs")
 redoc_url = os.environ.get("REDOC_URL", "/redoc")
 swagger_ui_oauth2_redirect_url = os.environ.get("SWAGGER_UI_OAUTH2_REDIRECT_URL", "/docs/oauth2-redirect")
 app = FastAPI(
+    title=api_title,
     root_path=root_path,
     openapi_url=openapi_url,
     docs_url=docs_url,
@@ -38,10 +46,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-dggs_prefix = os.environ.get('DGGS_PREFIX', "/v1-pre")
+dggs_prefix = os.environ.get('DGGS_PREFIX', '/dggs-api/v1-pre')
+tiles_prefix = os.environ.get('TILES_PREFIX', '/tiles-api')
 
-app.include_router(dggs_api.router, prefix=f'/dggs-api{dggs_prefix}')
-app.include_router(tiles_api.router, prefix='/tiles-api')
+app.include_router(dggs_api.router, prefix=dggs_prefix)
+app.include_router(tiles_api.router, prefix=tiles_prefix)
 
 
 
@@ -66,11 +75,7 @@ def my_schema():
         "version" : "0.1.3",
         "description" : "A python FastAPI OGC DGGS API implementation",
         "termsOfService": "https://creativecommons.org/licenses/by/4.0/",
-        "contact": {
-            "name": "Contact project lead",
-            "url": "https://landscape-geoinformatics.ut.ee/expertise/dggs/",
-            "email": "alexander.kmoch@ut.ee"
-        },
+        "contact": api_contact,
         "license": {
             "name": "AGPL-3.0",
             "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
