@@ -59,6 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #   minimal TinyDB definition is not useful and MUST be overriden by volume mount of custom config
 #   only provided to have the minimal application setup to start the API and obtain relevant error messages
 RUN mkdir -p ${APP_CONFIG_DIR}
+
 COPY dggs_api_config_example.json ${APP_CONFIG_DIR}/pydggsapi-config.json
 ENV dggs_api_config=${APP_CONFIG_DIR}/pydggsapi-config.json
 ENV DGGRID_PATH=/usr/local/bin/dggrid
@@ -66,6 +67,8 @@ ENV DGGRID_PATH=/usr/local/bin/dggrid
 # obtain dependency source files
 COPY README.md ${APP_DIR}/
 COPY pydggsapi/ ${APP_DIR}/pydggsapi/
+
+COPY LICENSE .
 
 # install package (only) incrementally
 RUN poetry install --only-root
