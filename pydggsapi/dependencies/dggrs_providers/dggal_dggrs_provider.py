@@ -8,58 +8,41 @@ from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLe
 
 import shapely
 import logging
-from dggal import Application, pydggal_setup, ISEA3H, IVEA3H, rHEALPix, printLn, printx, CRS, ogc, epsg, GeoExtent, Array
+from dggal import Application, pydggal_setup, IVEA7H, rHEALPix, CRS, ogc, epsg, GeoExtent, Array
 from typing import Union, List
 
 logger = logging.getLogger()
-
-# upper case
-supported_grids = {'ISEA3H': ISEA3H(),
-                   'IVEA3H': IVEA3H(),
-                   'RHEALPIX': rHEALPix()}
+supported_grids = {'IVEA7H': IVEA7H,
+                   'RHEALPIX': rHEALPix}
 
 
 # helper function to generate geometry geojson of a zoneId
-def generateZoneGeometry(dggrs, zone, crs, centroids: bool, fc: bool):
-    t = "   " if fc else ""
-    printLn(t, '   "geometry" : {')
-    printLn(t, '      "type" : "', 'Point' if centroids else 'Polygon', '",')
-    printx(t, '      "coordinates" : [')
-
-    if not crs or crs == CRS(ogc, 84) or crs == CRS(epsg, 4326):
+def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool=False) -> GeoJSONPoint|GeoJSONPolygon|None:
+    if (crs is None) or crs == CRS(ogc, 84) or crs == CRS(epsg, 4326):
         if centroids:
             centroid = dggrs.getZoneWGS84Centroid(zone)
-            printx(" ", centroid.lon, ", ", centroid.lat)
+            return GeoJSONPoint(type="Point", coordinates=(float(centroid.lon), float(centroid.lat)))
         else:
             vertices = dggrs.getZoneRefinedWGS84Vertices(zone, 0)
+            coordinates = []
             if vertices:
-                count = vertices.count
-                printLn("")
-                printx(t, "         [ ")
-                for i in range(count):
-                    printx(", " if i else "", "[", vertices[i].lon, ", ", vertices[i].lat, "]")
-                printx(", " if count else "", "[", vertices[0].lon, ", ", vertices[0].lat, "]")
-                printLn(" ]")
-            printx(t, "     ")
+                for i in range(vertices.count):
+                    coordinates.append([(float(vertices[i].lon), float(vertices[i].lat))])
+                return GeoJSONPolygon(type="Polygon", coordinates=coordinates)
+            return None
+
     else:
         if centroids:
             centroid = dggrs.getZoneCRSCentroid(zone, crs)
-            printx(" ", centroid.x, ", ", centroid.y)
+            return GeoJSONPoint(type=Point, coordinates=(float(centroid.lon), float(centroid.lat)))
         else:
             vertices = dggrs.getZoneRefinedCRSVertices(zone, crs, 0)
+            coordinates = []
             if vertices:
-                count = vertices.count
-
-            printLn("")
-            printLn(t, "         [ ")
-
-            for i in range(count):
-                printx(", " if i else "", "[", vertices[i].x, ", ", vertices[i].y, "]")
-            printx(", " if count else "", "[", vertices[0].x, ", ", vertices[0].y, "]")
-            printLn(" ]")
-        printx(t, "     ")
-    printLn(" ]")
-    printx(t, "   }")
+                for i in range(vertices.count):
+                    coordinates.append([(float(vertices[i].x), float(vertices[i].y))])
+                return GeoJSONPolygon(type="Polygon", coordinates=coordinates)
+            return None
 
 
 def generateZoneExtent(dggrs, zoneId):
@@ -74,8 +57,12 @@ class DGGALProvider(AbstractDGGRSProvider):
     def __init__(self, **params):
         self.app = Application(appGlobals=globals())
         pydggal_setup(self.app)
-        self.grid_name = params.get('grid', 'ISEA3H').upper()
-        self.mygrid = supported_grids(self.grid_name)
+        self.grid_name = params.get('grid', 'IVEA7H').upper()
+        try:
+            self.mygrid = supported_grids[self.grid_name]()
+        except KeyError:
+            logger.error(f'{__name__} grid: {self.grid_name} not supported')
+            raise Exception(f'{__name__} grid: {self.grid_name} not supported')
 
     def convert(self, zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
         pass
@@ -90,14 +77,14 @@ class DGGALProvider(AbstractDGGRSProvider):
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
         children = {}
         geometry = geometry.lower()
-        geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
+        #geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         cellId = self.mygrid.getZoneFromTextID(cellId)
         for z in zone_levels:
             subzoneIds = self.mygrid.getSubZones(cellId, (z - base_level))
-            subzones_geometry = [generateZoneGeometry(self.mygrid, cellId, None, False if (geometry == 'zone-region') else True, False)
+            subzones_geometry = [generateZoneGeometry(self.mygrid, cellId, None, False if (geometry == 'zone-region') else True)
                                for cellId in subzoneIds]
             subzoneIds = [self.mygrid.getZoneTextID(id_) for id_ in subzoneIds]
-            subzones_geometry = [geojson(**shapely.geometry.mapping(g)) for g in subzones_geometry]
+            #subzones_geometry = [geojson(**shapely.geometry.mapping(g)) for g in subzones_geometry]
             children[z] = DGGRSProviderZonesElement(**{'zoneIds': subzoneIds,
                                                        'geometry': subzones_geometry})
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
@@ -106,12 +93,12 @@ class DGGALProvider(AbstractDGGRSProvider):
         cellIds = [self.mygrid.getZoneFromTextID(cellId) for cellId in cellIds]
         zone_level = self.get_cells_zone_level([cellIds[0]])
         try:
-            centroids = [generateZoneGeometry(self.mygrid, cellId, None, True, False)
+            centroids = [generateZoneGeometry(self.mygrid, cellId, None, True)
                          for cellId in cellIds]
-            centroids = [GeoJSONPoint(**eval(shapely.to_geojson(c))) for c in centroids]
-            hex_vertices = [generateZoneGeometry(self.mygrid, cellId, None, False, False)
+            #centroids = [GeoJSONPoint(**eval(shapely.to_geojson(c))) for c in centroids]
+            hex_vertices = [generateZoneGeometry(self.mygrid, cellId, None, False)
                             for cellId in cellIds]
-            hex_vertices = [GeoJSONPolygon(**eval(shapely.to_geojson(g))) for g in hex_vertices]
+            #hex_vertices = [GeoJSONPolygon(**eval(shapely.to_geojson(g))) for g in hex_vertices]
             extents = [generateZoneExtent(self.mygrid, cellId) for cellId in cellIds]
             extents = [GeoJSONPolygon(**eval(shapely.to_geojson(b))) for b in extents]
         except Exception as e:
@@ -125,7 +112,7 @@ class DGGALProvider(AbstractDGGRSProvider):
         if (bbox is not None):
             try:
                 bbox = shapely.bounds(bbox)
-                geoextent = GeoExtent(ll={'lat': bbox[1], 'lon': bbox[0]}, ur={'lat': bbox[3], 'lon': bbox[2]})
+                geoextent = GeoExtent(GeoPoint(bbox[1], bbox[0]), GeoPoint(bbox[3], bbox[2]))
                 zones_list = self.mygrid.listZones(zone_level, geoextent)
                 zones_list = set(self.mygrid.getZoneTextID(z) for z in zones_list)
             except Exception as e:
@@ -150,7 +137,7 @@ class DGGALProvider(AbstractDGGRSProvider):
             self.mygrid.compactZones(compact_list)
             zones_list = [self.mygrid.getZoneTextID(z) for z in compact_list]
             logger.info(f'{__name__} query zones list, compact : {len(zones_list)}')
-        zones_geometry = [generateZoneGeometry(self.mygrid, z, None, False if (returngeometry == 'zone-region') else True, False) for z in zones_list]
+        zones_geometry = [generateZoneGeometry(self.mygrid, z, None, False if (returngeometry == 'zone-region') else True) for z in zones_list]
         returnedAreaMetersSquare = sum([self.mygrid.getZoneArea(self.mygrid.getZoneFromTextID(z)) for z in zones_list])
         geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
         geometry = [geotype(**eval(shapely.to_geojson(g))) for g in zones_geometry]
