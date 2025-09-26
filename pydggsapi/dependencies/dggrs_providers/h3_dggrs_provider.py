@@ -72,8 +72,8 @@ class H3Provider(AbstractDGGRSProvider):
                 zoneslevel.append(h3.get_resolution(c))
             return zoneslevel
         except Exception as e:
-            logger.error(f'{__name__} zone id {cellIds} dggrid get zone level failed: {e}')
-            raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed: {e}')
+            logger.error(f'{__name__} zone id {cellIds} failed: {e}')
+            raise Exception(f'{__name__} zone id {cellIds} failed: {e}')
 
     def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int],
                                 geometry: str) -> DGGRSProviderGetRelativeZoneLevelsReturn:
@@ -97,12 +97,12 @@ class H3Provider(AbstractDGGRSProvider):
                   returngeometry: str, compact=True) -> DGGRSProviderZonesListReturn:
         if (bbox is not None):
             try:
-                zoneIds = h3.h3shape_to_cells(h3.geo_to_h3shape(bbox), zone_level)
+                zoneIds = h3.h3shape_to_cells_experimental(h3.geo_to_h3shape(bbox), zone_level, contain='overlap')
                 geometry = [self._cell_to_shapely(z, returngeometry) for z in zoneIds]
                 hex_gdf = gpd.GeoDataFrame({'zoneIds': zoneIds}, geometry=geometry, crs='wgs84').set_index('zoneIds')
             except Exception as e:
-                logger.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
-                raise Exception(f"{__name__} query zones list, bbox: {bbox} dggrid convert failed {e}")
+                logger.error(f'{__name__} query zones list, bbox: {bbox} failed :{e}')
+                raise Exception(f"{__name__} query zones list, bbox: {bbox} failed {e}")
             logger.info(f'{__name__} query zones list, number of hexagons: {len(hex_gdf)}')
         if (parent_zone is not None):
             try:

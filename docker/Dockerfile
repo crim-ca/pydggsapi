@@ -3,7 +3,7 @@ LABEL description.short="DGGS API"
 LABEL description.long="OGC API for DGGS (Discretized Global Grid System) data management and processing."
 LABEL maintainer="Francis Charette-Migneault <francis.charette-migneault@crim.ca>"
 LABEL vendor="CRIM"
-LABEL version="0.1.3"
+LABEL version="0.1.4"
 
 ARG DGGRID_VERSION=8.41
 
@@ -59,6 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 #   minimal TinyDB definition is not useful and MUST be overriden by volume mount of custom config
 #   only provided to have the minimal application setup to start the API and obtain relevant error messages
 RUN mkdir -p ${APP_CONFIG_DIR}
+
 COPY dggs_api_config_example.json ${APP_CONFIG_DIR}/pydggsapi-config.json
 ENV dggs_api_config=${APP_CONFIG_DIR}/pydggsapi-config.json
 ENV DGGRID_PATH=/usr/local/bin/dggrid
@@ -67,6 +68,8 @@ ENV DGGRID_PATH=/usr/local/bin/dggrid
 COPY README.md ${APP_DIR}/
 COPY pydggsapi/ ${APP_DIR}/pydggsapi/
 
+COPY LICENSE .
+
 # install package (only) incrementally
 RUN poetry install --only-root
 
@@ -74,9 +77,9 @@ RUN poetry install --only-root
 CMD [ \
     "sh", "-c", \
     "uvicorn pydggsapi.api:app \
-        --host ${PYDGGDSAPI_HOST:-0.0.0.0} \
-        --port ${PYDGGDSAPI_PORT:-8000} \
-        --workers ${PYDGGDSAPI_WORKERS:-8} \
-        --log-level ${PYDGGDSAPI_LOG_LEVEL:-info} \
+        --host ${PYDGGSAPI_HOST:-0.0.0.0} \
+        --port ${PYDGGSAPI_PORT:-8000} \
+        --workers ${PYDGGSAPI_WORKERS:-8} \
+        --log-level ${PYDGGSAPI_LOG_LEVEL:-info} \
     " \
 ]
