@@ -21,35 +21,35 @@ def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool=False) -> GeoJSO
     if (crs is None) or crs == CRS(ogc, 84) or crs == CRS(epsg, 4326):
         if centroids:
             centroid = dggrs.getZoneWGS84Centroid(zone)
-            return GeoJSONPoint(type="Point", coordinates=(float(centroid.lon), float(centroid.lat)))
+            return GeoJSONPoint(type="Point", coordinates=(centroid.lon.value, centroid.lat.value))
         else:
             vertices = dggrs.getZoneRefinedWGS84Vertices(zone, 0)
             coordinates = []
             if vertices:
                 for i in range(vertices.count):
-                    coordinates.append([(float(vertices[i].lon), float(vertices[i].lat))])
+                    coordinates.append([(vertices[i].lon, vertices[i].lat)])
                 return GeoJSONPolygon(type="Polygon", coordinates=coordinates)
             return None
 
     else:
         if centroids:
             centroid = dggrs.getZoneCRSCentroid(zone, crs)
-            return GeoJSONPoint(type=Point, coordinates=(float(centroid.lon), float(centroid.lat)))
+            return GeoJSONPoint(type=Point, coordinates=(centroid.lon.value, centroid.lat.value))
         else:
             vertices = dggrs.getZoneRefinedCRSVertices(zone, crs, 0)
             coordinates = []
             if vertices:
                 for i in range(vertices.count):
-                    coordinates.append([(float(vertices[i].x), float(vertices[i].y))])
+                    coordinates.append([(vertices[i].x.value, vertices[i].y.value)])
                 return GeoJSONPolygon(type="Polygon", coordinates=coordinates)
             return None
 
 
 def generateZoneExtent(dggrs, zoneId):
     geoextent = GeoExtent()
-    geoextent = dggrs.getZoneWGS84Extent(zoneId, geoextent)
+    dggrs.getZoneWGS84Extent(zoneId, geoextent)
     minx, miny, maxx, maxy = geoextent.ll.lon.value, geoextent.ll.lat.value, geoextent.ur.lon.value, geoextent.ur.lat.value
-    extent = shapely.Geometry(((minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)))
+    extent = shapely.box(minx, miny, maxx, maxy)
     return extent
 
 
@@ -72,7 +72,7 @@ class DGGALProvider(AbstractDGGRSProvider):
 
     def get_cells_zone_level(self, cellIds: List[str]):
         cellId = self.mygrid.getZoneFromTextID(cellIds[0])
-        return self.mygrid.getZoneLevel(cellId)
+        return [self.mygrid.getZoneLevel(cellId)]
 
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
         children = {}
@@ -90,8 +90,8 @@ class DGGALProvider(AbstractDGGRSProvider):
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
     def zonesinfo(self, cellIds: List[str]):
+        zone_level = self.get_cells_zone_level(cellIds)[0]
         cellIds = [self.mygrid.getZoneFromTextID(cellId) for cellId in cellIds]
-        zone_level = self.get_cells_zone_level([cellIds[0]])
         try:
             centroids = [generateZoneGeometry(self.mygrid, cellId, None, True)
                          for cellId in cellIds]
@@ -100,7 +100,7 @@ class DGGALProvider(AbstractDGGRSProvider):
                             for cellId in cellIds]
             #hex_vertices = [GeoJSONPolygon(**eval(shapely.to_geojson(g))) for g in hex_vertices]
             extents = [generateZoneExtent(self.mygrid, cellId) for cellId in cellIds]
-            extents = [GeoJSONPolygon(**eval(shapely.to_geojson(b))) for b in extents]
+            extents = [b.bounds for b in extents]
         except Exception as e:
             logger.error(f'{__name__} zone id {cellIds} convert failed, {e}')
             raise Exception(f'{__name__} zone id {cellIds} convert failed, {e}')
