@@ -5,7 +5,11 @@ from typing import Annotated, List, Optional, Union, Tuple
 from fastapi import Depends
 from fastapi.exceptions import HTTPException
 
+from pygeofilter.parsers.cql_json import parse as cql_json_parser
+from pygeofilter.parsers.ecql import parse as cql_text_parser
 from pydantic import BaseModel, conint, model_validator
+
+import json
 
 zone_query_support_returntype = ['application/json', 'application/geo+json']
 zone_query_support_geometry = ['zone-centroid', 'zone-region']
@@ -30,6 +34,7 @@ class ZonesRequest(DggrsDescriptionRequest):
         Depends(bbox_converter)
     ] = None
     geometry: Optional[str] = None
+    filter_: Optional[str] = None
 
     @model_validator(mode="after")
     def validation(self):
@@ -41,6 +46,17 @@ class ZonesRequest(DggrsDescriptionRequest):
         if (self.geometry is not None):
             if (self.geometry not in zone_query_support_geometry):
                 raise HTTPException(status_code=400, detail=f"{self.geometry} is not supported")
+        if (self.filter_ is not None):
+            parser = cql_text_parser
+            try:
+                self.filter_ = json.loads(self.filter_)
+                parser = cql_json_parser
+            except ValueError:
+                pass  # then it is a cql-text (or not)
+            try:
+                self.filter_ = parser(self.filter_)
+            except Exception as er:
+                raise HTTPException(status_code=400, detail=f"{self.filter_} is not a valid CQL-text or CQL-json :{er}")
         return self
 
 
