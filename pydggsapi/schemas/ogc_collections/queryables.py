@@ -4,35 +4,9 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
-
-
-class Id(BaseModel):
-    description: str
-    type: str
-
-
-class Title(BaseModel):
-    description: str
-    type: str
-
-
-class Description(BaseModel):
-    description: str
-    type: str
-
-
-class Language(BaseModel):
-    description: str
-    type: str
-
-
-class Type(BaseModel):
-    description: str
-    type: str
-    enum: List[str]
 
 
 class SpatialTypes(BaseModel):
@@ -47,38 +21,22 @@ class TemporalTypes(BaseModel):
     enum: List[str]
 
 
-class Links(BaseModel):
-    description: str
-    type: str
-
-
-class Properties1(BaseModel):
-    id: Id
-    title: Title
-    description: Description
-    language: Language
-    type: Type
-    spatial_types: SpatialTypes = Field(..., alias='spatial-types')
-    temporal_types: TemporalTypes = Field(..., alias='temporal-types')
-    links: Links
-
-
-class Items(BaseModel):
-    type: str
-    required: List[str]
-    properties: Properties1
-
-
-class Queryables(BaseModel):
-    type: str
-    items: Items
-
-
 class Properties(BaseModel):
-    queryables: Queryables
-
-
-class Model(BaseModel):
+    id: str
+    title: Optional[str]=""
+    description: Optional[str]=""
+    language: Optional[str]=""
     type: str
-    required: List[str]
-    properties: Properties
+    # spatial_types: SpatialTypes = Field(..., alias='spatial-types')
+    # temporal_types: TemporalTypes = Field(..., alias='temporal-types')
+    links: Optional[str]=""
+
+
+class CollectionQueryables(BaseModel):
+    queryables: List[Properties]
+
+
+# class Model(BaseModel):
+#    type: str
+#    required: List[str]
+#    properties: Properties

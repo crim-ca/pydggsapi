@@ -15,6 +15,8 @@ from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ApiCollections, ApiCo
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.ogc_collections.collections import Collections as ogc_Collections
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
+from pydggsapi.schemas.ogc_collections.queryables import CollectionQueryables
+from pydggsapi.schemas.ogc_collections.queryables import Properties as QueryablesProperties
 
 
 from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_definition, query_zone_info, landingpage
@@ -249,6 +251,24 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
         return new_collection
     else:
         raise HTTPException(status_code=404, detail=f'{__name__} {collectionId} not found')
+
+
+@router.get("/collections/{collectionId}/queryables", tags=['ogc-dggs-api'])
+async def get_collection_queryables(req: Request, collection: Dict[str, Collection] = Depends(_get_collection),
+                                    response_model=CollectionQueryables):
+    _, collection = collection.popitem()
+    if (collection is None):
+        # Error, should not be None, it should be handled by _get_collection
+        raise HTTPException(status_code=404, detail=f'{__name__} collection is None')
+
+    collection_provider = _get_collection_provider(collection.collection_provider.providerId)
+    _, collection_provider = collection_provider.popitem()
+    if (collection_provider is None):
+        # Error, should not be None, it should be handled by _get_collection_provider
+        raise HTTPException(status_code=404, detail=f'{__name__} {collection.collection_provider.providerId} not found')
+    fields = collection_provider.get_datadictionary(**collection.collection_provider.getdata_params).data
+    items = [QueryablesProperties(id=k, type=v) for k, v in fields.items()]
+    return CollectionQueryables(queryables=items)
 
 
 @router.get("/conformance", tags=['ogc-dggs-api'])

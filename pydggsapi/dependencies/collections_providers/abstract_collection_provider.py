@@ -17,7 +17,7 @@ class AbstractCollectionProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_datadictionary() -> CollectionProviderGetDataReturn:
+    def get_datadictionary() -> CollectionProviderGetDataDictReturn:
         raise NotImplementedError
 
 
