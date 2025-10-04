@@ -1,6 +1,7 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 
+from pygeofilter.ast import AstType
 from dataclasses import dataclass, field
 import duckdb
 from typing import List, Dict
@@ -15,7 +16,7 @@ class parquet_source():
     filepath: str
     id_col: str
     conn: duckdb.DuckDBPyConnection
-    data_cols: List[str] = field(default_factory=["*"])
+    data_cols: List[str] = field(default_factory=lambda:["*"])
     exclude_data_cols: List[str] = field(default_factory=list)
 
 
@@ -35,7 +36,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             v["conn"] = db
             self.datasources[k] = parquet_source(**v)
 
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str) -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, datasource_id: str, cql_filter: AstType = None) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]

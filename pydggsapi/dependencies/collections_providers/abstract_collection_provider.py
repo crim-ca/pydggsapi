@@ -2,6 +2,7 @@ from pydggsapi.schemas.api.collection_providers import CollectionProviderGetData
 
 from abc import ABC, abstractmethod
 from typing import List, Any, Union, Dict
+from pygeofilter.ast import AstType
 
 
 class AbstractCollectionProvider(ABC):
@@ -13,7 +14,7 @@ class AbstractCollectionProvider(ABC):
     # 5. data is the data :P
     # 6. In case of exception, return a empty CollectionProviderGetDataReturn, ie. all with []
     @abstractmethod
-    def get_data(self, zoneIds: List[str], res: int) -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, cql_filter: AstType) -> CollectionProviderGetDataReturn:
         raise NotImplementedError
 
     @abstractmethod

@@ -1,6 +1,7 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 
+from pygeofilter.ast import AstType
 from clickhouse_driver import Client
 from typing import List
 import numpy as np
@@ -34,7 +35,7 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} class initial failed: {e}')
             raise Exception(f'{__name__} class initial failed: {e}')
 
-    def get_data(self, zoneIds: List[str], res: int, table, zoneId_cols, data_cols, aggregation: str = 'mode') -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, table, zoneId_cols, data_cols, aggregation: str = 'mode', cql_filter: AstType = None) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             res_col = zoneId_cols[str(res)]

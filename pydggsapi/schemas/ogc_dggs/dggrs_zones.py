@@ -34,7 +34,7 @@ class ZonesRequest(DggrsDescriptionRequest):
         Depends(bbox_converter)
     ] = None
     geometry: Optional[str] = None
-    filter_: Optional[str] = None
+    filter: Optional[str] = None
 
     @model_validator(mode="after")
     def validation(self):
@@ -46,17 +46,17 @@ class ZonesRequest(DggrsDescriptionRequest):
         if (self.geometry is not None):
             if (self.geometry not in zone_query_support_geometry):
                 raise HTTPException(status_code=400, detail=f"{self.geometry} is not supported")
-        if (self.filter_ is not None):
+        if (self.filter is not None):
             parser = cql_text_parser
             try:
-                self.filter_ = json.loads(self.filter_)
+                self.filter = json.loads(self.filter)
                 parser = cql_json_parser
             except ValueError:
                 pass  # then it is a cql-text (or not)
             try:
-                self.filter_ = parser(self.filter_)
+                self.filter = parser(self.filter)
             except Exception as er:
-                raise HTTPException(status_code=400, detail=f"{self.filter_} is not a valid CQL-text or CQL-json :{er}")
+                raise HTTPException(status_code=400, detail=f"{self.filter} is not a valid CQL-text or CQL-json :{er}")
         return self
 
 

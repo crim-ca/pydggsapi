@@ -357,6 +357,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
     bbox = zonesReq.bbox
+    filter = zonesReq.filter
     # Parameters checking
     if (parent_zone is not None):
         parent_level = dggrs_provider.get_cells_zone_level([parent_zone])[0]
@@ -385,7 +386,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             raise HTTPException(status_code=400, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
     try:
         result = query_zones_list(bbox, zone_level, limit, dggrs_description, dggrs_provider, collection, collection_provider,
-                                  compact_zone, zonesReq.parent_zone, returntype, returngeometry)
+                                  compact_zone, zonesReq.parent_zone, returntype, returngeometry, filter)
         if (result is None):
             return Response(status_code=204)
         return result
