@@ -129,7 +129,10 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
         return FileResponse(tmpfile[1], headers={'content-type': 'application/zarr+zip'})
     if (returntype == 'application/geo+json'):
         return ZonesDataGeoJson(**{'type': 'FeatureCollection', 'features': features})
-    link = [k.href for k in dggrs_description.links if (k.rel == 'ogc-rel:dggrs-definition')][0]
+    link = [
+        k.href for k in dggrs_description.links
+        if k.rel in ('[ogc-rel:dggrs-definition]', 'https://www.opengis.net/def/rel/ogc/1.0/dggrs-definition')
+    ][0]
     return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': zone_levels if (exclude is False) else zone_levels[1:],
                'properties': properties, 'values': values}
     return ZonesDataDggsJsonResponse(**return_)
