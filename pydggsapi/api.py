@@ -70,7 +70,7 @@ def my_schema():
     openapi_schema = get_openapi(
         title="pydggsapi: A python FastAPI OGC DGGS API implementation",
         version="0.1.4",
-        routes=app.routes
+        routes=app.routes,
         servers=[{"url": root_path}] if root_path else None,
     )
 
