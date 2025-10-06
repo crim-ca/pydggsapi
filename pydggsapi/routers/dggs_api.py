@@ -192,7 +192,7 @@ async def list_collections(req: Request, response_model=ApiCollections):
                 ),
                 Link(
                     href=f"{req.url}/{collectionId}/dggs",
-                    rel="dggs",
+                    rel="[ogc-rel:dggrs-list]",
                     type="application/json",
                     title="DGGS list"
                 )
@@ -233,7 +233,7 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
             ),
             Link(
                 href=f"{req.url}/dggs",
-                rel="dggs",
+                rel="[ogc-rel:dggrs-list]",
                 type="application/json",
                 title="DGGS list"
             )
