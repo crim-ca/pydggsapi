@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional, Union, List, Literal, Callable
+from typing import Any, Dict, Optional, Union, List
 from pydantic import AnyUrl, BaseModel, Field, RootModel
 
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
