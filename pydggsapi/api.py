@@ -11,6 +11,9 @@ from pydggsapi.routers import tiles_api
 import os
 import json
 import logging
+import importlib.metadata
+
+version = importlib.metadata.version('pydggsapi')
 
 logger = logging.getLogger()
 load_dotenv()
@@ -30,7 +33,7 @@ swagger_ui_oauth2_redirect_url = os.environ.get("SWAGGER_UI_OAUTH2_REDIRECT_URL"
 app = FastAPI(
     title=api_title,
     description=api_description,
-    version="0.1.3",
+    version=version,
     root_path=root_path,
     openapi_url=openapi_url,
     docs_url=docs_url,

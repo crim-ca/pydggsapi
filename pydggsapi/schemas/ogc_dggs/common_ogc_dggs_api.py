@@ -93,6 +93,7 @@ class LinkTemplate(BaseModel):
 
 class LandingPageResponse(BaseModel):
     title: str
+    version: str
     description: str
     links: List[Link]
 
