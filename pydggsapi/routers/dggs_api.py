@@ -284,7 +284,8 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
         collection = collection[dggrs_req.collectionId]
         dggrs_description.maxRefinementLevel = collection.collection_provider.maxzonelevel
         # update the maxRefinementLevel if it is belongs to dggrs conversion
-        if (dggrs_req.dggrsId != collection.collection_provider.dggrsId):
+        if (dggrs_req.dggrsId != collection.collection_provider.dggrsId
+                and dggrs_req.dggrsId in dggrs_provider.dggrs_conversion.keys()):
             dggrs_description.maxRefinementLevel += dggrs_provider.dggrs_conversion[collection.collection_provider.dggrsId].zonelevel_offset
     return query_dggrs_definition(current_url, dggrs_description)
 
@@ -333,7 +334,8 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
     for k, v in collection.items():
         max_ = v.collection_provider.maxzonelevel
         # if the dggrsId is not the primary dggrs supported by the collection.
-        if (zonesReq.dggrsId != v.collection_provider.dggrsId):
+        if (zonesReq.dggrsId != v.collection_provider.dggrsId
+                and zonesReq.dggrsId in dggrs_provider.dggrs_conversion.keys()):
             max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         if (zone_level > max_):
             logger.error(f'{__name__} query zones list, zone level {zone_level} > {max_}')
@@ -391,7 +393,8 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     for k, v in collection.items():
         max_ = v.collection_provider.maxzonelevel
         # if the dggrsId is not the primary dggrs supported by the collection.
-        if (zonedataReq.dggrsId != v.collection_provider.dggrsId):
+        if (zonedataReq.dggrsId != v.collection_provider.dggrsId
+                and zonedataReq.dggrsId in dggrs_provider.dggrs_conversion.keys()):
             max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         for z in zone_level:
             if (z > max_):
