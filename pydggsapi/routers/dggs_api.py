@@ -11,7 +11,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest,
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, ZonesDataGeoJson, support_returntype
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ApiCollections, ApiCollection, Link
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ApiCollections, ApiCollection, LandingPageResponse, Link
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.ogc_collections.collections import Collections as ogc_Collections
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
@@ -154,9 +154,15 @@ for providerId, providerConfig in collection_providers.items():
 
 
 # Landing page and conformance
-@router.get("/", tags=['ogc-dggs-api'])
+@router.get(
+    "/",
+    tags=['ogc-dggs-api'],
+    response_model=LandingPageResponse,
+    response_model_exclude_unset=True,
+    response_model_exclude_none=True,
+)
 async def landing_page(req: Request):
-    return landingpage(req.url)
+    return landingpage(req.url, req.app)
 
 
 @router.get("/collections", tags=['ogc-dggs-api'])
@@ -186,7 +192,7 @@ async def list_collections(req: Request, response_model=ApiCollections):
                 ),
                 Link(
                     href=f"{req.url}/{collectionId}/dggs",
-                    rel="dggs",
+                    rel="[ogc-rel:dggrs-list]",
                     type="application/json",
                     title="DGGS list"
                 )
@@ -227,7 +233,7 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
             ),
             Link(
                 href=f"{req.url}/dggs",
-                rel="dggs",
+                rel="[ogc-rel:dggrs-list]",
                 type="application/json",
                 title="DGGS list"
             )

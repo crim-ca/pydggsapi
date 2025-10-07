@@ -40,7 +40,7 @@ def test_core_dggs_zoneinfo():
     assert "not supported" in response.text
     assert response.status_code == 400
 
-    os.environ['dggs_api_config'] = './dggs_api_config_testing.json'
+    os.environ['dggs_api_config'] = './dggs_api_config.json'
     app = reload(pydggsapi.api).app
     client = TestClient(app)
     print(f"Success test case with dggs zone info (igeo7 {cellids[0]})")
