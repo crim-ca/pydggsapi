@@ -54,6 +54,11 @@ def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription])
         Link(href=base_url, rel='self', title='Current page'),
         Link(href=dggs_url, rel='[ogc-rel:dggrs-list]', title='DGGS API landing page'),
     ]
+    if '/collections/' in base_url:
+        col_url = base_url.rsplit('/', 1)[0]
+        links.append(
+            Link(href=col_url, rel='[ogc-rel:geodata]', title='DGGS Collection details')
+        )
     return DggrsListResponse(links=links, dggrs=support_dggrs)
 
 
