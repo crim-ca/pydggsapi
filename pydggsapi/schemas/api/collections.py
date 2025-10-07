@@ -1,7 +1,6 @@
-from __future__ import annotations
-from pydantic import BaseModel, model_validator
-from typing import List, Dict, Any
-from fastapi.exceptions import HTTPException
+from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
+from pydantic import BaseModel
+from typing import Dict, Any
 
 
 class Provider(BaseModel):
@@ -11,15 +10,5 @@ class Provider(BaseModel):
     getdata_params: Dict[str, Any]
 
 
-class Collection(BaseModel):
-    collectionid: str
-    title: str | None
-    description: str | None
+class Collection(CollectionDesc):
     collection_provider: Provider
-    bounds: List[float] = []
-
-    @model_validator(mode="after")
-    def validation(self):
-        if (len(self.bounds) != 4 and len(self.bounds) != 0):
-            raise HTTPException(status_code=400, detail='The length of collection bounds is not equal to 4.')
-        return self

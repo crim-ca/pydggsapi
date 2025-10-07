@@ -109,7 +109,7 @@ async def get_tiles_json(req: Request, collectionId: str):
     urls += [baseurl + '/{z}/{x}/{y}?'+ f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
 
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
-                 'bounds': collection_info.bounds, 'description': collection_info.description, 'name': collectionId})
+                        'bounds': collection_info.extent.spatial.bbox, 'description': collection_info.description, 'name': collectionId})
 
 
 

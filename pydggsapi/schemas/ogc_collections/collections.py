@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
+from pydggsapi.schemas.ogc_collections.extent import Spatial, Temporal
 
 from datetime import datetime
 from enum import Enum
@@ -27,10 +28,6 @@ class Extent(BaseModel):
     )
 
 
-class ExtentUad(Extent):
-    pass
-
-
 class CollectionDesc(BaseModel):
     id: str = Field(
         ...,
@@ -48,8 +45,8 @@ class CollectionDesc(BaseModel):
         example='A Digital Elevation Model.',
     )
     attribution: Optional[str] = Field(None, title='attribution for the collection')
-    links: List[Link] = Field(
-        ...,
+    links: Optional[List[Link]] = Field(
+        lambda: [],
         example=[
             {
                 'href': 'http://data.example.org/collections/dem?f=json',
@@ -89,9 +86,9 @@ class CollectionDesc(BaseModel):
             },
         ],
     )
-    #extent: Optional[Extent] = None
+    extent: Optional[Extent] = None
     itemType: Optional[str] = Field(
-        'unknown',
+        '',
         description='indicator about the type of the items in the collection if the collection has an accessible /collections/{collectionId}/items endpoint',
     )
     crs: Optional[List[str]] = Field(
