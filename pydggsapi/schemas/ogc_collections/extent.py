@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple
 from pydantic import BaseModel, Field, model_validator, conlist
 from fastapi.exceptions import HTTPException
 
@@ -27,7 +27,10 @@ class Spatial(BaseModel):
 
 
 class Temporal(BaseModel):
-    interval: Optional[conlist(str, min_length=1, max_length=2)] = None
+    interval: Optional[conlist(
+        Tuple[Optional[str], Optional[str]],
+        min_length=1,
+    )] = None
     crs: Optional[List[str]] = Field(
         [''],
         description="""Coordinate reference system of the coordinates in the temporal extent
@@ -39,5 +42,3 @@ class Temporal(BaseModel):
         ],
     )
     grid: Optional[str] = ''
-
-
