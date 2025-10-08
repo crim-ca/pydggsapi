@@ -42,15 +42,24 @@ def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription])
     # DGGRID_ISEA7H_seqnum
     logger.debug(f'{__name__} support dggs')
     support_dggrs = []
+    base_url = str(current_url)
     for k, v in selected_dggrs.items():
         for i, link in enumerate(v.links):
             if link.rel == 'self':
-                v.links[i].href = str(current_url) + f'/{k}'
+                v.links[i].href = f'{base_url}/{k}'
         support_dggrs.append(DggrsItem(id=k, title=v.title, links=v.links))
     logger.debug(f'{__name__} support dggs ({len(support_dggrs)})')
-    landing_page = '/'.join(str(current_url).split('/')[:-1])
-    dggs_landing_page = Link(href=landing_page, rel='[ogc-rel:dggrs-list]', title='DGGS API landing page')
-    return DggrsListResponse(**{'links': [dggs_landing_page], 'dggrs': support_dggrs})
+    dggs_url = urljoin(base_url, './dggs')
+    links = [
+        Link(href=base_url, rel='self', title='Current page'),
+        Link(href=dggs_url, rel='[ogc-rel:dggrs-list]', title='DGGS API landing page'),
+    ]
+    if '/collections/' in base_url:
+        col_url = base_url.rsplit('/', 1)[0]
+        links.append(
+            Link(href=col_url, rel='[ogc-rel:geodata]', title='DGGS Collection details')
+        )
+    return DggrsListResponse(links=links, dggrs=support_dggrs)
 
 
 def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
