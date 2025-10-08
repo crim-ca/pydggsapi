@@ -5,7 +5,7 @@ from fastapi.exceptions import HTTPException
 
 
 class Spatial(BaseModel):
-    bbox: List[float]
+    bbox: List[List[float]]
     storageCrsBbox: Optional[List[float]] = None
     crs: Optional[List[str]] = Field(
         ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
@@ -20,8 +20,9 @@ class Spatial(BaseModel):
     @model_validator(mode="after")
     def validation(self):
         if (len(self.bbox) != 0):
-            if (len(self.bbox) != 4 and len(self.bbox) != 6):
-                raise HTTPException(status_code=400, detail='The length of collection bbox is not equal to 4 or 6.')
+            for b in self.bbox:
+                if (len(b) != 4 and len(b) != 6):
+                    raise HTTPException(status_code=400, detail='The length of collection bbox is not equal to 4 or 6.')
         return self
 
 

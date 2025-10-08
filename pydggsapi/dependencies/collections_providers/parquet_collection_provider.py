@@ -41,7 +41,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             datasource = self.datasources[datasource_id]
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found')
-            return result
+            raise Exception(f'{__name__} {datasource_id} not found')
         if ("*" in datasource.data_cols):
             cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
         else:
