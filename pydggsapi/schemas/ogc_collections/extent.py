@@ -7,10 +7,10 @@ from fastapi.exceptions import HTTPException
 class Spatial(BaseModel):
     bbox: List[List[float]]
     storageCrsBbox: Optional[List[float]] = None
-    crs: Optional[List[str]] = Field(
-        ['http://www.opengis.net/def/crs/OGC/1.3/CRS84'],
+    crs: Optional[str] = Field(
+        'http://www.opengis.net/def/crs/OGC/1.3/CRS84',
         description='the list of coordinate reference systems supported by the API; the first item is the default coordinate reference system',
-        example=[
+        examples=[
             'http://www.opengis.net/def/crs/OGC/1.3/CRS84',
             'http://www.opengis.net/def/crs/EPSG/0/4326',
         ],
@@ -31,13 +31,13 @@ class Temporal(BaseModel):
         Tuple[Optional[str], Optional[str]],
         min_length=1,
     )] = None
-    crs: Optional[List[str]] = Field(
-        [''],
+    trs: Optional[str] = Field(
+        'http://www.opengis.net/def/uom/ISO-8601/0/Gregorian',
         description="""Coordinate reference system of the coordinates in the temporal extent
                          (property interval). The default reference system is the Gregorian calendar.
                          For data for which the Gregorian calendar is not suitable, such as geological time scale,
                          another temporal reference system may be used""",
-        example=[
+        examples=[
             'http://www.opengis.net/def/uom/ISO-8601/0/Gregorian'
         ],
     )
