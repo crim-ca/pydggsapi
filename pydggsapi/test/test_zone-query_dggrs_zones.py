@@ -61,13 +61,13 @@ def test_zone_query_dggrs_zones():
     print("Fail test case with dggs zone query (igeo7 , no params)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones')
     pprint(response.json())
-    assert "Either bbox or parnet must be set" in response.text
+    assert "Either bbox or parent-zone must be set" in response.text
     assert response.status_code == 400
 
     print("Fail test case with dggs zone query (igeo7 , bbox with len!=4)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": "2,3,4"})
     pprint(response.json())
-    assert "bbox lenght is not equal to 4" in response.text
+    assert "bbox length is not equal to 4" in response.text
     assert response.status_code == 400
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, compact=False)")
