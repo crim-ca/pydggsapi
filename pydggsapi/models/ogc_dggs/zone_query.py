@@ -22,12 +22,12 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
     converted_level = zone_level
     filter_ = 0
     for k, v in collection.items():
-        if (v.collection_provider.dggrsId != dggrs_info.id):
+        if (v.collection_provider.dggrsId != dggrs_info.id and
+                v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             converted = dggrs_provider.convert(result.zones, v.collection_provider.dggrsId)
             converted_zones = converted.target_zoneIds
             converted_level = converted.target_res[0]
-        params = v.collection_provider.getdata_params
-        data = collection_provider[v.collection_provider.providerId].get_data(converted_zones, converted_level, **params)
+        data = collection_provider[v.collection_provider.providerId].get_data(converted_zones, converted_level, v.collection_provider.datasource_id)
         filter_ += len(data.zoneIds)
     if (filter_ == 0):
         return None

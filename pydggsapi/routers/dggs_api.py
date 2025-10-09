@@ -64,10 +64,9 @@ def _import_dggrs_class(dggrsId):
 def _import_collection_provider(providerConfig: dict):
     try:
         classname = providerConfig.classname
-        params = providerConfig.initial_params
         module, classname = classname.split('.') if (len(classname.split('.')) == 2) else (classname, classname)
         cls_ = getattr(importlib.import_module(f'pydggsapi.dependencies.collections_providers.{module}'), classname)
-        return cls_(params)
+        return cls_(providerConfig.datasources)
     except Exception as e:
         logger.error(f'{__name__} {providerConfig.classname} import failed, {e}')
         raise Exception(f'{__name__} {providerConfig.classname} import failed, {e}')
@@ -115,7 +114,7 @@ def _get_collection(collectionId=None, dggrsId=None):
     if (dggrsId is not None):
         _get_dggrs_description(dggrsId)
         if (collection_dggrs != dggrsId):
-            if (collection_dggrs not in dggrs_providers[dggrsId].dggrs_conversion.keys()):
+            if (collection_dggrs not in dggrs_providers[dggrsId].dggrs_conversion):
                 raise HTTPException(status_code=400, detail=f"{__name__} _get_collection failed: collection don't support {dggrsId}.")
     return c
 
@@ -335,7 +334,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
         max_ = v.collection_provider.maxzonelevel
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonesReq.dggrsId != v.collection_provider.dggrsId
-                and zonesReq.dggrsId in dggrs_provider.dggrs_conversion.keys()):
+                and zonesReq.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         if (zone_level > max_):
             logger.error(f'{__name__} query zones list, zone level {zone_level} > {max_}')
@@ -394,7 +393,7 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
         max_ = v.collection_provider.maxzonelevel
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonedataReq.dggrsId != v.collection_provider.dggrsId
-                and zonedataReq.dggrsId in dggrs_provider.dggrs_conversion.keys()):
+                and zonedataReq.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         for z in zone_level:
             if (z > max_):
@@ -409,4 +408,4 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
         return result
     except Exception as e:
         logger.error(f'{__name__} data_retrieval failed: {e}')
-        raise HTTPException(status_code=400, detail=f'{__name__} data_retrieval failed: {e}')
+        raise HTTPException(status_code=500, detail=f'{__name__} data_retrieval failed: {e}')

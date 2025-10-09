@@ -40,8 +40,9 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
     for cid, c in collection.items():
         convert = False
         cp = collection_provider[c.collection_provider.providerId]
-        getdata_params = c.collection_provider.getdata_params
-        if (c.collection_provider.dggrsId != dggrs_description.id):
+        datasource_id = c.collection_provider.datasource_id
+        if (c.collection_provider.dggrsId != dggrs_description.id and
+                c.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             convert = True
         for z, v in result.relative_zonelevels.items():
             g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
@@ -55,7 +56,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             else:
                 master = gpd.GeoDataFrame(v.zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
             idx = master.index.values.tolist()
-            collection_result = cp.get_data(idx, z, **getdata_params)
+            collection_result = cp.get_data(idx, z, datasource_id)
             if (len(collection_result.zoneIds) > 0):
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}
                 data_type.update(cols_name)

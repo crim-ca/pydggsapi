@@ -40,7 +40,6 @@ transformer = pyproj.Transformer.from_crs(crs_from=SRID_LNGLAT, crs_to=SRID_SPHE
 
 
 @router.get("/{collectionId}/{z}/{x}/{y}", tags=['tiles-api'])
-#@router.get("/{collectionId}/{dggrsId}/{z}/{x}/{y}", tags=['tiles-api'])
 async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                           mercator=Depends(Mercator)):
     logger.debug(f'{__name__} tiles info: {tilesreq.collectionId} {tilesreq.dggrsId} {tilesreq.z} {tilesreq.x} {tilesreq.y}')
@@ -83,7 +82,6 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
         tasks.append(dggrs_zones_data(req, zonedatareq,  _get_dggrs_description(tilesreq.dggrsId),
                      dggrs, collection_info, collection_provider))
     tasks = loop.run_until_complete(asyncio.gather(*tasks))
-    #loop.close()
     features = [{'geometry': shapely.from_geojson(json.dumps(i.geometry.__dict__)), 'properties': i.properties}
                 for t in tasks if (type(t) is not Response) for i in t.features]
     content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": features},
@@ -103,10 +101,10 @@ async def get_tiles_json(req: Request, collectionId: str):
         if (default_dggrsId in list(dggrs_provider.dggrs_conversion.keys())):
             conversion_dggrsId.append(id_)
     collection_provider = _get_collection_provider(collection_providerId)[collection_providerId]
-    fields = collection_provider.get_datadictionary(**collection_info.collection_provider.getdata_params).data
-    baseurl = str(req.url).replace('.json','')
+    fields = collection_provider.get_datadictionary(**collection_info.collection_provider.datasource_id).data
+    baseurl = str(req.url).replace('.json', '')
     urls = [baseurl + '/{z}/{x}/{y}']
-    urls += [baseurl + '/{z}/{x}/{y}?'+ f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
+    urls += [baseurl + '/{z}/{x}/{y}?' + f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
 
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
                         'bounds': collection_info.extent.spatial.bbox, 'description': collection_info.description, 'name': collectionId})
