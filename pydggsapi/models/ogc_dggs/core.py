@@ -35,7 +35,7 @@ def landingpage(current_url: URL, app: FastAPI) -> LandingPageResponse:
     if service_meta_url:
         service_meta_link = Link(href=service_meta_url, rel='service-meta', type='application/json', title='API metadata')
         links.append(service_meta_link)
-    return LandingPageResponse(title=app.title, description=app.description, links=links)
+    return LandingPageResponse(title=app.title, version=app.version, description=app.description, links=links)
 
 
 def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription]):
