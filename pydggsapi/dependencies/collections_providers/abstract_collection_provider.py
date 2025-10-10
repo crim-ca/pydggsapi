@@ -9,7 +9,6 @@ from typing import List, Union, Dict, Optional
 
 @dataclass
 class AbstractDatasourceInfo(ABC):
-    min_refinement_level: int
     data_cols: List[str] = field(default_factory=lambda: ["*"])
     exclude_data_cols: List[str] = field(default_factory=list)
     zone_groups: Optional[Dict[str, str]] = field(default_factory=dict)

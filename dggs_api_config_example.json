@@ -8,7 +8,8 @@
         "collection_provider": {
           "providerId": "clickhouse",
           "dggrsId": "igeo7",
-          "maxzonelevel": 9,
+          "min_refinement_level": 5,
+          "max_refinement_level": 9,
 		  "datasource_id": "hytruck_clickhousre"
         }
       }
@@ -20,7 +21,8 @@
         "collection_provider": {
           "providerId": "zarr",
           "dggrsId": "igeo7",
-          "maxzonelevel": 9,
+          "min_refinement_level": 5,
+          "max_refinement_level": 8,
           "datasource_id": "zarr_hytruck"
         }
       }
@@ -32,7 +34,8 @@
         "collection_provider": {
           "providerId": "parquet",
           "dggrsId": "igeo7",
-          "maxzonelevel": 9,
+          "min_refinement_level": 5,
+          "max_refinement_level": 7,
           "datasource_id": "hytruck"
         }
       }
@@ -75,7 +78,6 @@
 			  "database": "DevelopmentTesting"
         	},
 			"hytruck_clickhouse":{
-				"min_refinement_level": 5,
 				"table": "<table name>",
 				"zoneId_cols": {
 				  "9": "column of refinement level 9",
@@ -95,7 +97,6 @@
         "classname": "zarr_collection_provider.ZarrCollectionProvider",
           "datasources": {
             "zarr_hytruck": {
-			  "min_refinement_level": 4,
               "filepath": "./aggregated_tree.zarr",
               "zone_groups": {
                 "4": "res4",
@@ -111,7 +112,6 @@
         "classname": "parquet_collection_provider.ParquetCollectionProvider",
           "datasources": {
             "hytruck": {
-			  "min_refinement_level": 4,
               "filepath": "<local file path or path of a cloud bucket>",
 			  "id_col": "cell_ids",
 			  "data_cols": ["*"]

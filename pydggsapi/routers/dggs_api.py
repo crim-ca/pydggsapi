@@ -257,12 +257,12 @@ async def support_dggs(req: Request, collectionId: Optional[str] = None,
             collection = collection[collectionId]
             dggrsId = collection.collection_provider.dggrsId
             selected_dggrs = {dggrsId: selected_dggrs[dggrsId]}
-            selected_dggrs[dggrsId].maxRefinementLevel = collection.collection_provider.maxzonelevel
+            selected_dggrs[dggrsId].maxRefinementLevel = collection.collection_provider.max_refinement_level
             # find other dggrs provider support for conversion
             for k, v in dggrs_providers.items():
                 if (dggrsId in v.dggrs_conversion.keys()):
                     selected_dggrs[k] = dggrs[k]
-                    selected_dggrs[k].maxRefinementLevel = collection.collection_provider.maxzonelevel - v.dggrs_conversion[dggrsId].zonelevel_offset
+                    selected_dggrs[k].maxRefinementLevel = collection.collection_provider.max_refinement_level - v.dggrs_conversion[dggrsId].zonelevel_offset
         result = query_support_dggs(req.url, selected_dggrs)
     except Exception as e:
         logger.error(f'{__name__} dggrs-list failed: {e}')
@@ -281,7 +281,7 @@ async def dggrs_description(req: Request, dggrs_req: DggrsDescriptionRequest = D
     current_url = str(req.url)
     if (dggrs_req.collectionId is not None):
         collection = collection[dggrs_req.collectionId]
-        dggrs_description.maxRefinementLevel = collection.collection_provider.maxzonelevel
+        dggrs_description.maxRefinementLevel = collection.collection_provider.max_refinement_level
         # update the maxRefinementLevel if it is belongs to dggrs conversion
         if (dggrs_req.dggrsId != collection.collection_provider.dggrsId
                 and dggrs_req.dggrsId in dggrs_provider.dggrs_conversion.keys()):
@@ -299,6 +299,9 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
                           collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)):
     try:
         info = query_zone_info(zoneinfoReq, req.url, dggrs_descrption, dggrs_provider, collection, collection_provider)
+    except ValueError as e:
+        logger.error(f'{__name__} query zone info fail: {e}')
+        raise HTTPException(status_code=400, detail=f'{__name__} query zone info fail: {e}')
     except Exception as e:
         logger.error(f'{__name__} query zone info fail: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone info fail: {e}')
@@ -331,11 +334,11 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             logger.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
             raise HTTPException(status_code=400, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")
     for k, v in collection.items():
-        max_ = v.collection_provider.maxzonelevel
+        max_ = v.collection_provider.max_refinement_level
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonesReq.dggrsId != v.collection_provider.dggrsId
                 and zonesReq.dggrsId in dggrs_provider.dggrs_conversion):
-            max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
+            max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         if (zone_level > max_):
             logger.error(f'{__name__} query zones list, zone level {zone_level} > {max_}')
             raise HTTPException(status_code=400, detail=f"{__name__} query zones list, zone level {zone_level} > {max_}")
@@ -357,6 +360,9 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
         if (result is None):
             return Response(status_code=204)
         return result
+    except ValueError as e:
+        logger.error(f'{__name__} query zones list failed: {e}')
+        raise HTTPException(status_code=400, detail=f'{__name__} query zones list failed: {e}')
     except Exception as e:
         logger.error(f'{__name__} query zones list failed: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zones list failed: {e}')
@@ -390,11 +396,11 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
             depth = list(range(depth[0], depth[1] + 1))
         zone_level = zone_level + [zone_level[0] + d for d in depth if d > 0]
     for k, v in collection.items():
-        max_ = v.collection_provider.maxzonelevel
+        max_ = v.collection_provider.max_refinement_level
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonedataReq.dggrsId != v.collection_provider.dggrsId
                 and zonedataReq.dggrsId in dggrs_provider.dggrs_conversion):
-            max_ = v.collection_provider.maxzonelevel + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
+            max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         for z in zone_level:
             if (z > max_):
                 logger.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
@@ -406,6 +412,9 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
         if (result is None):
             return Response(status_code=204)
         return result
+    except ValueError as e:
+        logger.error(f'{__name__} data_retrieval failed: {e}')
+        raise HTTPException(status_code=400, detail=f'{__name__} data_retrieval failed: {e}')
     except Exception as e:
         logger.error(f'{__name__} data_retrieval failed: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} data_retrieval failed: {e}')

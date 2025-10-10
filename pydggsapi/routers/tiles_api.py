@@ -55,8 +55,8 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
         zone_level += tilesreq.relative_depth
     clip_bound = box(bbox.left, bbox.bottom, bbox.right, bbox.top)
     clip_bound = shapely.total_bounds(transform(project, clip_bound))
-    if zone_level > collection_info[tilesreq.collectionId].collection_provider.maxzonelevel:
-        zone_level = collection_info[tilesreq.collectionId].collection_provider.maxzonelevel
+    if zone_level > collection_info[tilesreq.collectionId].collection_provider.max_refinement_level:
+        zone_level = collection_info[tilesreq.collectionId].collection_provider.max_refinement_level
 
     logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
     zonesReq = ZonesRequest(collectionId=tilesreq.collectionId, dggrsId=tilesreq.dggrsId, zone_level=zone_level,

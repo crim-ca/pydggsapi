@@ -53,7 +53,7 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             res_col = datasource.zone_groups[str(res)]
         except KeyError as e:
             logger.error(f'{__name__} get zone_groups for resolution {res} failed: {e}')
-            raise Exception(f'{__name__} get zone_groups for resolution {res} failed: {e}')
+            raise ValueError(f'{__name__} get zone_groups for resolution {res} failed: {e}')
         if (datasource.aggregation == 'mode'):
             cols = [f'arrayMax(topK(1)({c})) as {c}' for c in datasource.data_cols]
             cols = ",".join(cols)
