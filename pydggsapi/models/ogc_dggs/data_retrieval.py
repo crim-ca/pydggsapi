@@ -18,45 +18,79 @@ import numpy as np
 import zarr
 import geopandas as gpd
 import pandas as pd
+import itertools
 import json
 import logging
 
 logger = logging.getLogger()
 
-def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
+def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[int], dggrs_desc: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: List[AbstractCollectionProvider],
-                    returntype='application/dggs-json', returngeometry='zone-region', exclude=True):
-    logger.debug(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}, zonelevel: {zone_levels}, return: {returntype}, geometry: {returngeometry}')
-    # generate cell ids, geometry for relative_depth
-    result = dggrs_provider.get_relative_zonelevels(zoneId, zone_levels[0], zone_levels[1:], returngeometry)
-    if (exclude is False):
+                    returntype='application/dggs-json', returngeometry='zone-region'):
+    logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}, relative_levels: {relative_levels}, return: {returntype}, geometry: {returngeometry}')
+    # generate cell ids, geometry for relative_depth, if the first element of relative_levels equal to base_level
+    # skip it, add it manually
+    if (base_level == relative_levels[0]):
+        result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels[1:], returngeometry)
         parent = dggrs_provider.zonesinfo([zoneId])
         g = parent.geometry[0] if (returngeometry == 'zone-region') else parent.centroids[0]
-        result.relative_zonelevels[zone_levels[0]] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': [g]})
+        result.relative_zonelevels[base_level] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': [g]})
+    else:
+        result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels, returngeometry)
     # get data and form a master dataframe (seleceted providers) for each zone level
     data = {}
     data_type = {}
     data_col_dims = {}
+    from pydggsapi.routers.dggs_api import dggrs_providers as dggrs_pool
     for cid, c in collection.items():
-        convert = False
+        logger.debug(f"{__name__} handling {cid}")
+        convert = True if (c.collection_provider.dggrsId != dggrs_desc.id and
+                           c.collection_provider.dggrsId in dggrs_provider.dggrs_conversion) else False
         cp = collection_provider[c.collection_provider.providerId]
         datasource_id = c.collection_provider.datasource_id
-        if (c.collection_provider.dggrsId != dggrs_description.id and
-                c.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
-            convert = True
+        cmin_rf = c.collection_provider.min_refinement_level
+        # get data for all relative_levels for the currnet datasource
         for z, v in result.relative_zonelevels.items():
             g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
             org_z = z
             if (convert):
+                # convert the source dggrs ID to the datasource dggrs zoneID
                 converted = dggrs_provider.convert(v.zoneIds, c.collection_provider.dggrsId)
+                if (converted.target_res[0] < cmin_rf):
+                    czone_level = converted.target_res[0]
+                    # we need to use the collection's dggrs provider
+                    cdggrs_provider = dggrs_pool[c.collection_provider.dggrsId]
+                    czone_ids_min_rf = [cdggrs_provider.get_relative_zonelevels(tz, czone_level, [cmin_rf], "zone-centroid").relative_zonelevels[cmin_rf].zoneIds
+                                        for tz in convert.target_zoneIds]
+                    # map the source zone ID to the coarsest level zone ID of the datasource
+                    # the source zone ID need to expand to match with the number of coarsest level zone ID
+                    vid = [[converted.zoneIds[i]] * len(c) for i, c in enumerate(czone_ids_min_rf)]
+                    converted.target_zoneIds = list(itertools.chain.from_iterable(czone_ids_min_rf))
+                    converted.zoneIds = list(itertools.chain.from_iterable(vid))
                 tmp = gpd.GeoDataFrame({'vid': v.zoneIds}, geometry=g).set_index('vid')
+                # Store the mapping in master pd
                 master = pd.DataFrame({'vid': converted.zoneIds, 'zoneId': converted.target_zoneIds}).set_index('vid')
                 master = master.join(tmp).reset_index().set_index('zoneId')
-                z = converted.target_res[0]
+                # reset the current z to the coarsest rf of the datasource to get the data at correct level
+                z = cmin_rf
             else:
-                master = gpd.GeoDataFrame(v.zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
+                cf_zoneIds = v.zoneIds
+                if (z < cmin_rf):
+                    vid = [dggrs_provider.get_relative_zonelevels(vzid, z, [cmin_rf], "zone-centroid").relative_zonelevels[cmin_rf].zoneIds
+                           for vzid in v.zoneIds]
+                    g = [[g[i]] * len(e) for i, e in enumerate(vid)]
+                    orgid = [[v.zoneIds[i]] * len(e) for i, e in enumerate(vid)]
+                    g = list(itertools.chain.from_iterable(g))
+                    cf_zoneIds = list(itertools.chain.from_iterable(vid))
+                    orgid = list(itertools.chain.from_iterable(orgid))
+                    z = cmin_rf
+                    master = gpd.GeoDataFrame({'vid': orgid, 'zoneId': cf_zoneIds}, geometry=g).set_index('zoneId')
+                else:
+                    master = gpd.GeoDataFrame(cf_zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
             idx = master.index.values.tolist()
+            logger.debug(f"{__name__} {cid} get_data")
             collection_result = cp.get_data(idx, z, datasource_id)
+            logger.debug(f"{__name__} {cid} get_data done")
             if (len(collection_result.zoneIds) > 0):
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}
                 data_type.update(cols_name)
@@ -66,7 +100,7 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
                 master = master.join(tmp)
                 pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
                 master = master.astype(pre_numeric_cols).astype(cols_name)
-                if (convert):
+                if ('vid' in master.columns):
                     master.reset_index(inplace=True)
                     tmp_geo = master.groupby('vid')['geometry'].last()
                     master.drop(columns=['zoneId', 'geometry'], inplace=True)
@@ -103,10 +137,11 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
             feature = [Feature(**{'type': "Feature", 'id': id_ + i, 'geometry': geojson(**shapely.geometry.mapping(geometry[i])), 'properties': f}) for i, f in enumerate(feature)]
             features += feature
             id_ += len(d)
-            logger.debug(f'{__name__} query zone data {dggrs_description.id}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
+            logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
         else:
             zoneIds = d.index.values.astype(str).tolist()
             d = d.T
+            d[d.isna()] = float('nan')
             v = d.values
             diff = set(list(d.index)) - set(list(properties.keys()))
             properties.update({c: Property(**{'type': data_type[c]}) for c in diff})
@@ -133,8 +168,8 @@ def query_zone_data(zoneId: str | int, zone_levels: List[int], dggrs_description
         return FileResponse(tmpfile[1], headers={'content-type': 'application/zarr+zip'})
     if (returntype == 'application/geo+json'):
         return ZonesDataGeoJson(**{'type': 'FeatureCollection', 'features': features})
-    link = [k.href for k in dggrs_description.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
-    return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': zone_levels if (exclude is False) else zone_levels[1:],
+    link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
+    return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': relative_levels if (base_level == relative_levels[0]) else relative_levels[1:],
                'properties': properties, 'values': values}
     if data_col_dims:
         return_['dimensions'] = [{'name': dim, **dim_info} for dim, dim_info in data_col_dims.items()]

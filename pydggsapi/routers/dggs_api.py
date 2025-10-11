@@ -379,36 +379,32 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)) -> ZonesDataDggsJsonResponse | FileResponse:
     returntype = _get_return_type(req, support_returntype, 'application/json')
     zoneId = zonedataReq.zoneId
-    depth = zonedataReq.depth
+    depth = zonedataReq.depth if (zonedataReq.depth is not None) else [dggrs_description.defaultDepth]
     returngeometry = zonedataReq.geometry if (zonedataReq.geometry is not None) else 'zone-region'
-    zone_level = []
-    exclude = True if depth is not None else False
     # prepare zone levels from zoneId + depth
     # The first element of zone_level will be the zoneId's level, follow by the required relative depth (zoneId's level + d)
     try:
-        zone_level.append(dggrs_provider.get_cells_zone_level([zoneId])[0])
+        base_level = dggrs_provider.get_cells_zone_level([zoneId])[0]
     except Exception as e:
         logger.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
-    if (depth is not None):
-        if (len(depth) == 2):
-            exclude = False if depth[0] == 0 else exclude
-            depth = list(range(depth[0], depth[1] + 1))
-        zone_level = zone_level + [zone_level[0] + d for d in depth if d > 0]
+    if (len(depth) == 2):
+        depth = list(range(depth[0], depth[1] + 1))
+    relative_levels = [base_level + d for d in depth]
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonedataReq.dggrsId != v.collection_provider.dggrsId
                 and zonedataReq.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
-        for z in zone_level:
+        for z in relative_levels:
             if (z > max_):
                 logger.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
                 raise HTTPException(status_code=400,
                                     detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
     try:
-        result = query_zone_data(zoneId, zone_level, dggrs_description,
-                                 dggrs_provider, collection, collection_providers, returntype, returngeometry, exclude)
+        result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
+                                 dggrs_provider, collection, collection_providers, returntype, returngeometry)
         if (result is None):
             return Response(status_code=204)
         return result

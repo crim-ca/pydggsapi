@@ -44,7 +44,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
             for z in converted_zones:
                 # we need to change the calling dggrs_provider to the collection's dggrs for conversion case
                 children = dggrs_pool[v.collection_provider.dggrsId].get_relative_zonelevels(z, converted_level,
-                                                                                             [v.collection_provider.min_refinement_level])
+                                                                                             [v.collection_provider.min_refinement_level], "zone-centroid")
                 [child_parent_mapping.update({zid: z})for zid in
                  children.relative_zonelevels[v.collection_provider.min_refinement_level].zoneIds]
             converted_zones = list(child_parent_mapping.keys())
