@@ -46,6 +46,7 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId if (tilesreq.dggrsId != '') else None)
     tilesreq.dggrsId = tilesreq.dggrsId if (tilesreq.dggrsId != '') else collection_info[tilesreq.collectionId].collection_provider.dggrsId
     dggrs = _get_dggrs_provider(tilesreq.dggrsId)
+    collection = collection_info[tilesreq.collectionId]
 
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
     res_info = mercator.get(tile.z)
@@ -55,13 +56,15 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
         zone_level += tilesreq.relative_depth
     clip_bound = box(bbox.left, bbox.bottom, bbox.right, bbox.top)
     clip_bound = shapely.total_bounds(transform(project, clip_bound))
-    if zone_level > collection_info[tilesreq.collectionId].collection_provider.max_refinement_level:
-        zone_level = collection_info[tilesreq.collectionId].collection_provider.max_refinement_level
+    if zone_level > collection.collection_provider.max_refinement_level:
+        zone_level = collection.collection_provider.max_refinement_level
+    if zone_level < collection.collection_provider.min_refinement_level:
+        zone_level = collection.collection_provider.min_refinement_level
 
     logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
     zonesReq = ZonesRequest(collectionId=tilesreq.collectionId, dggrsId=tilesreq.dggrsId, zone_level=zone_level,
                             compact_zone=False, bbox=clip_bound)
-    collection_provider = _get_collection_provider(collection_info[tilesreq.collectionId].collection_provider.providerId)
+    collection_provider = _get_collection_provider(collection.collection_provider.providerId)
     zones_id_response = await list_dggrs_zones(req, zonesReq, _get_dggrs_description(tilesreq.dggrsId), dggrs,
                                                collection_info, collection_provider)
     if (type(zones_id_response) is Response):
@@ -78,7 +81,7 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     tasks = []
     loop = asyncio.get_event_loop()
     for zoneid in zones_id_response.zones:
-        zonedatareq = ZonesDataRequest(zoneId=zoneid, dggrsId=tilesreq.dggrsId, collectionId=tilesreq.collectionId)
+        zonedatareq = ZonesDataRequest(zoneId=zoneid, dggrsId=tilesreq.dggrsId, collectionId=tilesreq.collectionId, depth="0")
         tasks.append(dggrs_zones_data(req, zonedatareq,  _get_dggrs_description(tilesreq.dggrsId),
                      dggrs, collection_info, collection_provider))
     tasks = loop.run_until_complete(asyncio.gather(*tasks))
