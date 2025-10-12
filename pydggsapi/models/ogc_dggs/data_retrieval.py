@@ -169,7 +169,9 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
     if (returntype == 'application/geo+json'):
         return ZonesDataGeoJson(**{'type': 'FeatureCollection', 'features': features})
     link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
-    return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': relative_levels if (base_level == relative_levels[0]) else relative_levels[1:],
+    relative_levels if (base_level == relative_levels[0]) else relative_levels[1:]
+    relative_levels = [rl - base_level for rl in relative_levels]
+    return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': relative_levels,
                'properties': properties, 'values': values}
     if data_col_dims:
         return_['dimensions'] = [{'name': dim, **dim_info} for dim, dim_info in data_col_dims.items()]
