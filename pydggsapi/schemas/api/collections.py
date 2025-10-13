@@ -1,13 +1,13 @@
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
 from pydantic import BaseModel
-from typing import Dict, Any
 
 
 class Provider(BaseModel):
     providerId: str
     dggrsId: str
-    maxzonelevel: int
-    getdata_params: Dict[str, Any]
+    max_refinement_level: int
+    min_refinement_level: int
+    datasource_id: str
 
 
 class Collection(CollectionDesc):

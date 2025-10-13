@@ -28,9 +28,7 @@ def test_core_dggrs_description():
     assert "not supported" in response.text
     assert response.status_code == 400
 
-    os.environ['dggs_api_config'] = './dggs_api_config.json'
-    app = reload(pydggsapi.api).app
-    client = TestClient(app)
+
     print("Success test case with dggs description (igeo7)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7')
     pprint(response.json())

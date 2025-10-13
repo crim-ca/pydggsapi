@@ -47,7 +47,7 @@ class Value(BaseModel):
     # FIXME: invalid 'shape' object
     #   (https://github.com/opengeospatial/ogcapi-discrete-global-grid-systems/blob/ea1a2ad/core/schemas/dggs-json/dggs-json.yaml#L104)
     shape: Dict[str, int]
-    data: list[float]
+    data: list[Any]
 
 
 class DimensionGrid(BaseModel):

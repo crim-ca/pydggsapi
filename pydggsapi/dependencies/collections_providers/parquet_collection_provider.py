@@ -1,39 +1,44 @@
-from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
-from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
-
-from dataclasses import dataclass, field
+from pydggsapi.dependencies.collections_providers.abstract_collection_provider import (
+    AbstractCollectionProvider,
+    AbstractDatasourceInfo
+)
+from pydggsapi.schemas.api.collection_providers import (
+    CollectionProviderGetDataReturn,
+    CollectionProviderGetDataDictReturn
+)
+from dataclasses import dataclass
 import duckdb
-from typing import List, Dict
+from typing import List
 import logging
-
 
 logger = logging.getLogger()
 
 
 @dataclass
-class parquet_source():
-    filepath: str
-    id_col: str
-    conn: duckdb.DuckDBPyConnection
-    data_cols: List[str] = field(default_factory=lambda: ["*"])
-    exclude_data_cols: List[str] = field(default_factory=list)
+class ParquetDatasourceInfo(AbstractDatasourceInfo):
+    filepath: str = ""
+    id_col: str = ""
+    credential: str = ""
+    conn: duckdb.DuckDBPyConnection = None
 
 
 # Parquet with in memory duckdb
 class ParquetCollectionProvider(AbstractCollectionProvider):
 
-    def __init__(self, params):
-        self.datasources: Dict[str, parquet_source] = {}
-        for k, v in params.get("datasources", {}).items():
+    def __init__(self, datasources):
+        self.datasources = {}
+        for k, v in datasources.items():
             db = duckdb.connect(":memory:")
             db.install_extension("httpfs")
             db.load_extension("httpfs")
             if (v.get('credential') is not None):
-                print(f"create secret ({v['credential']})")
                 db.sql(f"create secret ({v['credential']})")
                 v.pop('credential')
             v["conn"] = db
-            self.datasources[k] = parquet_source(**v)
+            if (v.get('filepath') is None or v.get('filepath') == ''):
+                logger.error(f'{__name__} {k} filepath is missing')
+                raise Exception(f'{__name__} {k} filepath is missing')
+            self.datasources[k] = ParquetDatasourceInfo(**v)
 
     def get_data(self, zoneIds: List[str], res: int, datasource_id: str) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
@@ -53,7 +58,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             result_df = datasource.conn.sql(sql, params=[zoneIds]).df()
         except Exception as e:
             logger.error(f'{__name__} {datasource_id} query data error: {e}')
-            return result
+            raise Exception(f'{__name__} {datasource_id} query data error: {e}')
         result_id = result_df[datasource.id_col]
         result_df = result_df.drop(datasource.id_col, axis=1)
         cols_meta = {k: v.name for k, v in dict(result_df.dtypes).items()}
@@ -68,8 +73,8 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         try:
             datasource = self.datasources[datasource_id]
         except KeyError:
-            logger.error(f'{__name__} {datasource_id} not found')
-            return result
+            logger.error(f'{__name__} {datasource_id} not found.')
+            raise Exception(f'{__name__} {datasource_id} not found.')
         if ("*" in datasource.data_cols):
             cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
         else:
@@ -79,9 +84,8 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         try:
             result_df = datasource.conn.sql(sql).df()
         except Exception as e:
-            logger.error(f'{__name__} {datasource_id} error: {e}')
-            return result
-        #result_df = result_df.drop(datasource.id_col, axis=1)
+            logger.error(f'{__name__} {datasource_id} query error: {e}')
+            raise Exception(f'{__name__} {datasource_id} query error: {e}')
         data = dict(result_df.dtypes)
         for k, v in data.items():
             data[k] = str(v) if (type(v).__name__ != "ObjectDType") else "string"

@@ -6,7 +6,7 @@ from typing_extensions import Self
 
 class CollectionProvider(BaseModel):
     classname: str
-    initial_params: Dict[str, Any]
+    datasources: Dict[str, Dict]
 
 
 class CollectionProviderGetDataReturn(BaseModel):
