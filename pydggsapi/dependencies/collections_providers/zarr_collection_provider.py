@@ -46,7 +46,8 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             zone_group = datatree.zone_groups[str(res)]
         except KeyError:
             logger.error(f'{__name__} get zone_groups for resolution {res} failed.')
-            raise ValueError(f'{__name__} get zone_groups for resolution {res} failed.')
+            return result
+            # raise ValueError(f'{__name__} get zone_groups for resolution {res} failed.')
         id_col = datatree.id_col if (datatree.id_col != "") else zone_group
         datatree = datatree.filehandle[zone_group]
         # in future, we may consider using xdggs-dggrid4py

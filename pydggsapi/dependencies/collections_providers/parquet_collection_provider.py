@@ -18,6 +18,7 @@ logger = logging.getLogger()
 class ParquetDatasourceInfo(AbstractDatasourceInfo):
     filepath: str = ""
     id_col: str = ""
+    credential: str = ""
     conn: duckdb.DuckDBPyConnection = None
 
 
