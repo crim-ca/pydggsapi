@@ -46,6 +46,13 @@ def test_zone_query_dggrs_zones_VH3_2_IGEO7():
     assert len(zones.zones) > 0
     assert response.status_code == 200
 
+    print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, zone_level=2, compact=False)")
+    response = client.get('/dggs-api/v1-pre/dggs/h3/zones', params={"bbox": ",".join(bounds), 'zone_level': 2, 'compact_zone': False})
+    pprint(response.json())
+    zones = ZonesResponse(**response.json())
+    assert len(zones.zones) > 0
+    assert response.status_code == 200
+
     print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, zone_level=6, compact=False)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', params={"bbox": ",".join(bounds), 'zone_level': 6, 'compact_zone': False})
     pprint(response.json())

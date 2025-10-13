@@ -95,6 +95,14 @@ def test_zone_query_dggrs_zones():
     assert all([validation_zones_list[i] == z for i, z in enumerate(return_zones_list)])
     assert response.status_code == 200
 
+    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=2, compact=False)")
+    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'zone_level': 2, 'compact_zone': False})
+    pprint(response.json())
+    zones = ZonesResponse(**response.json())
+    return_zones_list = zones.zones
+    assert len(return_zones_list) > 0
+    assert response.status_code == 200
+
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
                           params={"bbox": ",".join(bounds), 'zone_level': 8, 'compact_zone': False})
