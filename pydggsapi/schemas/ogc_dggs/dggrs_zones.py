@@ -39,10 +39,10 @@ class ZonesRequest(DggrsDescriptionRequest):
     @model_validator(mode="after")
     def validation(self):
         if (self.bbox is None and self.parent_zone is None):
-            raise HTTPException(status_code=400, detail='Either bbox or parnet must be set')
+            raise HTTPException(status_code=400, detail='Either bbox or parent-zone must be set')
         if (self.bbox is not None):
             if (len(self.bbox) != 4):
-                raise HTTPException(status_code=400, detail='bbox lenght is not equal to 4')
+                raise HTTPException(status_code=400, detail='bbox length is not equal to 4')
         if (self.geometry is not None):
             if (self.geometry not in zone_query_support_geometry):
                 raise HTTPException(status_code=400, detail=f"{self.geometry} is not supported")

@@ -60,13 +60,17 @@ def get_dggrs_descriptions() -> Dict[str, DggrsDescription]:
     for cp in collection_providers:
         try:
             current_max = max_dggrs[cp.dggrsId]
-            max_dggrs[cp.dggrsId] = cp.maxzonelevel if (current_max < cp.maxzonelevel) else current_max
+            max_dggrs[cp.dggrsId] = cp.max_refinement_level if (current_max < cp.max_refinement_level) else current_max
         except KeyError:
-            max_dggrs[cp.dggrsId] = cp.maxzonelevel
+            max_dggrs[cp.dggrsId] = cp.max_refinement_level
     for dggrs in dggrs_indexes:
         dggrsid, dggrs_config = dggrs.popitem()
         self_link = Link(**{'href': '', 'rel': 'self', 'title': 'DGGRS description link'})
-        dggrs_model_link = Link(**{'href': dggrs_config['definition_link'], 'rel': 'ogc-rel:dggrs-definition', 'title': 'DGGRS definition'})
+        dggrs_model_link = Link(**{
+            'href': dggrs_config['definition_link'],
+            'rel': '[ogc-rel:dggrs-definition]',
+            'title': 'DGGRS definition',
+        })
         dggrs_config['id'] = dggrsid
         dggrs_config['maxRefinementLevel'] = max_dggrs.get(dggrsid, 32)
         dggrs_config['links'] = [self_link, dggrs_model_link]

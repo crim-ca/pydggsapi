@@ -44,8 +44,26 @@ class Property(BaseModel):
 
 class Value(BaseModel):
     depth: int
+    # FIXME: invalid 'shape' object
+    #   (https://github.com/opengeospatial/ogcapi-discrete-global-grid-systems/blob/ea1a2ad/core/schemas/dggs-json/dggs-json.yaml#L104)
     shape: Dict[str, int]
-    data: list[float]
+    data: list[Any]
+
+
+class DimensionGrid(BaseModel):
+    type: str
+    coordinates: List[List[float]]  # List of [lon, lat] pairs
+
+
+class Dimension(BaseModel):
+    name: str
+    # FIXME: technically 'grid' is 'required' by API,
+    #   but can be problematic (https://github.com/opengeospatial/ogcapi-discrete-global-grid-systems/issues/94)
+    grid: Optional[str] = None
+    interval: Optional[Union[List[Optional[float]], List[Optional[str]]]] = None
+    definition: Optional[str] = None
+    unit: Optional[str] = None
+    unitLang: Optional[str] = None
 
 
 class ZonesDataDggsJsonResponse(BaseModel):
@@ -55,6 +73,7 @@ class ZonesDataDggsJsonResponse(BaseModel):
     # schema_: Optional[Schema] = Field(None, alias='schema')
     properties: Dict[str, Property]
     values: Dict[str, List[Value]]
+    dimensions: Optional[List[Dimension]] = None
 
 
 class ZonesDataGeoJson(BaseModel):

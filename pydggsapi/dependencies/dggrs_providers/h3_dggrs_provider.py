@@ -76,7 +76,7 @@ class H3Provider(AbstractDGGRSProvider):
             raise Exception(f'{__name__} zone id {cellIds} failed: {e}')
 
     def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int],
-                                geometry: str) -> DGGRSProviderGetRelativeZoneLevelsReturn:
+                                geometry="zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
         children = {}
         geometry = geometry.lower()
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint

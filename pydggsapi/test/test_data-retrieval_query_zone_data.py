@@ -56,7 +56,7 @@ def test_data_retrieval():
     assert response.status_code == 400
 
     print(f"Success test case with data-retrieval query (igeo7, {cellids[0]})")
-    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data')
+    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'depth': '0'})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
     p1 = list(data.properties.keys())[0]
@@ -65,27 +65,28 @@ def test_data_retrieval():
     assert len(value.data) > 0
     assert response.status_code == 200
 
-    print(f"Success test case with data-retrieval query (igeo7, {cellids[0]}, return = geojson)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'})
+    print(f"Success test case with data-retrieval query (igeo7, {cellids[0]}, depth=[0] ,return = geojson)")
+    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'},
+                          params={'depth': '0'})
     pprint(response.json())
     data = ZonesDataGeoJson(**response.json())
     assert len(data.features) > 0
     assert response.status_code == 200
 
-    print(f"Success test case with data-retrieval query (igeo7, {cellids[0]}, return = geojson, geometry='zone-centroid')")
-    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid'},
+    print(f"Success test case with data-retrieval query (igeo7, {cellids[0]}, depth=[0],return = geojson, geometry='zone-centroid')")
+    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid', 'depth': '0'},
                           headers={'accept': 'application/geo+json'})
     pprint(response.json())
     data = ZonesDataGeoJson(**response.json())
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (igeo7, {cellids[0]}, relative_depth=2)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'depth': 2})
+    response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'depth': '2'})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
     p1 = list(data.properties.keys())[0]
     assert len(data.values[p1]) > 0
-    assert (8 in data.depths)
+    assert (2 in data.depths)
     value = data.values[p1][0]
     assert len(value.data) > 0
     assert response.status_code == 200
@@ -96,7 +97,7 @@ def test_data_retrieval():
     data = ZonesDataDggsJsonResponse(**response.json())
     p1 = list(data.properties.keys())[0]
     assert len(data.values[p1]) > 0
-    assert (7 in data.depths) and (8 in data.depths)
+    assert (1 in data.depths) and (2 in data.depths)
     value = data.values[p1][0]
     assert len(value.data) > 0
     assert response.status_code == 200
@@ -107,7 +108,7 @@ def test_data_retrieval():
     data = ZonesDataDggsJsonResponse(**response.json())
     p1 = list(data.properties.keys())[0]
     assert len(data.values[p1]) > 0
-    assert (7 in data.depths) and (8 in data.depths) and (6 in data.depths)
+    assert (1 in data.depths) and (2 in data.depths) and (0 in data.depths)
     value = data.values[p1][0]
     assert len(value.data) > 0
     assert response.status_code == 200
