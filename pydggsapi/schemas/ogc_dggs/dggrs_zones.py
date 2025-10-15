@@ -5,6 +5,7 @@ from typing import Annotated, List, Optional, Union, Tuple
 from fastapi import Depends
 from fastapi.exceptions import HTTPException
 
+from pygeofilter.ast import AstType
 from pygeofilter.parsers.cql_json import parse as cql_json_parser
 from pygeofilter.parsers.ecql import parse as cql_text_parser
 from pydantic import BaseModel, conint, model_validator

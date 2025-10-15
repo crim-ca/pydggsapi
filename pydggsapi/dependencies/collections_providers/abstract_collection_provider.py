@@ -25,9 +25,9 @@ class AbstractCollectionProvider(ABC):
     # 5. data is the data :P
     # 6. In case of exception, return an empty CollectionProviderGetDataReturn, ie. all with []
     @abstractmethod
-    def get_data(self, zoneIds: List[str], res: int, cql_filter: AstType) -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, datasource_id: str, cql_filter: AstType | None) -> CollectionProviderGetDataReturn:
         raise NotImplementedError
 
     @abstractmethod
-    def get_datadictionary(self) -> CollectionProviderGetDataDictReturn:
+    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
         raise NotImplementedError

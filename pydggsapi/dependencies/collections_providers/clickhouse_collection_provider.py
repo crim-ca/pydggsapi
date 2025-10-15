@@ -5,6 +5,8 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 
 from pygeofilter.ast import AstType
+from pygeofilter.ast import Attribute as pygeofilter_ats
+from pygeofilter.backends.sql import to_sql_where
 from dataclasses import dataclass
 from clickhouse_driver import Client
 from typing import List
@@ -44,8 +46,11 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} create datasource failed: {e}')
             raise Exception(f'{__name__} create datasource failed: {e}')
 
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str) -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, datasource_id: str, cql_filter: AstType = None) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
+        cql_attributes = []
+        if (cql_filter is not None):
+            cql_attributes = [a.name for a in cql_filter.get_sub_nodes() if (isinstance(a, pygeofilter_ats))]
         try:
             datasource = self.datasources[datasource_id]
         except KeyError:
@@ -60,7 +65,14 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             cols = [f'arrayMax(topK(1)({c})) as {c}' for c in datasource.data_cols]
             cols = ",".join(cols)
         cols += f', {res_col}'
+        # cql handling
         query = f'select {cols} from {datasource.table} where {res_col} in (%(cellid_list)s) group by {res_col}'
+        if (cql_filter is not None):
+            fieldmapping = self.get_datadictionary(datasource_id).data
+            fieldmapping = {k: k for k, v in fieldmapping.items()}
+            cql_sql = to_sql_where(cql_filter, fieldmapping).replace('"', "")
+            query += f' having {cql_sql}'
+        print(query)
         try:
             db_result = self.db.execute(query, {'cellid_list': zoneIds}, with_column_types=True)
         except Exception as e:

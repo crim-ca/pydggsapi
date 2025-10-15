@@ -94,7 +94,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         except KeyError as e:
             logger.error(f'{__name__} {datasource_id} not found: {e}.')
             raise Exception(f'{__name__} {datasource_id} not found: {e}.')
-        datatree = datatree.filehandle[list(datatree.zones_grps.values())[0]]
+        datatree = datatree.filehandle[list(datatree.zone_groups.values())[0]]
         data = {i[0]: str(i[1].dtype) for i in datatree.data_vars.items()}
         return CollectionProviderGetDataDictReturn(data=data)
 

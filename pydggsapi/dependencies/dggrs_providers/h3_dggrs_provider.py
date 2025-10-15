@@ -126,7 +126,7 @@ class H3Provider(AbstractDGGRSProvider):
         hex_gdf.reset_index(inplace=True)
         return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['zoneIds'].values.astype(str).tolist(),
                                                'geometry': geometry,
-                                               'area': area})
+                                               'returnedAreaMetersSquare': area})
 
     def zonesinfo(self, cellIds: list) -> DGGRSProviderZoneInfoReturn:
         centroid = []

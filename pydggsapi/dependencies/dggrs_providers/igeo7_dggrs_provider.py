@@ -189,4 +189,4 @@ class IGEO7Provider(AbstractDGGRSProvider):
         hex_gdf.reset_index(inplace=True)
         return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['name'].values.astype(str).tolist(),
                                                'geometry': geometry,
-                                               'area': area})
+                                               'returnedAreaMetersSquare': area})

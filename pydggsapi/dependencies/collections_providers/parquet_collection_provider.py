@@ -7,6 +7,7 @@ from pydggsapi.schemas.api.collection_providers import (
     CollectionProviderGetDataDictReturn
 )
 from dataclasses import dataclass
+from pygeofilter.ast import AstType
 import duckdb
 from typing import List
 import logging
@@ -20,6 +21,7 @@ class ParquetDatasourceInfo(AbstractDatasourceInfo):
     id_col: str = ""
     credential: str = ""
     conn: duckdb.DuckDBPyConnection = None
+
 
 # Parquet with in memory duckdb
 class ParquetCollectionProvider(AbstractCollectionProvider):
