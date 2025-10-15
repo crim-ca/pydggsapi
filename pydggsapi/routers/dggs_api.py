@@ -253,7 +253,7 @@ async def get_collection_queryables(req: Request, collection: Dict[str, Collecti
     if (collection_provider is None):
         # Error, should not be None, it should be handled by _get_collection_provider
         raise HTTPException(status_code=404, detail=f'{__name__} {collection.collection_provider.providerId} not found')
-    fields = collection_provider.get_datadictionary(**collection.collection_provider.getdata_params).data
+    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id).data
     items = [QueryablesProperties(id=k, type=v) for k, v in fields.items()]
     return CollectionQueryables(queryables=items)
 

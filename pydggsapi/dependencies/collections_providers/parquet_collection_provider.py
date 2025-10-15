@@ -8,6 +8,7 @@ from pydggsapi.schemas.api.collection_providers import (
 )
 from dataclasses import dataclass
 from pygeofilter.ast import AstType
+from pygeofilter.backends.sql import to_sql_where
 import duckdb
 from typing import List
 import logging
@@ -55,6 +56,11 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
         sql = f"""select {cols} from read_parquet('{datasource.filepath}')
                   where {datasource.id_col} in (SELECT UNNEST(?))"""
+        if (cql_filter is not None):
+            fieldmapping = self.get_datadictionary(datasource_id).data
+            fieldmapping = {k: k for k, v in fieldmapping.items()}
+            cql_sql = to_sql_where(cql_filter, fieldmapping)
+            sql += f"and {cql_sql}"
         try:
             result_df = datasource.conn.sql(sql, params=[zoneIds]).df()
         except Exception as e:

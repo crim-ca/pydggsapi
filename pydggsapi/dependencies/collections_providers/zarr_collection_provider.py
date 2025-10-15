@@ -61,7 +61,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             if (cql_filter is not None):
                 fieldmapping = self.get_datadictionary(datasource_id).data
                 fieldmapping = {k: k for k, v in fieldmapping.items()}
-                sql = to_sql_where(cql_filter, fieldmapping)
+                cql_sql = to_sql_where(cql_filter, fieldmapping)
                 ctx = xql.XarrayContext()
                 ds = datatree.to_dataset().chunk('auto')
                 ctx.from_dataset('ds', ds)
@@ -70,7 +70,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                 else:
                     cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
                     cols = f"{','.join(cols_intersection)}, {id_col}"
-                sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({sql}) """
+                sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({cql_sql}) """
                 zarr_result = xr.Dataset.from_dataframe(ctx.sql(sql).to_pandas().set_index(id_col))
             else:
                 cols = set(datatree.data_vars) if ("*" in datasource.data_cols) else set(datasource.data_cols)

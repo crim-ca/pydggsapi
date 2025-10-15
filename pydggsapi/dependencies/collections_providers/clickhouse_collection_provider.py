@@ -72,7 +72,6 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             fieldmapping = {k: k for k, v in fieldmapping.items()}
             cql_sql = to_sql_where(cql_filter, fieldmapping).replace('"', "")
             query += f' having {cql_sql}'
-        print(query)
         try:
             db_result = self.db.execute(query, {'cellid_list': zoneIds}, with_column_types=True)
         except Exception as e:
