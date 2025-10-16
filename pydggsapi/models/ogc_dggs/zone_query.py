@@ -9,7 +9,7 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
 from pydggsapi.dependencies.api.utils import getCQLAttributes
 
 import numpy as np
-from pygeofilter.ast import Attribute as pygeofilter_ats
+from pygeofilter.ast import AstType
 from typing import Dict
 import numpy as np
 import itertools
@@ -21,13 +21,12 @@ logger = logging.getLogger()
 def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                      collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider],
                      compact=True, parent_zone=None, returntype='application/json', returngeometry='zone-region',
-                     cql_filter=None, datetime=None):
+                     cql_filter: AstType = None, include_datetime: bool = False):
     logger.debug(f'{__name__} query zones list: {bbox}, {zone_level}, {limit}, {parent_zone}, {compact}')
     # generate zones for the bbox at the required zone_level
     result = dggrs_provider.zoneslist(bbox, zone_level, parent_zone, returngeometry, compact)
     filter_ = []
-    if (cql_filter is not None):
-        cql_attributes = getCQLAttributes(cql_filter)
+    cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
     for k, v in collection.items():
         converted = None
@@ -65,7 +64,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         #    converted_level = v.collection_provider.min_refinement_level
         if (converted_level >= v.collection_provider.min_refinement_level):
             filtered_zoneIds = collection_provider[v.collection_provider.providerId].get_data(converted_zones, converted_level,
-                                                                                              datasource_id, cql_filter).zoneIds
+                                                                                              datasource_id, cql_filter, include_datetime).zoneIds
         else:
             filtered_zoneIds = []
         # filtered_zoneIds = [child_parent_mapping[child] for child in set(child_parent_mapping.keys()) & set(filtered_zoneIds)]

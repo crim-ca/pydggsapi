@@ -1,7 +1,13 @@
 from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
+from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
+
+from pygeofilter.parsers.cql_json import parse as cql_json_parser
+from pygeofilter.parsers.ecql import parse as cql_text_parser
+from datetime import date
+import json
 from typing import List, Optional, Dict, Union, Any
 from fastapi import Query
 from fastapi.exceptions import HTTPException
@@ -15,6 +21,8 @@ support_geometry = ['zone-centroid', 'zone-region']
 class ZonesDataRequest(ZoneInfoRequest):
     depth: Optional[str] = None  # Field(pattern=r'', default=None)
     geometry: Optional[str] = None
+    filter: Optional[str] = None
+    datetime: Optional[str] = None
 
     @model_validator(mode='after')
     def validator(self):
@@ -34,6 +42,30 @@ class ZonesDataRequest(ZoneInfoRequest):
         if (self.geometry is not None):
             if (self.geometry not in support_geometry):
                 raise HTTPException(status_code=500, detail=f"{self.geometry} is not supported")
+        if (self.datetime is not None):
+            self.datetime = self.datetime.split("/")
+            try:
+                self.datetime = [date.fromisoformat(d) for d in self.datetime]
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=f'datetime format error: {e}')
+            datetime_query = f"({zone_datetime_placeholder} = {self.datetime[0]})"
+            if (len(self.datetime) > 1):
+                datetime_query = f"(({zone_datetime_placeholder} >= {self.datetime[0]}) and ({zone_datetime_placeholder} <= {self.datetime[2]}))"
+            if (self.filter is not None):
+                self.filter += f" AND {datetime_query}"
+            else:
+                self.filter = datetime_query
+        if (self.filter is not None):
+            parser = cql_text_parser
+            try:
+                self.filter = json.loads(self.filter)
+                parser = cql_json_parser
+            except ValueError:
+                pass  # then it is a cql-text (or not)
+            try:
+                self.filter = parser(self.filter)
+            except Exception as er:
+                raise HTTPException(status_code=400, detail=f"{self.filter} is not a valid CQL-text or CQL-json :{er}")
         return self
 
 

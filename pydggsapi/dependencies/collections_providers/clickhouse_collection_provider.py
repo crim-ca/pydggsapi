@@ -3,6 +3,7 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
     AbstractDatasourceInfo
 )
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
+from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 
 from pygeofilter.ast import AstType
 from pygeofilter.ast import Attribute as pygeofilter_ats
@@ -46,11 +47,9 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} create datasource failed: {e}')
             raise Exception(f'{__name__} create datasource failed: {e}')
 
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str, cql_filter: AstType = None) -> CollectionProviderGetDataReturn:
+    def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
+                 cql_filter: AstType = None, include_datetime: bool = False) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
-        cql_attributes = []
-        if (cql_filter is not None):
-            cql_attributes = [a.name for a in cql_filter.get_sub_nodes() if (isinstance(a, pygeofilter_ats))]
         try:
             datasource = self.datasources[datasource_id]
         except KeyError:
@@ -70,6 +69,10 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
         if (cql_filter is not None):
             fieldmapping = self.get_datadictionary(datasource_id).data
             fieldmapping = {k: k for k, v in fieldmapping.items()}
+            if (include_datetime and datasource.datetime_col is None):
+                raise ValueError(f"{__name__} filter by datetime is not supported: datetime_col is none")
+            if (include_datetime):
+                fieldmapping.update({zone_datetime_placeholder: datasource.datetime_col})
             cql_sql = to_sql_where(cql_filter, fieldmapping).replace('"', "")
             query += f' having {cql_sql}'
         try:

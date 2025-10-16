@@ -14,6 +14,7 @@ from urllib import parse
 from numcodecs import Blosc
 from typing import List, Dict
 from scipy.stats import mode
+from pygeofilter.ast import AstType
 import shapely
 import tempfile
 import numpy as np
@@ -28,7 +29,8 @@ logger = logging.getLogger()
 
 def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[int], dggrs_desc: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
                     collection: Dict[str, Collection], collection_provider: List[AbstractCollectionProvider],
-                    returntype='application/dggs-json', returngeometry='zone-region'):
+                    returntype='application/dggs-json', returngeometry='zone-region',
+                    cql_filter: AstType = None, include_datetime: bool = False):
     logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}, relative_levels: {relative_levels}, return: {returntype}, geometry: {returngeometry}')
     # generate cell ids, geometry for relative_depth, if the first element of relative_levels equal to base_level
     # skip it, add it manually
@@ -43,14 +45,22 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
     data = {}
     data_type = {}
     data_col_dims = {}
-    from pydggsapi.routers.dggs_api import dggrs_providers as dggrs_pool
+    cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
+    skipped = 0
     for cid, c in collection.items():
         logger.debug(f"{__name__} handling {cid}")
-        convert = True if (c.collection_provider.dggrsId != dggrs_desc.id and
-                           c.collection_provider.dggrsId in dggrs_provider.dggrs_conversion) else False
         cp = collection_provider[c.collection_provider.providerId]
         datasource_id = c.collection_provider.datasource_id
         cmin_rf = c.collection_provider.min_refinement_level
+        datasource_vars = list(cp.get_datadictionary(datasource_id).data.keys())
+        intersection = (set(datasource_vars) & cql_attributes)
+        # check if the cql attributes contain inside the datasource
+        if ((len(cql_attributes) > 0)):
+            if ((len(intersection) == 0) or (len(intersection) != len(cql_attributes))):
+                skipped += 1
+                continue
+        convert = True if (c.collection_provider.dggrsId != dggrs_desc.id and
+                           c.collection_provider.dggrsId in dggrs_provider.dggrs_conversion) else False
         # get data for all relative_levels for the currnet datasource
         for z, v in result.relative_zonelevels.items():
             g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
@@ -93,7 +103,7 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
             logger.debug(f"{__name__} {cid} get_data")
             collection_result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
             if (converted_z >= cmin_rf):
-                collection_result = cp.get_data(idx, converted_z, datasource_id)
+                collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter, include_datetime)
             logger.debug(f"{__name__} {cid} get_data done")
             if (len(collection_result.zoneIds) > 0):
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}

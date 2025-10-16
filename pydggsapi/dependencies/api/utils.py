@@ -5,7 +5,7 @@ def getCQLAttributes(cql_filter):
     cql_attributes = set()
     if (isinstance(cql_filter, pygeofilter_attrs)):
         if (cql_filter.name == zone_datetime_placeholder):
-            return ['']
+            return []
         return [cql_filter.name]
     else:
         [cql_attributes.update(getCQLAttributes(c)) for c in cql_filter.get_sub_nodes() if (hasattr(c, "get_sub_nodes"))]

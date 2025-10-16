@@ -348,7 +348,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
     bbox = zonesReq.bbox
-    datetime = zonesReq.datetime
+    include_datetime = True if (zonesReq.datetime is not None) else False
     filter = zonesReq.filter
     # Parameters checking
     if (parent_zone is not None):
@@ -379,7 +379,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             raise HTTPException(status_code=400, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
     try:
         result = query_zones_list(bbox, zone_level, limit, dggrs_description, dggrs_provider, collection, collection_provider,
-                                  compact_zone, zonesReq.parent_zone, returntype, returngeometry, filter)
+                                  compact_zone, zonesReq.parent_zone, returntype, returngeometry, filter, include_datetime)
         if (result is None):
             return Response(status_code=204)
         return result
@@ -404,6 +404,8 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     zoneId = zonedataReq.zoneId
     depth = zonedataReq.depth if (zonedataReq.depth is not None) else [dggrs_description.defaultDepth]
     returngeometry = zonedataReq.geometry if (zonedataReq.geometry is not None) else 'zone-region'
+    filter = zonedataReq.filter
+    include_datetime = True if (zonedataReq.datetime is not None) else False
     # prepare zone levels from zoneId + depth
     # The first element of zone_level will be the zoneId's level, follow by the required relative depth (zoneId's level + d)
     try:
@@ -427,7 +429,8 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
                                     detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
     try:
         result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
-                                 dggrs_provider, collection, collection_providers, returntype, returngeometry)
+                                 dggrs_provider, collection, collection_providers, returntype,
+                                 returngeometry, filter, include_datetime)
         if (result is None):
             return Response(status_code=204)
         return result
