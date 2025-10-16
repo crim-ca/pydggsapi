@@ -348,6 +348,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
     bbox = zonesReq.bbox
+    datetime = zonesReq.datetime
     filter = zonesReq.filter
     # Parameters checking
     if (parent_zone is not None):

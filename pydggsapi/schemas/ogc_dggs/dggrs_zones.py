@@ -8,12 +8,14 @@ from fastapi.exceptions import HTTPException
 from pygeofilter.ast import AstType
 from pygeofilter.parsers.cql_json import parse as cql_json_parser
 from pygeofilter.parsers.ecql import parse as cql_text_parser
+from datetime import date
 from pydantic import BaseModel, conint, model_validator
 
 import json
 
 zone_query_support_returntype = ['application/json', 'application/geo+json']
 zone_query_support_geometry = ['zone-centroid', 'zone-region']
+zone_datetime_placeholder = '_pydggs_datetime'
 
 
 def bbox_converter(bbox: Optional[str] = None) -> Optional[List[float]]:
@@ -36,6 +38,7 @@ class ZonesRequest(DggrsDescriptionRequest):
     ] = None
     geometry: Optional[str] = None
     filter: Optional[str] = None
+    datetime: Optional[str] = None
 
     @model_validator(mode="after")
     def validation(self):
@@ -47,6 +50,19 @@ class ZonesRequest(DggrsDescriptionRequest):
         if (self.geometry is not None):
             if (self.geometry not in zone_query_support_geometry):
                 raise HTTPException(status_code=400, detail=f"{self.geometry} is not supported")
+        if (self.datetime is not None):
+            self.datetime = self.datetime.split("/")
+            try:
+                self.datetime = [date.fromisoformat(d) for d in self.datetime]
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=f'datetime format error: {e}')
+            datetime_query = f"({zone_datetime_placeholder} = {self.datetime[0]})"
+            if (len(self.datetime) > 1):
+                datetime_query = f"(({zone_datetime_placeholder} >= {self.datetime[0]}) and ({zone_datetime_placeholder} <= {self.datetime[2]}))"
+            if (self.filter is not None):
+                self.filter += f" AND {datetime_query}"
+            else:
+                self.filter = datetime_query
         if (self.filter is not None):
             parser = cql_text_parser
             try:

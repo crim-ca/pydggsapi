@@ -13,6 +13,7 @@ class AbstractDatasourceInfo(ABC):
     data_cols: List[str] = field(default_factory=lambda: ["*"])
     exclude_data_cols: List[str] = field(default_factory=list)
     zone_groups: Optional[Dict[str, str]] = field(default_factory=dict)
+    datetime_col: str = None
 
 
 class AbstractCollectionProvider(ABC):
