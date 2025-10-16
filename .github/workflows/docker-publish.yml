@@ -4,6 +4,10 @@ name: Publish Docker Image
 on:
   release:
     types: [published]
+  workflow_dispatch: {}
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -12,9 +16,6 @@ jobs:
   deploy-docker:
     if: ${{ success() && (contains(github.ref, 'refs/tags') || github.ref == 'refs/heads/main') }}
     runs-on: ubuntu-latest
-    env:
-      # enabled provenance attestation during build/push (see Makefile for details)
-      DOCKER_PROV: "true"
     steps:
       - uses: actions/checkout@v2
         with:
