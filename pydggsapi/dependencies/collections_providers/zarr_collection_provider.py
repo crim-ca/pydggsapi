@@ -1,6 +1,7 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import (
     AbstractCollectionProvider,
-    AbstractDatasourceInfo
+    AbstractDatasourceInfo,
+    DatetimeNotDefinedError
 )
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
@@ -63,7 +64,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                 fieldmapping = self.get_datadictionary(datasource_id).data
                 fieldmapping = {k: k for k, v in fieldmapping.items()}
                 if (include_datetime and datasource.datetime_col is None):
-                    raise ValueError(f"{__name__} filter by datetime is not supported: datetime_col is none")
+                    raise DatetimeNotDefinedError(f"{__name__} filter by datetime is not supported: datetime_col is none")
                 if (include_datetime):
                     fieldmapping.update({zone_datetime_placeholder: datasource.datetime_col})
                 cql_sql = to_sql_where(cql_filter, fieldmapping)

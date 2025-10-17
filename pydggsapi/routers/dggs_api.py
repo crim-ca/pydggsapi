@@ -356,15 +356,18 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
         if (parent_level > zone_level):
             logger.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
             raise HTTPException(status_code=400, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")
+    skip_collection = []
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
+        min_ = v.collection_provider.min_refinement_level
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonesReq.dggrsId != v.collection_provider.dggrsId
                 and zonesReq.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
-        if (zone_level > max_):
-            logger.error(f'{__name__} query zones list, zone level {zone_level} > {max_}')
-            raise HTTPException(status_code=400, detail=f"{__name__} query zones list, zone level {zone_level} > {max_}")
+        if (zone_level > max_ or zone_level < min_):
+            logger.warning(f'{__name__} query zones list, zone level {zone_level} is not within the collection\'s refinement level: {min_} {max_}')
+            skip_collection.append(k)
+    [collection.pop(k) for k in skip_collection]
     if (bbox is not None):
         try:
             bbox = box(*bbox)
@@ -402,7 +405,7 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)) -> ZonesDataDggsJsonResponse | FileResponse:
     returntype = _get_return_type(req, support_returntype, 'application/json')
     zoneId = zonedataReq.zoneId
-    depth = zonedataReq.depth if (zonedataReq.depth is not None) else [dggrs_description.defaultDepth]
+    depth = zonedataReq.zone_depth if (zonedataReq.zone_depth is not None) else [dggrs_description.defaultDepth]
     returngeometry = zonedataReq.geometry if (zonedataReq.geometry is not None) else 'zone-region'
     filter = zonedataReq.filter
     include_datetime = True if (zonedataReq.datetime is not None) else False

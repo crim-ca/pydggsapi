@@ -33,3 +33,7 @@ class AbstractCollectionProvider(ABC):
     @abstractmethod
     def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
         raise NotImplementedError
+
+class DatetimeNotDefinedError(ValueError):
+    pass
+
