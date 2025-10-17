@@ -1,39 +1,42 @@
 from __future__ import annotations
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
-from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
+from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder, datetime_cql_validation
+
 from typing import List, Optional, Dict, Union, Any
-from fastapi import Query
 from fastapi.exceptions import HTTPException
 import re
-from pydantic import AnyUrl, BaseModel, Field, model_validator, ValidationError
+from pydantic import AnyUrl, BaseModel,  model_validator
 
 support_returntype = ['application/json', 'application/zarr+zip', 'application/geo+json']
 support_geometry = ['zone-centroid', 'zone-region']
 
 
 class ZonesDataRequest(ZoneInfoRequest):
-    depth: Optional[str] = None  # Field(pattern=r'', default=None)
+    zone_depth: Optional[str] = None  # Field(pattern=r'', default=None)
     geometry: Optional[str] = None
+    filter: Optional[str] = None
+    datetime: Optional[str] = None
 
     @model_validator(mode='after')
     def validator(self):
-        if (self.depth is not None):
-            if (not re.match("(\d{1,2})|(\d{1,2}-\d{1,2})", self.depth)):
+        if (self.zone_depth is not None):
+            if (not re.match("(\d{1,2})|(\d{1,2}-\d{1,2})", self.zone_depth)):
                 raise HTTPException(status_code=500, detail="depth must be either a integer or in range (int-int) format")
-            depth = self.depth.split("-")
+            zone_depth = self.zone_depth.split("-")
             try:
-                if (len(depth) == 1):
-                    self.depth = [int(depth[0])]
+                if (len(zone_depth) == 1):
+                    self.zone_depth = [int(zone_depth[0])]
                 else:
-                    if (int(depth[0]) > int(depth[1])):
+                    if (int(zone_depth[0]) > int(zone_depth[1])):
                         raise HTTPException(status_code=500, detail="depth range is not in order")
-                    self.depth = [int(depth[0]), int(depth[1])]
+                    self.zone_depth = [int(zone_depth[0]), int(zone_depth[1])]
             except ValueError:
                 raise HTTPException(status_code=500, detail="depth must be integer >=0 ")
         if (self.geometry is not None):
             if (self.geometry not in support_geometry):
                 raise HTTPException(status_code=500, detail=f"{self.geometry} is not supported")
+        self.datetime, self.filter = datetime_cql_validation(self.datetime, self.filter)
         return self
 
 
