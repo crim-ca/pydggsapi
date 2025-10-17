@@ -34,7 +34,12 @@ def datetime_cql_validation(datetime: str | None, cql_filter: str | None) -> Ast
             raise HTTPException(status_code=400, detail=f'datetime format error: {e}')
         datetime_query = f"({zone_datetime_placeholder} = '{datetime[0]}')"
         if (len(datetime) > 1):
-            datetime_query = f"(({zone_datetime_placeholder} >= '{datetime[0]}') AND ({zone_datetime_placeholder} <= '{datetime[1]}'))"
+            try:
+                idx = datetime.index("..")
+                ops = "<=" if (idx == 0) else ">="
+                datetime_query = f"({zone_datetime_placeholder} {ops} '{datetime[1-idx]}')"
+            except ValueError:
+                datetime_query = f"(({zone_datetime_placeholder} >= '{datetime[0]}') AND ({zone_datetime_placeholder} <= '{datetime[1]}'))"
         if (cql_filter is not None):
             cql_filter += f" AND {datetime_query}"
         else:
