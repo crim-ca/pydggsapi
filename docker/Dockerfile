@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # install project python packages
     && pip install poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-directory -vvv \
+    && poetry install --no-root --no-directory -v \
     # cleanup
     && apt-get remove -y \
         gcc \
