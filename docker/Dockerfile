@@ -5,7 +5,7 @@ LABEL maintainer="Francis Charette-Migneault <francis.charette-migneault@crim.ca
 LABEL vendor="CRIM"
 LABEL version="0.1.6-rc0"
 
-ARG DGGRID_VERSION=8.41
+ARG DGGRID_VERSION=8.42
 
 # setup paths
 ENV APP_DIR=/opt/local/src/pydggsapi
