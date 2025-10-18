@@ -8,13 +8,14 @@ on:
   push:
     branches:
       - main
+      - ci-docker
 
 permissions:
   contents: read
 
 jobs:
   deploy-docker:
-    if: ${{ success() && (contains(github.ref, 'refs/tags') || github.ref == 'refs/heads/main') }}
+    if: ${{ success() && (contains(github.ref, 'refs/tags') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-docker') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
