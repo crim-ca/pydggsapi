@@ -29,12 +29,19 @@ def datetime_cql_validation(datetime: str | None, cql_filter: str | None) -> Ast
     if (datetime is not None):
         datetime = datetime.split("/")
         try:
-            datetime = [date.fromisoformat(d) for d in datetime]
+            datetime = [date.fromisoformat(d) if (d != "..") else d for d in datetime]
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f'datetime format error: {e}')
+        if (len([d for d in datetime if (d == "..")]) == 2):
+            raise HTTPException(status_code=400, detail='datetime format error ".." occurs twice in the datetime parameter')
         datetime_query = f"({zone_datetime_placeholder} = '{datetime[0]}')"
         if (len(datetime) > 1):
-            datetime_query = f"(({zone_datetime_placeholder} >= '{datetime[0]}') AND ({zone_datetime_placeholder} <= '{datetime[1]}'))"
+            try:
+                idx = datetime.index("..")
+                ops = "<=" if (idx == 0) else ">="
+                datetime_query = f"({zone_datetime_placeholder} {ops} '{datetime[1-idx]}')"
+            except ValueError:
+                datetime_query = f"(({zone_datetime_placeholder} >= '{datetime[0]}') AND ({zone_datetime_placeholder} <= '{datetime[1]}'))"
         if (cql_filter is not None):
             cql_filter += f" AND {datetime_query}"
         else:
