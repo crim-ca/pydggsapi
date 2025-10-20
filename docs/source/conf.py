@@ -15,8 +15,8 @@ copyright = '2025, Wai Tik Chan, Alexander Kmoch'
 author = 'Wai Tik Chan, Alexander Kmoch'
 release = '2025'
 
-release = '0.1.6-rc1'
-version = '0.1.6-rc1'
+release = '0.1.6-rc2'
+version = '0.1.6-rc2'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
