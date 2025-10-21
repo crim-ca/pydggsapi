@@ -43,7 +43,7 @@ app = FastAPI(
 # initialize logging for Fastapi
 
 # Setting up CORS
-origins = os.environ.get('CORS', [])
+origins = json.loads(os.environ.get('CORS', '["http://localhost"]'))
 
 app.add_middleware(
     CORSMiddleware,
