@@ -8,7 +8,7 @@ from fastapi.exceptions import HTTPException
 from pygeofilter.parsers.cql_json import parse as cql_json_parser
 from pygeofilter.parsers.ecql import parse as cql_text_parser
 from pygeofilter.ast import AstType
-from datetime import date
+from datetime import datetime as dt
 import json
 from pydantic import BaseModel, conint, model_validator
 
@@ -29,7 +29,7 @@ def datetime_cql_validation(datetime: str | None, cql_filter: str | None) -> Ast
     if (datetime is not None):
         datetime = datetime.split("/")
         try:
-            datetime = [date.fromisoformat(d) if (d != "..") else d for d in datetime]
+            datetime = [dt.fromisoformat(d) if (d != "..") else d for d in datetime]
         except ValueError as e:
             raise HTTPException(status_code=400, detail=f'datetime format error: {e}')
         if (len([d for d in datetime if (d == "..")]) == 2):
