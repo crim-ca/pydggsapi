@@ -151,8 +151,7 @@
           "crim_testing": {
               "filepath": "~/Geoinformatics/Gitlab/my_local_test/pydggs_testing_dataset/crim_test_dataset/**/*.parquet",
 	     	  "id_col": "dggrid_ISEA7H",
-			  "exclude_data_cols": ["geometry"],
-			  "datetime_col": "datetime"
+			  "exclude_data_cols": ["geometry"]
           }
         }
      }

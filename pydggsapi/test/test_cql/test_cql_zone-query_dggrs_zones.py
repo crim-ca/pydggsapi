@@ -35,7 +35,7 @@ validation_zone_level_5_hexagons_gdf.set_index('name', inplace=True)
 validation_hexagons_gdf.set_index('name', inplace=True)
 validation_centroids_gdf.set_index('name', inplace=True)
 
-cql_ok = ['modelled_residential_areas_band_1 > 6']
+cql_ok = ['modelled_residential_areas <= 6']
 cql_204= ['modelled_residential_areas_band_1 > 12']
 cql_fail = ['non_exist > 4', 'non_exist $<< 12']
 
