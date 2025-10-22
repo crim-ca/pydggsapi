@@ -104,13 +104,18 @@ async def get_tiles_json(req: Request, collectionId: str):
         if (default_dggrsId in list(dggrs_provider.dggrs_conversion.keys())):
             conversion_dggrsId.append(id_)
     collection_provider = _get_collection_provider(collection_providerId)[collection_providerId]
-    fields = collection_provider.get_datadictionary(**collection_info.collection_provider.datasource_id).data
+    fields = collection_provider.get_datadictionary(collection_info.collection_provider.datasource_id).data
     baseurl = str(req.url).replace('.json', '')
     urls = [baseurl + '/{z}/{x}/{y}']
     urls += [baseurl + '/{z}/{x}/{y}?' + f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
-
+    if (collection_info.extent is None):
+        bbox = [[]]
+    elif (collection_info.extent.spatial is None):
+        bbox = [[]]
+    else:
+        bbox = collection_info.extent.spatial.bbox
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
-                        'bounds': collection_info.extent.spatial.bbox, 'description': collection_info.description, 'name': collectionId})
+                        'bounds': bbox, 'description': collection_info.description, 'name': collectionId})
 
 
 
