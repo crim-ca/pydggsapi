@@ -136,8 +136,10 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
         else:
             zoneIds = d.index.values.astype(str).tolist()
             d = d.T
-            d[d.isna()] = float('nan')
+            nan_mask = d.isna()
             v = d.values
+            if v[nan_mask].size > 0:
+                v[nan_mask] = np.nan
             diff = set(list(d.index)) - set(list(properties.keys()))
             properties.update({c: Property(**{'type': data_type[c]}) for c in diff})
             diff = set(list(d.index)) - set(list(values.keys()))

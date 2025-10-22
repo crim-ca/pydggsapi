@@ -368,6 +368,8 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             logger.warning(f'{__name__} query zones list, zone level {zone_level} is not within the collection\'s refinement level: {min_} {max_}')
             skip_collection.append(k)
     [collection.pop(k) for k in skip_collection]
+    if (len(collections) == 0):
+        raise HTTPException(status_code=400, detail=f"f'{__name__} query zones list, zone level {zone_level} is not within the collection\'s refinement level: {min_} {max_}")
     if (bbox is not None):
         try:
             bbox = box(*bbox)
@@ -419,6 +421,7 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     if (len(depth) == 2):
         depth = list(range(depth[0], depth[1] + 1))
     relative_levels = [base_level + d for d in depth]
+    skip_collection = []
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
         # if the dggrsId is not the primary dggrs supported by the collection.
@@ -427,9 +430,12 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         for z in relative_levels:
             if (z > max_):
-                logger.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
-                raise HTTPException(status_code=400,
-                                    detail=f"query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported")
+                skip_collection.append(k)
+                logger.warning(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
+    [collection.pop(k) for k in skip_collection]
+    if (len(collections) == 0):
+        raise HTTPException(status_code=400,
+                            detail=f"f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {depth} not supported")
     try:
         result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
                                  dggrs_provider, collection, collection_providers, returntype,
