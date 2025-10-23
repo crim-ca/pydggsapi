@@ -739,22 +739,23 @@ files = [
 
 [[package]]
 name = "dggrid4py"
-version = "0.4.1"
+version = "0.5.2"
 description = "a Python library to run highlevel functions of DGGRIDv7 and v8"
 optional = false
-python-versions = "<4.0.0,>=3.8"
+python-versions = "<4.0.0,>=3.9"
 groups = ["main"]
 files = [
-    {file = "dggrid4py-0.4.1-py3-none-any.whl", hash = "sha256:483e51b9464c23c871ebc18eab14d2e51b36f997da3e47824648eab9eb5ce68d"},
-    {file = "dggrid4py-0.4.1.tar.gz", hash = "sha256:253f45e436db39fc251f2068b9d2ae87bdc18de8a9535f4dbe6c4cd19addaf7e"},
+    {file = "dggrid4py-0.5.2-py3-none-any.whl", hash = "sha256:b2eab94187b02fe68d6a26451350c63dd48a4e7d948ee69f93e0bb94e9b2de35"},
+    {file = "dggrid4py-0.5.2.tar.gz", hash = "sha256:2a344a5d18273ce569a7040450ae37db4e50811507a5b1f2776dc0f6d0ba1fe0"},
 ]
 
 [package.dependencies]
 fiona = ">=1.8.0,<2.0.0"
-geopandas = ">=0.9.0,<1.1.0"
-numpy = ">=1.22.0,<2.3.0"
+geopandas = ">=0.9.0,<=1.1.0"
+numpy = ">=1.22.0,<=2.3.0"
 pandas = ">=1.4.0,<2.4.0"
-shapely = ">=1.8.0,<2.1.0"
+pygeodesy = "25.10.10"
+shapely = ">=1.8.0,<=2.1.0"
 
 [[package]]
 name = "donfig"
@@ -2169,6 +2170,18 @@ netcdf = ["netCDF4"]
 server = ["Jinja2", "PasteDeploy", "coards", "cryptography", "docopt-ng", "gsw", "gunicorn", "werkzeug (>=2.2.2)"]
 
 [[package]]
+name = "pygeodesy"
+version = "25.10.10"
+description = "Pure Python geodesy tools"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pygeodesy-25.10.10-py2.py3-none-any.whl", hash = "sha256:e0601117e8dcf30860bc1b2ef9aa285601fb76d32492bbc547eae69cc3375a41"},
+    {file = "pygeodesy-25.10.10.tar.gz", hash = "sha256:505595dd11a828e4a3ca7151b7b28804de8261645442ccd57e06ac99ce335193"},
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -3327,4 +3340,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.13"
-content-hash = "b2f770454810668bc6fed286628197b039fcdd885b31bcaa90d96b9f923c6ec9"
+content-hash = "7bffd7f9e128fc7453dd6b64dff5bd7138859d0c5530820f12947e86f0ed2aaa"
