@@ -5,15 +5,16 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder, da
 
 from typing import List, Optional, Dict, Union, Any
 from fastapi.exceptions import HTTPException
+from fastapi import Query
 import re
-from pydantic import AnyUrl, BaseModel,  model_validator
+from pydantic import AnyUrl, BaseModel, Field, model_validator
 
 support_returntype = ['application/json', 'application/zarr+zip', 'application/geo+json']
 support_geometry = ['zone-centroid', 'zone-region']
 
 
-class ZonesDataRequest(ZoneInfoRequest):
-    zone_depth: Optional[str] = None  # Field(pattern=r'', default=None)
+class ZonesDataRequest(BaseModel):
+    zone_depth: Optional[str] = Query(default=None, alias="zone-depth")  # Field(pattern=r'', default=None)
     geometry: Optional[str] = None
     filter: Optional[str] = None
     datetime: Optional[str] = None
@@ -21,7 +22,7 @@ class ZonesDataRequest(ZoneInfoRequest):
     @model_validator(mode='after')
     def validator(self):
         if (self.zone_depth is not None):
-            if (not re.match("(\d{1,2})|(\d{1,2}-\d{1,2})", self.zone_depth)):
+            if (not re.match(r"(\d{1,2})|(\d{1,2}-\d{1,2})", self.zone_depth)):
                 raise HTTPException(status_code=500, detail="depth must be either a integer or in range (int-int) format")
             zone_depth = self.zone_depth.split("-")
             try:
