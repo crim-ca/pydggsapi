@@ -411,6 +411,8 @@ async def dggrs_zones_data(req: Request,
     returngeometry = zonedataQuery.geometry if (zonedataQuery.geometry is not None) else 'zone-region'
     filter = zonedataQuery.filter
     include_datetime = True if (zonedataQuery.datetime is not None) else False
+    include_properties = zonedataQuery.properties
+    exclude_properties = zonedataQuery.exclude_properties
     # prepare zone levels from zoneId + depth
     # The first element of zone_level will be the zoneId's level, follow by the required relative depth (zoneId's level + d)
     try:
@@ -433,7 +435,7 @@ async def dggrs_zones_data(req: Request,
     try:
         result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
                                  dggrs_provider, collection, collection_providers, returntype,
-                                 returngeometry, filter, include_datetime)
+                                 returngeometry, filter, include_datetime, include_properties, exclude_properties)
         if (result is None):
             return Response(status_code=204)
         return result

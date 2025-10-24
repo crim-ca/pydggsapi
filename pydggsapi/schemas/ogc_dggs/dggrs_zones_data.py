@@ -21,9 +21,26 @@ class ZonesDataRequest(BaseModel):
             "a range (int-int) of depths, or a comma-separated list of specific depth values or ranges."
         )
     )
-    geometry: Optional[Literal['zone-centroid', 'zone-region']] = None
-    filter: Optional[str] = None
-    datetime: Optional[str] = None
+    geometry: Optional[Literal['zone-centroid', 'zone-region']] = Query(default=None)
+    filter: Optional[str] = Query(default=None)
+    datetime: Optional[str] = Query(default=None)
+    properties: Optional[str] = Query(
+        default=None,
+        pattern=r"[\w\.\-\_]+(,[\w\.\-\_]+)*",
+        description=(
+            "Comma-separated list of properties contained in the DGGS to be returned. "
+            "If not specified, all available properties are returned by default."
+        )
+    )
+    exclude_properties: Optional[str] = Query(
+        default=None,
+        alias="exclude-properties",
+        pattern=r"[\w\.\-\_]+(,[\w\.\-\_]+)*",
+        description=(
+            "Comma-separated list of properties contained in the DGGS to be returned. "
+            "If not specified, all available properties are returned by default."
+        )
+    )
 
     @model_validator(mode='after')
     def validator(self):
@@ -44,6 +61,10 @@ class ZonesDataRequest(BaseModel):
             except ValueError:
                 raise HTTPException(status_code=500, detail="depth must be integer >=0 ")
         self.datetime, self.filter = datetime_cql_validation(self.datetime, self.filter)
+        if self.properties is not None:
+            self.properties = self.properties.split(",")
+        if self.exclude_properties is not None:
+            self.exclude_properties = self.exclude_properties.split(",")
         return self
 
 
