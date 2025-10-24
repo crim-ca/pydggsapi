@@ -26,8 +26,16 @@ class AbstractCollectionProvider(ABC):
     # 5. data is the data :P
     # 6. In case of exception, return an empty CollectionProviderGetDataReturn, ie. all with []
     @abstractmethod
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
-                 cql_filter: AstType | None, include_datetime: bool = False) -> CollectionProviderGetDataReturn:
+    def get_data(
+        self,
+        zoneIds: List[str],
+        res: int,
+        datasource_id: str,
+        cql_filter: AstType | None,
+        include_datetime: bool = False,
+        include_properties: List[str] = None,
+        exclude_properties: List[str] = None,
+    ) -> CollectionProviderGetDataReturn:
         raise NotImplementedError
 
     @abstractmethod
@@ -36,4 +44,3 @@ class AbstractCollectionProvider(ABC):
 
 class DatetimeNotDefinedError(ValueError):
     pass
-

@@ -13,7 +13,7 @@ from pydggsapi.dependencies.api.utils import getCQLAttributes
 from fastapi.responses import FileResponse
 from urllib import parse
 from numcodecs import Blosc
-from typing import List, Dict
+from typing import List, Dict, Optional, Union
 from scipy.stats import mode
 from pygeofilter.ast import AstType
 import shapely
@@ -27,10 +27,21 @@ import logging
 
 logger = logging.getLogger()
 
-def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[int], dggrs_desc: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
-                    collection: Dict[str, Collection], collection_provider: List[AbstractCollectionProvider],
-                    returntype='application/dggs-json', returngeometry='zone-region',
-                    cql_filter: AstType = None, include_datetime: bool = False):
+def query_zone_data(
+    zoneId: str | int,
+    base_level: int,
+    relative_levels: List[int],
+    dggrs_desc: DggrsDescription,
+    dggrs_provider: AbstractDGGRSProvider,
+    collection: Dict[str, Collection],
+    collection_provider: List[AbstractCollectionProvider],
+    returntype='application/dggs-json',
+    returngeometry='zone-region',
+    cql_filter: AstType = None,
+    include_datetime: bool = False,
+    include_properties: Optional[List[str]] = None,
+    exclude_properties: Optional[List[str]] = None,
+) -> Optional[Union[ZonesDataDggsJsonResponse, ZonesDataGeoJson, FileResponse]]:
     logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}, relative_levels: {relative_levels}, return: {returntype}, geometry: {returngeometry}')
     # generate cell ids, geometry for relative_depth, if the first element of relative_levels equal to base_level
     # skip it, add it manually
@@ -62,6 +73,14 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
                 continue
         convert = True if (c.collection_provider.dggrsId != dggrs_desc.id and
                            c.collection_provider.dggrsId in dggrs_provider.dggrs_conversion) else False
+
+        # Prepare properties inclusion/exclusion taking into account that the names seen from API responses are
+        # prefixed by collection ID for multi-collection aggregation. Drop the prefixed collection ID to compare
+        # against the actual data, while ignoring properties not addressing that specific collection.
+        # These are passed as is afterwards since CQL2 could use different filters than properties to preserve/omit.
+        incl_props = [prop.split(".", 1)[-1] for prop in (include_properties or []) if prop.startswith(f"{cid}.")]
+        excl_props = [prop.split(".", 1)[-1] for prop in (exclude_properties or []) if prop.startswith(f"{cid}.")]
+
         # get data for all relative_levels for the currnet datasource
         for z, v in result.relative_zonelevels.items():
             g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
@@ -82,7 +101,9 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
             collection_result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
             if (converted_z >= cmin_rf):
                 try:
-                    collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter, include_datetime)
+                    collection_result = cp.get_data(
+                        idx, converted_z, datasource_id, cql_filter, include_datetime, incl_props, excl_props
+                    )
                 except DatetimeNotDefinedError:
                     pass
             logger.debug(f"{__name__} {cid} get_data done")
@@ -110,6 +131,9 @@ def query_zone_data(zoneId: str | int, base_level: int, relative_levels: List[in
                     data[z] = master
                 if 'dimensions' in collection_result.cols_meta:
                     data_col_dims.update(collection_result.cols_meta['dimensions'])
+                if include_datetime:
+                    data_col_dims.update()
+                sub_zones = len(idx)
     if (len(data.keys()) == 0):
         return None
     zarr_root, tmpfile = None, None

@@ -3,7 +3,7 @@
 # that means this module export a FastAPI router that gets mounted
 # in the main api.py under /dggs-api/v1-pre
 
-from fastapi import APIRouter, HTTPException, Depends, Request, Path
+from fastapi import APIRouter, HTTPException, Depends, Request, Path, Query
 from typing import Annotated, Optional, Dict, Union
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
@@ -400,17 +400,21 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
 
 @router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
-async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends(),
+async def dggrs_zones_data(req: Request,
+                           zonedataReq: Annotated[ZoneInfoRequest, Path()],
+                           zonedataQuery: Annotated[ZonesDataRequest, Query()],
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
                            dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)) -> ZonesDataDggsJsonResponse | FileResponse:
     returntype = _get_return_type(req, support_returntype, 'application/json')
     zoneId = zonedataReq.zoneId
-    depth = zonedataReq.zone_depth if (zonedataReq.zone_depth is not None) else [dggrs_description.defaultDepth]
-    returngeometry = zonedataReq.geometry if (zonedataReq.geometry is not None) else 'zone-region'
-    filter = zonedataReq.filter
-    include_datetime = True if (zonedataReq.datetime is not None) else False
+    depth = zonedataQuery.zone_depth if (zonedataQuery.zone_depth is not None) else [dggrs_description.defaultDepth]
+    returngeometry = zonedataQuery.geometry if (zonedataQuery.geometry is not None) else 'zone-region'
+    filter = zonedataQuery.filter
+    include_datetime = True if (zonedataQuery.datetime is not None) else False
+    include_properties = zonedataQuery.properties
+    exclude_properties = zonedataQuery.exclude_properties
     # prepare zone levels from zoneId + depth
     # The first element of zone_level will be the zoneId's level, follow by the required relative depth (zoneId's level + d)
     try:
@@ -418,8 +422,6 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     except Exception as e:
         logger.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
-    if (len(depth) == 2):
-        depth = list(range(depth[0], depth[1] + 1))
     relative_levels = [base_level + d for d in depth]
     skip_collection = []
     for k, v in collection.items():
@@ -439,7 +441,7 @@ async def dggrs_zones_data(req: Request, zonedataReq: ZonesDataRequest = Depends
     try:
         result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
                                  dggrs_provider, collection, collection_providers, returntype,
-                                 returngeometry, filter, include_datetime)
+                                 returngeometry, filter, include_datetime, include_properties, exclude_properties)
         if (result is None):
             return Response(status_code=204)
         return result
