@@ -131,6 +131,9 @@ def query_zone_data(
                     data[z] = master
                 if 'dimensions' in collection_result.cols_meta:
                     data_col_dims.update(collection_result.cols_meta['dimensions'])
+                if include_datetime:
+                    data_col_dims.update()
+                sub_zones = len(idx)
     if (len(data.keys()) == 0):
         return None
     zarr_root, tmpfile = None, None
