@@ -418,8 +418,6 @@ async def dggrs_zones_data(req: Request,
     except Exception as e:
         logger.error(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
         raise HTTPException(status_code=500, detail=f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} get zone level error: {e}')
-    if (len(depth) == 2):
-        depth = list(range(depth[0], depth[1] + 1))
     relative_levels = [base_level + d for d in depth]
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
