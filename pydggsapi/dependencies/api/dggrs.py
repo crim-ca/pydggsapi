@@ -11,11 +11,20 @@ logger = logging.getLogger()
 
 
 def get_conformance_classes():
-    return ["https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/landing-page",
-            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/core",
-            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-query",
-            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-retrieval",
-            "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/collection-dggs"]
+    return [
+        "https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/landing-page",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/core",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/root-dggs",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/collection-dggs",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-query",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-query-cql2-filter",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-custom-depths",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-retrieval",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-cql2-filter",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-json",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-geojson",
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-zarr",
+    ]
 
 
 def _checkIfTableExists():
