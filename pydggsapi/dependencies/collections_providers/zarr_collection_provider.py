@@ -43,7 +43,9 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             raise Exception(f'{__name__} create datasource failed: {e}')
 
     def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
-                 cql_filter: AstType = None, include_datetime: bool = False) -> CollectionProviderGetDataReturn:
+                 cql_filter: AstType = None, include_datetime: bool = False,
+                 include_properties: List[str] = None,
+                 exclude_properties: List[str] = None) -> CollectionProviderGetDataReturn:
         datatree = None
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
@@ -72,10 +74,17 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                 ds = datatree.to_dataset().chunk('auto')
                 ctx.from_dataset('ds', ds)
                 if ("*" in datasource.data_cols):
-                    cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
+                    incl = ",".join(include_properties) if include_properties else "*"
+                    excl = datasource.exclude_data_cols or []
+                    excl.extend(exclude_properties or [])
+                    cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
                 else:
-                    cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
-                    cols = f"{','.join(cols_intersection)}, {id_col}"
+                    incl = cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+                    if include_properties:
+                        incl &= set(include_properties)
+                    if exclude_properties:
+                        incl -= set(exclude_properties)
+                    cols = f"{','.join(incl)}, {id_col}"
                 sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({cql_sql}) """
                 zarr_result = xr.Dataset.from_dataframe(ctx.sql(sql).to_pandas().set_index(id_col))
             else:
@@ -103,5 +112,3 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         datatree = datatree.filehandle[list(datatree.zone_groups.values())[0]]
         data = {i[0]: str(i[1].dtype) for i in datatree.data_vars.items()}
         return CollectionProviderGetDataDictReturn(data=data)
-
-
