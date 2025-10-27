@@ -72,6 +72,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             raise Exception(f'{__name__} {datasource_id} not found: {e}.')
         datatree = datatree.filehandle[list(datatree.zone_groups.values())[0]]
         data = {i[0]: str(i[1].dtype) for i in datatree.data_vars.items()}
+        data.update({'zone_id': 'string'})
         return CollectionProviderGetDataDictReturn(data=data)
 
 
