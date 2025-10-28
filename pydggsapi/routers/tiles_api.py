@@ -103,11 +103,11 @@ async def get_tiles_json(req: Request, collectionId: str):
     baseurl = str(req.url).replace('.json', '')
     urls = [baseurl + '/{z}/{x}/{y}']
     if (collection_info.extent is None):
-        bbox = [[]]
+        bbox = []
     elif (collection_info.extent.spatial is None):
-        bbox = [[]]
+        bbox = []
     else:
-        bbox = collection_info.extent.spatial.bbox
+        bbox = collection_info.extent.spatial.bbox[0]
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
                         'bounds': bbox, 'description': collection_info.description, 'name': collectionId})
 

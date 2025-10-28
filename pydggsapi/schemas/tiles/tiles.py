@@ -22,6 +22,6 @@ class TilesJSON(BaseModel):
     tilejson: str
     tiles: List[str]
     vector_layers: List[VectorLayer]
-    bounds: List[List[float]]
+    bounds: List[float]
     description: str
     name: str
