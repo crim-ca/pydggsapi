@@ -17,6 +17,11 @@ class AbstractDGGRSProvider(ABC):
     dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
 
     @abstractmethod
+    # return unit km
+    def get_cls_by_zone_level(self, zone_level: int) -> float:
+        raise NotImplementedError
+
+    @abstractmethod
     def get_zone_level_by_cls(self, cls_km: float) -> int:
         raise NotImplementedError
 

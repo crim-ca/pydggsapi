@@ -95,10 +95,14 @@ class IGEO7Provider(AbstractDGGRSProvider):
         gdf = self.dggrid_instance.grid_cellids_for_extent(self.dggrs, zoomlevel, clip_geom=clip_geom, **self.address_params)
         return gdf
 
+    def get_cls_by_zone_level(self, zone_level: int):
+        return self.data[zone_level]["CLS (km)"]
+
     def get_zone_level_by_cls(self, cls_km: float):
         for k, v in self.data.items():
             if v["CLS (km)"] < cls_km:
                 return k
+
 
     def get_cells_zone_level(self, cellIds: List[str]):
         try:

@@ -196,6 +196,10 @@ async def list_collections(req: Request, response_model=ogc_Collections):
                     title="DGGS list"
                 )
             ]
+            dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
+            min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
+            collection.minScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(max_rf)*1000) / 0.00028)
+            collection.maxScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(min_rf)*1000) / 0.00028)
             collection.links = collection_links
             collection.__class__ = ogc_CollectionDesc
             collectionsResponse.collections.append(collection)
@@ -229,6 +233,10 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
                 title="DGGS list"
             )
         ]
+        dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
+        min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
+        collection.minScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(max_rf)*1000) / 0.00028)
+        collection.maxScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(min_rf)*1000) / 0.00028)
         collection.links = collection_links
         collection.__class__ = ogc_CollectionDesc
 
