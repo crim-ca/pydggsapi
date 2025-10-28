@@ -51,7 +51,6 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     collection_provider = _get_collection_provider(collection.collection_provider.providerId)[collection.collection_provider.providerId]
     ds = collection_provider.datasources[collection.collection_provider.datasource_id]
     id_col = getattr(ds,"id_col", "zone_id")
-
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
     res_info = mercator.get(tile.z)
     tile_width_km = float(res_info["Tile width deg lons"]) / 0.01 * 0.4  # in tile_width_km
@@ -63,15 +62,12 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     if zone_level > collection.collection_provider.max_refinement_level:
         zone_level = collection.collection_provider.max_refinement_level
     if zone_level < collection.collection_provider.min_refinement_level:
-        zone_level = collection.collection_provider.min_refinement_level
-
-    logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
-    zoneslist = dggrs_provider.zoneslist(clip_bound, zone_level, parent_zone=None, returngeometry='zone-region', compact=False)
-    if (len(zoneslist.zones) == 0):
         content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": []},
                                             quantize_bounds=bbox,
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
+    logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
+    zoneslist = dggrs_provider.zoneslist(clip_bound, zone_level, parent_zone=None, returngeometry='zone-region', compact=False)
     geometry = [shapely.from_geojson(json.dumps(g.__dict__)) for g in zoneslist.geometry]
     zoneslist = gpd.GeoDataFrame({'zone_id': zoneslist.zones}, geometry=geometry).set_index('zone_id')
     zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level, collection.collection_provider.datasource_id)
