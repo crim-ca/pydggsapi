@@ -7,20 +7,19 @@ from typing import Annotated
 
 from pydggsapi.schemas.tiles.tiles import TilesRequest, TilesJSON
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest
 
 from pydggsapi.dependencies.api.mercator import Mercator
-from pydggsapi.routers.dggs_api import _get_collection, _get_dggrs_provider, list_dggrs_zones, dggrs_zones_data, _get_dggrs_description
+from pydggsapi.routers.dggs_api import _get_collection, _get_dggrs_provider
 from pydggsapi.routers.dggs_api import _get_collection_provider
 from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
 
-from starlette.datastructures import MutableHeaders
-from urllib.parse import urlparse
 import nest_asyncio
 import pyproj
 import json
 import shapely
-from shapely.geometry import box, shape
+from shapely.geometry import box
 from shapely.ops import transform
 import geopandas as gpd
 import mapbox_vector_tile
@@ -50,7 +49,7 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     collection = collection_info[tilesreq.collectionId]
     collection_provider = _get_collection_provider(collection.collection_provider.providerId)[collection.collection_provider.providerId]
     ds = collection_provider.datasources[collection.collection_provider.datasource_id]
-    id_col = getattr(ds,"id_col", "zone_id")
+    id_col = getattr(ds, "id_col", "zone_id")
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
     res_info = mercator.get(tile.z)
     tile_width_km = float(res_info["Tile width deg lons"]) / 0.01 * 0.4  # in tile_width_km
@@ -110,10 +109,3 @@ async def get_tiles_json(req: Request, collectionId: str):
         bbox = collection_info.extent.spatial.bbox[0]
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
                         'bounds': bbox, 'description': collection_info.description, 'name': collectionId})
-
-
-
-
-
-
-
