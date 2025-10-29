@@ -110,4 +110,5 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} get_datadictionary failed : {e}')
             raise Exception(f'{__name__} datasource_id not found: {datasource_id}')
         data = {r[0]: r[1] for r in db_result if (r[0] in datasource.data_cols)}
+        data.update({'zone_id': 'string'})
         return CollectionProviderGetDataDictReturn(data=data)

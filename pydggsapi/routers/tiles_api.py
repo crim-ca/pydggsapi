@@ -11,19 +11,17 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest
 
 from pydggsapi.dependencies.api.mercator import Mercator
-from pydggsapi.routers.dggs_api import _get_collection, _get_dggrs_provider, list_dggrs_zones, dggrs_zones_data, _get_dggrs_description
+from pydggsapi.routers.dggs_api import _get_collection, _get_dggrs_provider
 from pydggsapi.routers.dggs_api import _get_collection_provider
 from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
 
-from starlette.datastructures import MutableHeaders
-from urllib.parse import urlparse
-import asyncio
 import nest_asyncio
 import pyproj
 import json
 import shapely
-from shapely.geometry import box, shape
+from shapely.geometry import box
 from shapely.ops import transform
+import geopandas as gpd
 import mapbox_vector_tile
 import logging
 # logging.basicConfig(format='%(asctime)s.%(msecs)03d %(levelname)s {%(module)s} [%(funcName)s] %(message)s',
@@ -46,49 +44,43 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     logger.debug(f'{__name__} tiles info: {tilesreq.collectionId} {tilesreq.dggrsId} {tilesreq.z} {tilesreq.x} {tilesreq.y}')
     collection_info = _get_collection(tilesreq.collectionId, tilesreq.dggrsId if (tilesreq.dggrsId != '') else None)
     tilesreq.dggrsId = tilesreq.dggrsId if (tilesreq.dggrsId != '') else collection_info[tilesreq.collectionId].collection_provider.dggrsId
-    dggrs = _get_dggrs_provider(tilesreq.dggrsId)
     collection = collection_info[tilesreq.collectionId]
-
+    dggrs_provider = _get_dggrs_provider(tilesreq.dggrsId)
+    collection = collection_info[tilesreq.collectionId]
+    collection_provider = _get_collection_provider(collection.collection_provider.providerId)[collection.collection_provider.providerId]
+    ds = collection_provider.datasources[collection.collection_provider.datasource_id]
+    id_col = getattr(ds, "id_col", "zone_id")
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
     res_info = mercator.get(tile.z)
     tile_width_km = float(res_info["Tile width deg lons"]) / 0.01 * 0.4  # in tile_width_km
-    zone_level = dggrs.get_zone_level_by_cls(tile_width_km)
+    zone_level = dggrs_provider.get_zone_level_by_cls(tile_width_km)
     if (tilesreq.relative_depth != 0):
         zone_level += tilesreq.relative_depth
     clip_bound = box(bbox.left, bbox.bottom, bbox.right, bbox.top)
-    clip_bound = shapely.total_bounds(transform(project, clip_bound))
+    clip_bound = transform(project, clip_bound)
     if zone_level > collection.collection_provider.max_refinement_level:
         zone_level = collection.collection_provider.max_refinement_level
     if zone_level < collection.collection_provider.min_refinement_level:
-        zone_level = collection.collection_provider.min_refinement_level
-
-    logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
-    zonesReq = ZonesRequest(collectionId=tilesreq.collectionId, dggrsId=tilesreq.dggrsId, zone_level=zone_level,
-                            compact_zone=False, bbox=clip_bound)
-    collection_provider = _get_collection_provider(collection.collection_provider.providerId)
-    zones_id_response = await list_dggrs_zones(req, zonesReq, _get_dggrs_description(tilesreq.dggrsId), dggrs,
-                                               collection_info, collection_provider)
-    if (type(zones_id_response) is Response):
         content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": []},
                                             quantize_bounds=bbox,
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
-    logger.info(f'{__name__} zones id list length: {len(zones_id_response.zones)}')
-    new_header = MutableHeaders(req._headers)
-    new_header['accept'] = 'application/geo+json'
-    req._headers = new_header
-    req.scope.update(headers=req.headers.raw)
-    features = []
-    tasks = []
-    loop = asyncio.get_event_loop()
-    for zoneid in zones_id_response.zones:
-        zoneinfo = ZoneInfoRequest(zoneId=zoneid, dggrsId=tilesreq.dggrsId, )
-        zonedatareq = ZonesDataRequest(collectionId=tilesreq.collectionId, depth="0")
-        tasks.append(dggrs_zones_data(req, zoneinfo, zonedatareq,  _get_dggrs_description(tilesreq.dggrsId),
-                     dggrs, collection_info, collection_provider))
-    tasks = loop.run_until_complete(asyncio.gather(*tasks))
-    features = [{'geometry': shapely.from_geojson(json.dumps(i.geometry.__dict__)), 'properties': i.properties}
-                for t in tasks if (type(t) is not Response) for i in t.features]
+    logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
+    zoneslist = dggrs_provider.zoneslist(clip_bound, zone_level, parent_zone=None, returngeometry='zone-region', compact=False)
+    geometry = [shapely.from_geojson(json.dumps(g.__dict__)) for g in zoneslist.geometry]
+    zoneslist = gpd.GeoDataFrame({'zone_id': zoneslist.zones}, geometry=geometry).set_index('zone_id')
+    zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level, collection.collection_provider.datasource_id)
+    if (len(zones_data.zoneIds) == 0):
+        content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": []},
+                                            quantize_bounds=bbox,
+                                            default_options={"transformer": transformer.transform})
+        return Response(bytes(content), media_type="application/x-protobuf")
+    zones_data = gpd.GeoDataFrame(zones_data.data, index=zones_data.zoneIds, columns=list(zones_data.cols_meta.keys()))
+    zones_data = zones_data.join(zoneslist).reset_index(names=id_col)
+    geometry = zones_data['geometry'].values
+    zones_data = zones_data.drop(columns='geometry')
+    features = zones_data.to_dict(orient='records')
+    features = [{'geometry': geometry[i], 'properties': f} for i, f in enumerate(features)]
     content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": features},
                                         quantize_bounds=bbox,
                                         default_options={"transformer": transformer.transform})
@@ -109,12 +101,11 @@ async def get_tiles_json(req: Request, collectionId: str):
     fields = collection_provider.get_datadictionary(collection_info.collection_provider.datasource_id).data
     baseurl = str(req.url).replace('.json', '')
     urls = [baseurl + '/{z}/{x}/{y}']
-    urls += [baseurl + '/{z}/{x}/{y}?' + f'dggrsId={dggrsId}' for dggrsId in conversion_dggrsId]
     if (collection_info.extent is None):
-        bbox = [[]]
+        bbox = []
     elif (collection_info.extent.spatial is None):
-        bbox = [[]]
+        bbox = []
     else:
-        bbox = collection_info.extent.spatial.bbox
+        bbox = collection_info.extent.spatial.bbox[0]
     return TilesJSON(**{'tilejson': '3.0.0', 'tiles': urls, 'vector_layers': [{'id': collectionId, 'fields': fields}],
                         'bounds': bbox, 'description': collection_info.description, 'name': collectionId})

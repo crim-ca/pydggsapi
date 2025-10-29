@@ -59,6 +59,9 @@ class H3Provider(AbstractDGGRSProvider):
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
 
+    def get_cls_by_zone_level(self, zone_level) -> float:
+        return h3.average_hexagon_edge_length(zone_level, unit='km')
+
     def get_zone_level_by_cls(self, cls_km) -> int:
         for i in range(0, 16):
             length = h3.average_hexagon_edge_length(i, unit='km')
