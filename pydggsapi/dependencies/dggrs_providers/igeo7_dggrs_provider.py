@@ -58,7 +58,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
         }
 
     def convert(self, zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
-        pass
+        raise NotImplementedError
 
     def get(self, zoom):
         # zoom must be integer and between 0 and 15 inclusive
@@ -94,6 +94,12 @@ class IGEO7Provider(AbstractDGGRSProvider):
     def cellids_from_extent(self, clip_geom, zoomlevel):
         gdf = self.dggrid_instance.grid_cellids_for_extent(self.dggrs, zoomlevel, clip_geom=clip_geom, **self.address_params)
         return gdf
+
+    def zoneId_str2int(self, cellIds: list) -> list:
+        raise NotImplementedError
+
+    def zoneId_int2str(self, cellIds: list) -> list:
+        raise NotImplementedError
 
     def get_cls_by_zone_level(self, zone_level: int):
         return self.data[zone_level]["CLS (km)"]

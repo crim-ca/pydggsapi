@@ -27,7 +27,7 @@ class H3Provider(AbstractDGGRSProvider):
         igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
         self.dggrs_conversion = {'igeo7': igeo7_conversion_properties}
 
-    def convert(self, zoneIds: list, targetdggrs: str):
+    def convert(self, zoneIds: list, targetdggrs: str, zone_repr: str='str'):
         if (targetdggrs in self.dggrs_conversion):
             if (targetdggrs == 'igeo7'):
                 igeo7 = IGEO7Provider()
@@ -47,6 +47,8 @@ class H3Provider(AbstractDGGRSProvider):
                         r = igeo7.generate_hexcentroid(shapely.box(*res[1].bounds), res[0])
                         selection = [shapely.within(g, res[1]) for g in r['geometry']]
                         selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
+                        if (zone_repr == 'int'):
+                            selection = igeo7.zone_str2int(selection)
                         target_zoneIds += selection
                         v_ids += [zoneIds[i]] * len(selection)
                         target_res_list += [res[0]] * len(selection)
@@ -58,6 +60,17 @@ class H3Provider(AbstractDGGRSProvider):
                 return DGGRSProviderConversionReturn(zoneIds=v_ids, target_zoneIds=target_zoneIds, target_res=target_res_list)
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
+
+    def zoneId_str2int(self, cellIds: list) -> list:
+        if (len(zoneIds) == 0):
+            return []
+        return [h3.str_to_int(z) for z in cellIds]
+
+    def zoneId_int2str(self, cellIds: list) -> list:
+        if (len(zoneIds) == 0):
+            return []
+        return [h3.int_to_str(z) for z in cellIds]
+
 
     def get_cls_by_zone_level(self, zone_level) -> float:
         return h3.average_hexagon_edge_length(zone_level, unit='km')

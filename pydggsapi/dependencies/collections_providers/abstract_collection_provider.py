@@ -4,7 +4,7 @@ from pydggsapi.schemas.api.collection_providers import (
 )
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Literal
 from pygeofilter.ast import AstType
 
 
@@ -14,6 +14,7 @@ class AbstractDatasourceInfo(ABC):
     exclude_data_cols: List[str] = field(default_factory=list)
     zone_groups: Optional[Dict[str, str]] = field(default_factory=dict)
     datetime_col: str = None
+    zone_id_repr: Literal['int', 'str'] = 'str'
 
 
 class AbstractCollectionProvider(ABC):
