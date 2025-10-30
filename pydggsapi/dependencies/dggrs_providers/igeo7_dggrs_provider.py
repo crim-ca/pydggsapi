@@ -40,7 +40,6 @@ class IGEO7Metadata():
 
 @dataclass
 class IGEO7Properties(IGEO7Metadata):
-    dggrs: str = 'IGEO7'
     geodetic_conversion: bool = True
 
 
@@ -68,6 +67,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
             14: {"Cells": 6782230728492, "Area (km^2)": 0.0000752, "CLS (km)": 0.0097855},
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
+        self.dggrs = 'IGEO7'
         self.properties = IGEO7Properties(**param)
         self.properties.__class__ = IGEO7Metadata
 
@@ -85,28 +85,29 @@ class IGEO7Provider(AbstractDGGRSProvider):
 
     def generate_hexgrid(self, bbox, resolution):
         # ISEA7H grid at resolution, for extent of provided WGS84 rectangle into GeoDataFrame
-        gdf = self.dggrid_instance.grid_cell_polygons_for_extent(self.properties.dggrs, resolution, clip_geom=bbox, **self.properties)
+
+        gdf = self.dggrid_instance.grid_cell_polygons_for_extent(self.dggrs, resolution, clip_geom=bbox, **self.properties)
         return gdf
 
     def generate_hexcentroid(self, bbox, resolution):
         # ISEA7H grid at resolution, for extent of provided WGS84 rectangle into GeoDataFrame
-        gdf = self.dggrid_instance.grid_cell_centroids_for_extent(self.properties.dggrs, resolution, clip_geom=bbox, **self.properties)
+        gdf = self.dggrid_instance.grid_cell_centroids_for_extent(self.dggrs, resolution, clip_geom=bbox, **self.properties)
         return gdf
 
     def centroid_from_cellid(self, cellid: list, zone_level):
-        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, self.properties.dggrs, zone_level, **self.properties)
+        gdf = self.dggrid_instance.grid_cell_centroids_from_cellids(cellid, self.dggrs, zone_level, **self.properties)
         return gdf
 
     def hexagon_from_cellid(self, cellid: list, zone_level):
-        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, self.properties.dggrs, zone_level, **self.properties)
+        gdf = self.dggrid_instance.grid_cell_polygons_from_cellids(cellid, self.dggrs, zone_level, **self.properties)
         return gdf
 
     def cellid_from_centroid(self, geodf_points_wgs84, zoomlevel):
-        gdf = self.dggrid_instance.cells_for_geo_points(geodf_points_wgs84, True, self.properties.dggrs, zoomlevel, **self.properties)
+        gdf = self.dggrid_instance.cells_for_geo_points(geodf_points_wgs84, True, self.dggrs, zoomlevel, **self.properties)
         return gdf
 
     def cellids_from_extent(self, clip_geom, zoomlevel):
-        gdf = self.dggrid_instance.grid_cellids_for_extent(self.properties.dggrs, zoomlevel, clip_geom=clip_geom, **self.properties)
+        gdf = self.dggrid_instance.grid_cellids_for_extent(self.dggrs, zoomlevel, clip_geom=clip_geom, **self.properties)
         return gdf
 
     def get_cls_by_zone_level(self, zone_level: int):
@@ -132,7 +133,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:
             for z in zone_levels:
-                gdf = method([cellId], self.properties.dggrs, z, clip_subset_type='COARSE_CELLS', clip_cell_res=base_level,
+                gdf = method([cellId], self.dggrs, z, clip_subset_type='COARSE_CELLS', clip_cell_res=base_level,
                              **self.properties)
                 g = [geojson(**shapely.geometry.mapping(g)) for g in gdf['geometry'].values.tolist()]
                 children[z] = DGGRSProviderZonesElement(**{'zoneIds': gdf['name'].astype(str).values.tolist(),
@@ -173,7 +174,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
         if (parent_zone is not None):
             try:
                 parent_zone_level = self.get_cells_zone_level([parent_zone])[0]
-                childern_hex_gdf = self.dggrid_instance.grid_cell_polygons_from_cellids([parent_zone], self.properties.dggrs, zone_level,
+                childern_hex_gdf = self.dggrid_instance.grid_cell_polygons_from_cellids([parent_zone], self.dggrs, zone_level,
                                                                                         clip_subset_type='COARSE_CELLS',
                                                                                         clip_cell_res=parent_zone_level,
                                                                                         **self.properties)
