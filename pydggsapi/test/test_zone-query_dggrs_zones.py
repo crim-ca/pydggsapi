@@ -4,14 +4,14 @@ import pytest
 from importlib import reload
 import os
 from pprint import pprint
-from dggrid4py import DGGRIDv7
+from dggrid4py import DGGRIDv8
 import tempfile
 import shapely
 import json
 import geopandas as gpd
 
 working = tempfile.mkdtemp()
-dggrid = DGGRIDv7(os.environ['DGGRID_PATH'], working_dir=working, silent=True)
+dggrid = DGGRIDv8(os.environ['DGGRID_PATH'], working_dir=working, silent=True)
 
 aoi = [[25.329803558251513, 58.634545591972696],
        [25.329803558251513, 57.99111013411327],
@@ -61,13 +61,13 @@ def test_zone_query_dggrs_zones():
     print("Fail test case with dggs zone query (igeo7 , no params)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones')
     pprint(response.json())
-    assert "Either bbox or parnet must be set" in response.text
+    assert "Either bbox or parent-zone must be set" in response.text
     assert response.status_code == 400
 
     print("Fail test case with dggs zone query (igeo7 , bbox with len!=4)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": "2,3,4"})
     pprint(response.json())
-    assert "bbox lenght is not equal to 4" in response.text
+    assert "bbox length is not equal to 4" in response.text
     assert response.status_code == 400
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, compact=False)")
@@ -94,6 +94,14 @@ def test_zone_query_dggrs_zones():
     assert len(validation_zones_list) == len(return_zones_list)
     assert all([validation_zones_list[i] == z for i, z in enumerate(return_zones_list)])
     assert response.status_code == 200
+
+    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=2, compact=False)")
+    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'zone_level': 2, 'compact_zone': False})
+    #pprint(response.json())
+    #zones = ZonesResponse(**response.json())
+    #return_zones_list = zones.zones
+    #assert len(return_zones_list) > 0
+    assert response.status_code == 204
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},

@@ -59,6 +59,9 @@ class H3Provider(AbstractDGGRSProvider):
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
 
+    def get_cls_by_zone_level(self, zone_level) -> float:
+        return h3.average_hexagon_edge_length(zone_level, unit='km')
+
     def get_zone_level_by_cls(self, cls_km) -> int:
         for i in range(0, 16):
             length = h3.average_hexagon_edge_length(i, unit='km')
@@ -76,7 +79,7 @@ class H3Provider(AbstractDGGRSProvider):
             raise Exception(f'{__name__} zone id {cellIds} failed: {e}')
 
     def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int],
-                                geometry: str) -> DGGRSProviderGetRelativeZoneLevelsReturn:
+                                geometry="zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
         children = {}
         geometry = geometry.lower()
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
@@ -120,13 +123,13 @@ class H3Provider(AbstractDGGRSProvider):
             geometry = [self._cell_to_shapely(z, returngeometry) for z in compactIds]
             hex_gdf = gpd.GeoDataFrame({'zoneIds': compactIds}, geometry=geometry, crs='wgs84').set_index('zoneIds')
             logger.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
-        returnedAreaMetersSquare = sum([h3.cell_area(z, 'm^2') for z in hex_gdf.index.values])
+        area = [h3.cell_area(z, 'm^2') for z in hex_gdf.index.values]
         geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
         geometry = [geotype(**eval(shapely.to_geojson(g))) for g in hex_gdf['geometry'].values.tolist()]
         hex_gdf.reset_index(inplace=True)
         return DGGRSProviderZonesListReturn(**{'zones': hex_gdf['zoneIds'].values.astype(str).tolist(),
                                                'geometry': geometry,
-                                               'returnedAreaMetersSquare': returnedAreaMetersSquare})
+                                               'returnedAreaMetersSquare': area})
 
     def zonesinfo(self, cellIds: list) -> DGGRSProviderZoneInfoReturn:
         centroid = []

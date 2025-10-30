@@ -4,52 +4,26 @@
       "suitability_hytruck": {
         "title": "Suitability Modelling for Hytruck",
         "description": "Desc",
-		"bonds": [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125],
+		"extent": {"spatial": {"bbox":[ [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125] ] }} ,
         "collection_provider": {
           "providerId": "clickhouse",
           "dggrsId": "igeo7",
-          "maxzonelevel": 9,
-          "getdata_params": {
-            "table": "<table name>",
-            "zoneId_cols": {
-              "9": "column of refinement level 9",
-              "8": "column of refinement level 8", 
-              "7": "column of refinement level 7",
-              "6": "column of refinement level 6",
-              "5": "column of refinement level 5"
-            },
-            "data_cols": [
-              "data column names"
-            ]
-          }
+          "min_refinement_level": 5,
+          "max_refinement_level": 9,
+		  "datasource_id": "hytruck_clickhousre"
         }
       }
     },
     "2": {
-      "suitability_hytruck_zarr": {
-        "title": "Suitability Modelling for Hytruck in Zarr format",
-        "description": "Desc",
-        "collection_provider": {
-          "providerId": "zarr",
-          "dggrsId": "igeo7",
-          "maxzonelevel": 9,
-          "getdata_params": {
-            "datasource_id": "zarr_hytruck"
-          }
-        }
-      }
-    },
-    "3": {
       "suitability_hytruck_parquet": {
         "title": "Suitability Modelling for Hytruck in parquet format",
         "description": "Desc",
         "collection_provider": {
           "providerId": "parquet",
           "dggrsId": "igeo7",
-          "maxzonelevel": 9,
-          "getdata_params": {
-            "datasource_id": "hytruck"
-          }
+          "min_refinement_level": 5,
+          "max_refinement_level": 7,
+          "datasource_id": "hytruck"
         }
       }
     }
@@ -82,23 +56,36 @@
     "1": {
       "clickhouse": {
         "classname": "clickhouse_collection_provider.ClickhouseCollectionProvider",
-        "initial_params": {
-          "host": "127.0.0.1",
-          "user": null,
-          "password": null,
-          "port": 9000,
-          "database": "DevelopmentTesting"
-        }
+        "datasources": {
+			"connection":{
+			  "host": "127.0.0.1",
+			  "user": null,
+			  "password": null,
+			  "port": 9000,
+			  "database": "DevelopmentTesting"
+        	},
+			"hytruck_clickhouse":{
+				"table": "<table name>",
+				"zoneId_cols": {
+				  "9": "column of refinement level 9",
+				  "8": "column of refinement level 8", 
+				  "7": "column of refinement level 7",
+				  "6": "column of refinement level 6",
+				  "5": "column of refinement level 5"
+				},
+				"exclude_data_cols": ["list of column names excluded from the query"],
+				"data_cols": [ "list of column names"],
+			    "datetime_col": "column_name_of_datetime"
+			}
       }
     },
     "2": {
       "zarr": {
         "classname": "zarr_collection_provider.ZarrCollectionProvider",
-        "initial_params": {
           "datasources": {
             "zarr_hytruck": {
               "filepath": "./aggregated_tree.zarr",
-              "zones_grps": {
+              "zone_groups": {
                 "4": "res4",
                 "5": "res5",
                 "6": "res6"
@@ -106,21 +93,19 @@
             }
           }
         }
-      }
     },
     "3": {
       "parquet": {
         "classname": "parquet_collection_provider.ParquetCollectionProvider",
-        "initial_params": {
           "datasources": {
             "hytruck": {
               "filepath": "<local file path or path of a cloud bucket>",
 			  "id_col": "cell_ids",
-			  "data_cols": ["*"]
+			  "data_cols": ["*"],
+			  "datetime_col": "column_name_of_datetime"
             }
           }
         }
       }
-    }
   }
 }

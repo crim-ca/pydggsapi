@@ -3,9 +3,9 @@ LABEL description.short="DGGS API"
 LABEL description.long="OGC API for DGGS (Discretized Global Grid System) data management and processing."
 LABEL maintainer="Francis Charette-Migneault <francis.charette-migneault@crim.ca>"
 LABEL vendor="CRIM"
-LABEL version="0.1.4"
+LABEL version="0.1.5"
 
-ARG DGGRID_VERSION=8.41
+ARG DGGRID_VERSION=8.42
 
 # setup paths
 ENV APP_DIR=/opt/local/src/pydggsapi
@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     # install project python packages
     && pip install poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-directory \
+    && poetry install --no-root --no-directory -v \
     # cleanup
     && apt-get remove -y \
         gcc \

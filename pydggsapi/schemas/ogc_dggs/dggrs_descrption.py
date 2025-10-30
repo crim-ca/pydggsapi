@@ -17,7 +17,7 @@ class DggrsDescription(BaseModel):
     )
     title: str = Field(
         ...,
-        description='Title of this Discrete Global Grid Rfeference System, intended for displaying to a human',
+        description='Title of this Discrete Global Grid Reference System, intended for displaying to a human',
     )
     description: str = Field(
         ...,

@@ -4,13 +4,13 @@ import pytest
 from importlib import reload
 import os
 from pprint import pprint
-from dggrid4py import DGGRIDv7
+from dggrid4py import DGGRIDv8
 import tempfile
 import shapely
 import json
 
 working = tempfile.mkdtemp()
-dggrid = DGGRIDv7(os.environ['DGGRID_PATH'], working_dir=working, silent=True)
+dggrid = DGGRIDv8(os.environ['DGGRID_PATH'], working_dir=working, silent=True)
 cellids = ['0001022010', '0001022011', '0001022012']
 non_exists = ['055266135']
 validation_hexagons_gdf = dggrid.grid_cell_polygons_from_cellids(cellids, 'IGEO7', 8, input_address_type='Z7_STRING', output_address_type='Z7_STRING')
@@ -40,9 +40,6 @@ def test_core_dggs_zoneinfo():
     assert "not supported" in response.text
     assert response.status_code == 400
 
-    os.environ['dggs_api_config'] = './dggs_api_config.json'
-    app = reload(pydggsapi.api).app
-    client = TestClient(app)
     print(f"Success test case with dggs zone info (igeo7 {cellids[0]})")
     response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}')
     pprint(response.json())

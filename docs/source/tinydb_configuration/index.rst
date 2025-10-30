@@ -20,6 +20,10 @@ Generally, users mostly work with the ``collections`` table to publish collectio
 Developers implementing new DGGRS and collection providers must register them in the tables ``dggrs`` or ``collections_providers`` with a unique ID such that they can be referenced in the collections table. 
 
 
+.. literalinclude:: ../../../dggs_api_config_example.json
+   :language: json
+   :caption: Example of dggs_api_config.yaml
+
 .. _collections:
 
 collections
@@ -51,21 +55,19 @@ The dictionary associated with the collection ID defines metadata and methods to
 
 1. ``collections ID``:  The unique ID for the collection.
 
-2. metadata:  ``title``, ``description``
+2. metadata:  ``title``, ``description``, ``extent`` etc. Attributes describing a collection. The definition follows the collection-description from `OGC API Common - Part2 <https://docs.ogc.org/DRAFTS/20-024.html#collection-description>`_.
 
-3. ``bonds``: the extent of the dataset in a list of four wgs84 coordinates in the form of [xmin,ymin,xmax,ymax], default to ``[]``
-
-4. ``collection_provider``: a dictionary that describes how to access the data.
+3. ``collection_provider``: a dictionary that describes how to access the data.
 
    - ``providerId``: :ref:`the collection provider ID  <collection_providers>`
 
    - ``dggrsId``: :ref:`the dggrs provider ID <dggrs>`
    
-   - ``maxzonelevel``: the maximum refinement level of the data. 
+   - ``max_refinement_level``: the maximum refinement level(the finest) of the data. 
 
-   - ``bonds``: the extent of the dataset in a list of four wgs84 coordinates in the form of [xmin,ymin,xmax,ymax], default to ``[]``
+   - ``min_refinement_level``: the minimum refinement level(the coarsest) of the data. 
    
-   - ``getdata_params``: It depends on which collection provider is in use. It provides detailed parameters for the get_data function implemented by collection providers. Details can be found in the :ref:`implementations of collection providers <collection_providers_implementation>`.
+   - ``datasource_id``: The datasource ID defines in the corresponding ``collection_provider``. Details can be found in the :ref:`implementations of collection providers <collection_providers_implementation>`.
 
 Here is an example on how to define a collection that uses clickhouse as collection provider (i.e. the data is stored in clickhouse DB).
 
@@ -76,20 +78,13 @@ Here is an example on how to define a collection that uses clickhouse as collect
               {"suitability_hytruck": 
                   {"title": "Suitability Modelling for Hytruck",
                     "description": "Desc", 
-                    "bonds": [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125],
+                    "extent": {"Spatial": { "bbox": [[5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125]] }},
                     "collection_provider": {
                             "providerId": "clickhouse", 
                             "dggrsId": "igeo7",
-                             "maxzonelevel": 9,
-                             "getdata_params": 
-                                 { "table": "testing_suitability_IGEO7", 
-                                    "zoneId_cols": {"9":"res_9_id", "8":"res_8_id", "7":"res_7_id", "6":"res_6_id", "5":"res_5_id"},
-                                    "data_cols" : ["modelled_fuel_stations","modelled_seashore","modelled_solar_wind",
-                                    "modelled_urban_nodes", "modelled_water_bodies", "modelled_gas_pipelines",
-                                    "modelled_hydrogen_pipelines", "modelled_corridor_points",  "modelled_powerlines", 
-                                    "modelled_transport_nodes", "modelled_residential_areas",  "modelled_rest_areas", 
-                                    "modelled_slope"]
-                                  }
+                            "max_refinement_level": 9,
+                            "min_refinement_level": 5,
+                            "datasource_id": "hytruck_clickhouse"
                         }
                     }
               } 
@@ -151,7 +146,7 @@ The dictionary associated with the collection provider ID defines the implementa
 
     2. ``classname`` : The actual implementation module under dependencies/collections_providers
     
-    3. ``initial_params`` : A dictionary with parameters to initializ the provider
+    3. ``datasources`` : A dictionary to define datasource supports by the collection provider. Depending on the collection provider's implementation, it can also contain information beyond data sources. For example, the ``ClickhouseCollectionProvider`` requires a `connection` element to specify the DB connection info. 
 
 Here is an example on how to define a collection provier for clickhouse.
 
@@ -162,12 +157,24 @@ Here is an example on how to define a collection provier for clickhouse.
     "collection_providers": {"1": 
             {"clickhouse": 
                 {"classname": "clickhouse_collection_provider.ClickhouseCollectionProvider", 
-                  "initial_params": 
-                          {"host": "127.0.0.1", 
-                           "user": "user",
-                           "password": "password", 
-                           "port": 9000, 
-                           "database": "DevelopmentTesting"} 
-                  }
+                  "datasources": 
+                        "connection": {"host": "127.0.0.1", 
+                                         "user": "user",
+                                         "password": "password", 
+                                         "port": 9000, 
+                                         "database": "DevelopmentTesting"},
+                        "hytruck_clickhouse":{
+                                        "table": "suitablilty",
+                                        "zone_groups": {
+                        					      "9": "res_9_id",
+					                              "8": "res_8_id",
+                        					      "7": "res_7_id",
+					                              "6": "res_6_id",
+                        					      "5": "res_5_id"
+					                    },
+                        				"data_cols": [ "data_col1", "data_col2"]
+         	            }
+                            
+                }
             }
     }

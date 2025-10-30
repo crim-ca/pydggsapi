@@ -12,10 +12,14 @@ class conversion_properties(BaseModel):
     zonelevel_offset: int
 
 
-
 class AbstractDGGRSProvider(ABC):
 
     dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
+
+    @abstractmethod
+    # return unit km
+    def get_cls_by_zone_level(self, zone_level: int) -> float:
+        raise NotImplementedError
 
     @abstractmethod
     def get_zone_level_by_cls(self, cls_km: float) -> int:
@@ -27,7 +31,8 @@ class AbstractDGGRSProvider(ABC):
 
     # for each zone level, the len of zoneId list and geometry must be equal
     @abstractmethod
-    def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int], geometry: str) -> DGGRSProviderGetRelativeZoneLevelsReturn:
+    def get_relative_zonelevels(self, cellId: Any, base_level: int, zone_levels: List[int],
+                                geometry: str = "zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
         raise NotImplementedError
 
     @abstractmethod

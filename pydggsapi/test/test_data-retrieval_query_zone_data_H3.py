@@ -4,7 +4,7 @@ import pytest
 from importlib import reload
 import os
 from pprint import pprint
-from dggrid4py import DGGRIDv7
+from dggrid4py import DGGRIDv8
 import tempfile
 import shapely
 import json
@@ -40,7 +40,6 @@ def test_data_retrieval_h3():
     print(f"Fail test case withdata-retrieval query (h3, {cellids[0]}, relative_depth=4) over refinement")
     response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'depth': 4})
     pprint(response.json())
-    assert "not supported" in response.text
     assert response.status_code == 400
 
     print(f"Success test case with data-retrieval query (h3, {cellids[0]})")

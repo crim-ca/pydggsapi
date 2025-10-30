@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional, Union, List
 from pydantic import AnyUrl, BaseModel, Field, RootModel
+
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
 from fastapi import Query
 
@@ -92,6 +93,7 @@ class LinkTemplate(BaseModel):
 
 class LandingPageResponse(BaseModel):
     title: str
+    version: str
     description: str
     links: List[Link]
 
@@ -106,20 +108,3 @@ class Feature(BaseModel):
 class Extent(BaseModel):
     spatial: Optional[dict] = Field(None, description="Spatial extent of the data in the collection")
     temporal: Optional[dict] = Field(None, description="Temporal extent of the data in the collection")
-
-
-class ApiCollection(BaseModel):
-    id: str = Field(..., description="Identifier of the collection")
-    title: Optional[str] = Field(None, description="Human readable title of the collection")
-    description: Optional[str] = Field(None, description="Brief description of the collection")
-    links: List[Link] = Field(default_factory=list, description="Links to related resources")
-    extent: Optional[Extent] = Field(None, description="The extent of the features in the collection")
-    itemType: str = Field("dggs", description="The type of items in the collection")
-    crs: List[str] = Field(default_factory=lambda: ["http://www.opengis.net/def/crs/OGC/1.3/CRS84"])
-    dggsInfo: Optional[Dict[str, Any]] = Field(None, description="DGGS specific information")
-
-
-
-class ApiCollections(BaseModel):
-    links: List[Link] = Field(default_factory=list)
-    collections: List[ApiCollection] = Field(...)
