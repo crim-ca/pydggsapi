@@ -5,6 +5,7 @@ from importlib import reload
 import os
 from pprint import pprint
 from dggrid4py import DGGRIDv8
+from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
 import tempfile
 import shapely
 import json
@@ -13,8 +14,21 @@ working = tempfile.mkdtemp()
 dggrid = DGGRIDv8(os.environ['DGGRID_PATH'], working_dir=working, silent=True)
 cellids = ['0001022010', '0001022011', '0001022012']
 non_exists = ['055266135']
-validation_hexagons_gdf = dggrid.grid_cell_polygons_from_cellids(cellids, 'IGEO7', 8, input_address_type='Z7_STRING', output_address_type='Z7_STRING')
-validation_centroids_gdf = dggrid.grid_cell_centroids_from_cellids(cellids, 'IGEO7', 8, input_address_type='Z7_STRING', output_address_type='Z7_STRING')
+extra_conf = {
+    "input_address_type": 'HIERNDX',
+    "input_hier_ndx_system": 'Z7',
+    "input_hier_ndx_form": 'DIGIT_STRING',
+    "output_address_type": 'HIERNDX',
+    "output_cell_label_type": 'OUTPUT_ADDRESS_TYPE',
+    "output_hier_ndx_system": 'Z7',
+    "output_hier_ndx_form": 'DIGIT_STRING',
+    # initial vertex lon setting
+    "dggs_vert0_lon": 11.20
+}
+validation_hexagons_gdf = dggrid.grid_cell_polygons_from_cellids(cellids, 'IGEO7', 8, **extra_conf)
+validation_centroids_gdf = dggrid.grid_cell_centroids_from_cellids(cellids, 'IGEO7', 8, **extra_conf)
+validation_hexagons_gdf.geometry = geoseries_to_geodetic(validation_hexagons_gdf.geometry)
+validation_centroids_gdf.geometry = geoseries_to_geodetic(validation_centroids_gdf.geometry)
 validation_hexagons_gdf.set_index('name', inplace=True)
 validation_centroids_gdf.set_index('name', inplace=True)
 
