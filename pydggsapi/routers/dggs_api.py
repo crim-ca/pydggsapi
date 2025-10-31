@@ -376,7 +376,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             logger.warning(f'{__name__} query zones list, zone level {zone_level} is not within the collection\'s refinement level: {min_} {max_}')
             skip_collection.append(k)
     [collection.pop(k) for k in skip_collection]
-    if (len(collections) == 0):
+    if (len(collection) == 0):
         raise HTTPException(status_code=400, detail=f"f'{__name__} query zones list, zone level {zone_level} is over refinement for all collections")
     if (bbox is not None):
         try:
@@ -443,7 +443,7 @@ async def dggrs_zones_data(req: Request,
                 skip_collection.append(k)
                 logger.warning(f'{__name__} query zone data {zonedataReq.dggrsId}, zone id {zoneId} with relative depth: {z} not supported')
     [collection.pop(k) for k in skip_collection]
-    if (len(collections) == 0):
+    if (len(collection) == 0):
         raise HTTPException(status_code=400,
                             detail=f"f'{__name__} zone id {zoneId} with relative depth: {depth} is over refinement for all collections")
     try:
