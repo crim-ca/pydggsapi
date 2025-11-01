@@ -26,12 +26,19 @@ non_exist_aoi = [[113.81837742963569, 22.521237932154797],
 aoi_3035 = [5204952.96287564, 3973761.18085118, 5324408.86305371, 4067507.93907037]
 cellids = ['00010220', '0001022011', '0001022012']
 zone_level = [5, 6, 7, 8, 9]
+extra_conf = {
+    "output_address_type": 'HIERNDX',
+    "output_cell_label_type": 'OUTPUT_ADDRESS_TYPE',
+    "output_hier_ndx_system": 'Z7',
+    "output_hier_ndx_form": 'DIGIT_STRING',
+    # initial vertex lon setting
+}
 
 aoi = shapely.Polygon(aoi)
 non_exist_aoi = shapely.Polygon(non_exist_aoi)
-validation_zone_level_5_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 5, clip_geom=aoi, output_address_type='Z7_STRING')
-validation_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 8, clip_geom=aoi, output_address_type='Z7_STRING')
-validation_centroids_gdf = dggrid.grid_cell_centroids_for_extent('IGEO7', 8, clip_geom=aoi, output_address_type='Z7_STRING')
+validation_zone_level_5_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 5, clip_geom=aoi, **extra_conf)
+validation_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 8, clip_geom=aoi, **extra_conf)
+validation_centroids_gdf = dggrid.grid_cell_centroids_for_extent('IGEO7', 8, clip_geom=aoi, **extra_conf)
 validation_zone_level_5_hexagons_gdf.set_index('name', inplace=True)
 validation_hexagons_gdf.set_index('name', inplace=True)
 validation_centroids_gdf.set_index('name', inplace=True)

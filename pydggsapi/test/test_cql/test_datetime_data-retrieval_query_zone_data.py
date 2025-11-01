@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 import pytest
 from importlib import reload
 import os
-from pprint import pprint
 from dggrid4py import DGGRIDv7
 import tempfile
 import shapely
@@ -42,9 +41,8 @@ def test_data_retrieval():
     for g in list(grid.keys()):
 
         print(f"Success test case with data-retrieval query ({g}, {grid[g][0]})")
-        response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones/{grid[g][0]}/data', params={'zone_depth': '0',
+        response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones/{grid[g][0]}/data', params={'zone-depth': '0',
                               'datetime': '2025-09-11/..'})
-        pprint(response.json())
         data = ZonesDataDggsJsonResponse(**response.json())
         p1 = list(data.properties.keys())[0]
         assert len(data.values[p1]) > 0
@@ -52,26 +50,23 @@ def test_data_retrieval():
         assert len(value.data) > 0
         assert response.status_code == 200
 
-        print(f"Success test case with data-retrieval query ({g}, {grid[g][0]}, zone_depth=[0] ,return = geojson)")
+        print(f"Success test case with data-retrieval query ({g}, {grid[g][0]}, zone-depth=[0] ,return = geojson)")
         response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones/{grid[g][0]}/data', headers={'accept': 'application/geo+json'},
-                              params={'zone_depth': '0', 'datetime': '2025-09-11/..'})
-        pprint(response.json())
+                              params={'zone-depth': '0', 'datetime': '2025-09-11/..'})
         data = ZonesDataGeoJson(**response.json())
         assert len(data.features) > 0
         assert response.status_code == 200
 
-        print(f"Success test case with data-retrieval query ({g}, {grid[g][0]}, zone_depth=[0] ,return = geojson)")
+        print(f"Success test case with data-retrieval query ({g}, {grid[g][0]}, zone-depth=[0] ,return = geojson)")
         response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones/{grid[g][0]}/data', headers={'accept': 'application/geo+json'},
-                              params={'zone_depth': '0', 'datetime': '../2025-09-12'})
-        pprint(response.json())
+                              params={'zone-depth': '0', 'datetime': '../2025-09-12'})
         data = ZonesDataGeoJson(**response.json())
         assert len(data.features) > 0
         assert response.status_code == 200
 
-        print(f"Success test case with data-retrieval query ({g}, {grid[g][0]}, zone_depth=[0] ,return = geojson)")
+        print(f"Success test case with data-retrieval query ({g}, {grid[g][0]}, zone-depth=[0] ,return = geojson)")
         response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones/{grid[g][0]}/data', headers={'accept': 'application/geo+json'},
-                              params={'zone_depth': '0', 'datetime': '2025-09-01/2025-09-13'})
-        pprint(response.json())
+                              params={'zone-depth': '0', 'datetime': '2025-09-01/2025-09-13'})
         data = ZonesDataGeoJson(**response.json())
         assert len(data.features) > 0
         assert response.status_code == 200
