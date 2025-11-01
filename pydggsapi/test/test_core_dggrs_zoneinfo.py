@@ -13,6 +13,16 @@ import json
 working = tempfile.mkdtemp()
 dggrid = DGGRIDv8(os.environ['DGGRID_PATH'], working_dir=working, silent=True)
 cellids = ['0001022010', '0001022011', '0001022012']
+extra_conf = {
+    "input_address_type": 'HIERNDX',
+    "input_hier_ndx_system": 'Z7',
+    "input_hier_ndx_form": 'DIGIT_STRING',
+    "output_address_type": 'HIERNDX',
+    "output_cell_label_type": 'OUTPUT_ADDRESS_TYPE',
+    "output_hier_ndx_system": 'Z7',
+    "output_hier_ndx_form": 'DIGIT_STRING',
+    # initial vertex lon setting
+}
 non_exists = ['055266135']
 extra_conf = {
     "input_address_type": 'HIERNDX',
