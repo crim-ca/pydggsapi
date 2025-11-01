@@ -55,6 +55,7 @@ def query_zone_data(
     # get data and form a master dataframe (seleceted providers) for each zone level
     data = {}
     data_type = {}
+    nodata_mapping = {}
     data_col_dims = {}
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
@@ -109,6 +110,12 @@ def query_zone_data(
             logger.debug(f"{__name__} {cid} get_data done")
             if (len(collection_result.zoneIds) > 0):
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}
+                cp_nodata_mapping = cp.datasources[datasource_id].nodata_mapping
+                collection_nodata = {k: cp_nodata_mapping.get("default", np.nan) for k in list(cols_name.keys())}
+                collection_nodata_keys = [k.lower() for k in cp_nodata_mapping.keys() if (k != "default")]
+                [collection_nodata.update({k: cp_nodata_mapping[v.lower()]})
+                 for k, v in cols_name.items() if (v.lower() in collection_nodata_keys)]
+                nodata_mapping.update(collection_nodata)
                 data_type.update(cols_name)
                 id_ = np.array(collection_result.zoneIds).reshape(-1, 1)
                 tmp = pd.DataFrame(np.concatenate([id_, collection_result.data], axis=-1),
@@ -180,7 +187,10 @@ def query_zone_data(
                     if ('zoneId' not in root.array_keys()):
                         sub_zarr = root.create_dataset('zoneId', data=zoneIds, compressor=compressor)
                         sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
-                    sub_zarr = root.create_dataset(f'{column}_zone_level_' + str(z), data=v[i, :].astype(data_type[column].lower()), compressor=compressor)
+                    export_data = v[i, :]
+                    export_data[pd.isna(export_data)] = nodata_mapping[column]
+                    export_data = export_data.astype(data_type[column].lower())
+                    sub_zarr = root.create_dataset(f'{column}_zone_level_' + str(z), data=export_data, compressor=compressor)
                     sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
     if (zarr_root is not None):
         zarr_root.attrs.update({k: v.__dict__ for k, v in properties.items()})
