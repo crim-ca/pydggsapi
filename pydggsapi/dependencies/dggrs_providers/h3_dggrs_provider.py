@@ -23,7 +23,7 @@ logger = logging.getLogger()
 
 class H3Provider(AbstractDGGRSProvider):
 
-    def __init__(self):
+    def __init__(self, **params):
         igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
         self.dggrs_conversion = {'igeo7': igeo7_conversion_properties}
 

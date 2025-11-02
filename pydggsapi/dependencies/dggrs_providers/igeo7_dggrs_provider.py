@@ -41,7 +41,7 @@ class IGEO7MetafileConfig():
 
 @dataclass
 class IGEO7Properties(IGEO7MetafileConfig):
-    geodetic_conversion: bool = True
+    geodetic_conversion: bool = False
 
 
 def _authalic_to_geodetic(geometry, convert: bool) -> GeoSeries:
@@ -62,7 +62,7 @@ def _geodetic_to_authalic(geometry, convert: bool) -> GeoSeries:
 
 class IGEO7Provider(AbstractDGGRSProvider):
 
-    def __init__(self, **param):
+    def __init__(self, **params):
         executable = os.environ['DGGRID_PATH']
         working_dir = tempfile.mkdtemp()
         self.dggrid_instance = DGGRIDv8(executable=executable, working_dir=working_dir, silent=True)
@@ -85,7 +85,15 @@ class IGEO7Provider(AbstractDGGRSProvider):
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
         self.dggrs = 'IGEO7'
-        self.properties = IGEO7Properties(**param)
+        crs = params.pop("crs", "authalic")
+        if (crs.root is None):
+            crs.root = "authalic"
+        self.properties = IGEO7Properties(**params)
+        if (not isinstance(crs.root, str)):
+            raise NotImplementedError("CRS model not support, please use wkt string")
+        if (crs.root.lower() == "wgs84"):
+            self.properties.geodetic_conversion = True
+            self.properties.dggs_vert0_lon = 11.20
         self.properties.__class__ = IGEO7MetafileConfig
 
     def convert(self, zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
