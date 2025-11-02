@@ -36,7 +36,7 @@ class IGEO7MetafileConfig():
     output_hier_ndx_system: str = 'Z7'
     output_hier_ndx_form: str = 'DIGIT_STRING'
     # initial vertex lon setting
-    dggs_vert0_lon: float = 11.20
+    dggs_vert0_lon: float = 11.25
 
 
 @dataclass
