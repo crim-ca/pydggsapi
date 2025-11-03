@@ -33,3 +33,42 @@ Geodetic Coordinates System
 IGEO7Provider supports conversion between authalic and geodetic coordinates. It is controlled by the parameter ``geodetic_conversion``. When the setting is True, the provider performs the conversion (geodetic to authalic, authalic to geodetic) for both input coordinates and output returns.
 
 When the ``crs`` setting of the ``dggrs`` is set to ``wgs84``, IGEO7Provider automatically enable the  ``geodetic_conversion`` and set the ``dggs_vert0_lon`` to ``11.20``.
+
+
+Example of parameter settings
+=============================
+
+.. code-block:: json
+	:caption: enable geodetic conversion and set the initial vertex lon to 11.20 by setting crs == wgs84
+
+	"dggrs": {"1": 
+            {"igeo7": 
+                {"title": "IGEO7 DGGRS with z7string",
+                 "description": "Hexagonal grid with ISEA projection and refinement ratio of 7. z7 space-filling curve", 
+                 "crs": "wgs84", 
+                 "shapeType": "hexagon", 
+                 "definition_link": "https://agile-giss.copernicus.org/articles/6/32/2025/", 
+                 "defaultDepth": 1, 
+                 "classname": "igeo7_dggrs_provider.IGEO7Provider",
+                }
+            }
+	}
+
+
+.. code-block:: json
+   :caption: manually enable conversion 
+
+	    "dggrs": {"1": 
+            {"igeo7": 
+                {"title": "IGEO7 DGGRS with z7string",
+                 "description": "Hexagonal grid with ISEA projection and refinement ratio of 7. z7 space-filling curve", 
+                 "crs": "Some other CRS", 
+                 "shapeType": "hexagon", 
+                 "definition_link": "https://agile-giss.copernicus.org/articles/6/32/2025/", 
+                 "defaultDepth": 1, 
+                 "classname": "igeo7_dggrs_provider.IGEO7Provider",
+                 "parmeters": { "geodetic_conversion": true }
+                }
+            }
+	}
+
