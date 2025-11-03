@@ -3,6 +3,7 @@ Abstract DGGRS providers
 
 To implement a DGGRS provider, users need to provide the implementation of the five interfaces listed below: 
 
+- get_cls_by_zone_level
 - get_zone_level_by_cls
 - get_cells_zone_level
 - get_relative_zonelevels
