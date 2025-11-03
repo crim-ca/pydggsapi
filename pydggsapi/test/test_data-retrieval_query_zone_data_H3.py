@@ -38,7 +38,7 @@ def test_data_retrieval_h3():
     assert response.status_code == 400
 
     print(f"Fail test case withdata-retrieval query (h3, {cellids[0]}, relative_depth=4) over refinement")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'depth': 4})
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'zone-depth': 4})
     pprint(response.json())
     assert response.status_code == 400
 
@@ -62,11 +62,11 @@ def test_data_retrieval_h3():
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (h3, {cellids[0]}, relative_depth=2)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'depth': 2})
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'zone-depth': 2})
     pprint(response.json())
     data = ZonesDataDggsJsonResponse(**response.json())
     assert response.status_code == 200
 
     print(f"Empty test case with data-retrieval query (h3, {non_exists[0]}, relative_depth=2)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{non_exists[0]}/data', params={'depth': 2})
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{non_exists[0]}/data', params={'zone-depth': 2})
     assert response.status_code == 204

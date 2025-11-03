@@ -45,7 +45,7 @@ def get_dggrs_class(dggrsId: str) -> (str, dict):
     for dggrs in dggrs_indexes:
         id_, dggrs_config = dggrs.popitem()
         if (id_ == dggrsId):
-            return (dggrs_config['classname'], dggrs_config.get('initial_params', {}))
+            return (dggrs_config['classname'], dggrs_config.get('parameters', {}))
     return None
 
 
