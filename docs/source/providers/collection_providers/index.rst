@@ -11,6 +11,7 @@ The attributes of Abstract Datasource Info class are:
 - ``exclude_data_cols``: a list of column names(in string) that are excluded from ``get_data``, default to:  [].
 - ``datetime_col``: a string of column name to specify the datetime column of the datasource. default to ``None``.
 - ``zone_groups`` : A dictionary to map the refinement level to the column name that stores the zone IDs.
+- ``nodata_mapping``: A dictionary to map nodata value for a data type. Uses in zone data retrieval with ``zarr+zip`` returns values for NA. Default to ``np.nan``.
 
 
 
@@ -48,10 +49,11 @@ For example, the ``ParquetDatasourceInfo`` and the ``datasources`` configuration
 
     "hytruck_local": {
         "filepath": "~/file_path/igeo7_4-10.parquet",
-	    "id_col": "cell_ids",
-	    "data_cols": ["stations_band_1", "pipelines_band_1","pipelines_band_2"],
-		"exclude_data_cols": ["geometry"]
-	}
+        "id_col": "cell_ids",
+        "data_cols": ["stations_band_1", "pipelines_band_1","pipelines_band_2"],
+        "exclude_data_cols": ["geometry"],
+        "nodata_mapping": {"uint8": 255}
+        }
     
 
 .. _parameters_for_get_data:
