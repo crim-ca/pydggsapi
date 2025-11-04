@@ -8,7 +8,7 @@ from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLe
 
 import shapely
 import logging
-from dggal import Application, pydggal_setup, CRS, ogc, epsg, GeoExtent, Array
+from dggal import Application, pydggal_setup, CRS, ogc, epsg, GeoExtent, Array, GeoPoint
 from dggal import IVEA7H, ISEA7H_Z7, rHEALPix
 from typing import Union, List
 
@@ -29,8 +29,8 @@ def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool=False) -> GeoJSO
             coordinates = []
             if vertices:
                 for i in range(vertices.count):
-                    coordinates.append([(vertices[i].lon, vertices[i].lat)])
-                return GeoJSONPolygon(type="Polygon", coordinates=coordinates)
+                    coordinates.append((vertices[i].lon, vertices[i].lat))
+                return GeoJSONPolygon(type="Polygon", coordinates=[coordinates])
             return None
 
     else:
@@ -42,8 +42,8 @@ def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool=False) -> GeoJSO
             coordinates = []
             if vertices:
                 for i in range(vertices.count):
-                    coordinates.append([(vertices[i].x.value, vertices[i].y.value)])
-                return GeoJSONPolygon(type="Polygon", coordinates=coordinates)
+                    coordinates.append((vertices[i].x.value, vertices[i].y.value))
+                return GeoJSONPolygon(type="Polygon", coordinates=[coordinates])
             return None
 
 
@@ -123,13 +123,14 @@ class DGGALProvider(AbstractDGGRSProvider):
                                               'centroids': centroids, 'geometry': hex_vertices, 'bbox': extents,
                                               'areaMetersSquare': self.mygrid.getRefZoneArea(zone_level)})
 
-    def zoneslist(self, bbox: Union[shapely.box, None], zone_level: int, parent_zone: Union[str, int, None], returngeometry: str, compact=True):
+    def zoneslist(self, bbox: Union[shapely.box, None], zone_level: int,
+                  parent_zone: Union[str, int, None], returngeometry: str, compact=True):
         if (bbox is not None):
             try:
                 bbox = shapely.bounds(bbox)
                 geoextent = GeoExtent(GeoPoint(bbox[1], bbox[0]), GeoPoint(bbox[3], bbox[2]))
                 zones_list = self.mygrid.listZones(zone_level, geoextent)
-                zones_list = set(self.mygrid.getZoneTextID(z) for z in zones_list)
+                zones_list = set(int(z) for z in zones_list)
             except Exception as e:
                 logger.error(f'{__name__} query zones list, bbox: {bbox} dggrid convert failed :{e}')
                 raise Exception(f"{__name__} query zones list, bbox: {bbox} dggrid convert failed {e}")
@@ -139,7 +140,7 @@ class DGGALProvider(AbstractDGGRSProvider):
                 parent_zone = self.mygrid.getZoneFromTextID(parent_zone)
                 parent_zone_level = self.get_cells_zone_level([parent_zone])
                 subzones_list = self.mygrid.getSubZones(parent_zone, (zone_level - parent_zone_level))
-                subzones_list = set(z for z in subzones_list)
+                subzones_list = set(int(z) for z in subzones_list)
                 zones_list = (zones_list & subzones_list) if (bbox is not None) else subzones_list
             except Exception as e:
                 logger.error(f'{__name__} query zones list, parent_zone: {parent_zone} get children failed {e}')
@@ -148,14 +149,13 @@ class DGGALProvider(AbstractDGGRSProvider):
             raise Exception(f"{__name__} Parent zone {parent_zone} is not with in bbox: {bbox} at zone level {zone_level}")
         if (compact):
             compact_list = Array("<DGGRSZone>")
-            [compact_list.add(self.mygrid.getZoneFromTextID(z)) for z in zones_list]
+            [compact_list.add(int(z)) for z in zones_list]
             self.mygrid.compactZones(compact_list)
-            zones_list = [self.mygrid.getZoneTextID(z) for z in compact_list]
+            zones_list = [int(z) for z in compact_list]
             logger.info(f'{__name__} query zones list, compact : {len(zones_list)}')
         zones_geometry = [generateZoneGeometry(self.mygrid, z, None, False if (returngeometry == 'zone-region') else True) for z in zones_list]
-        returnedAreaMetersSquare = sum([self.mygrid.getZoneArea(self.mygrid.getZoneFromTextID(z)) for z in zones_list])
-        geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
-        geometry = [geotype(**eval(shapely.to_geojson(g))) for g in zones_geometry]
+        returnedAreaMetersSquare = [self.mygrid.getZoneArea(z) for z in zones_list]
+        zones_list = [self.mygrid.getZoneTextID(z) for z in zones_list]
         return DGGRSProviderZonesListReturn(**{'zones': zones_list,
-                                               'geometry': geometry,
+                                               'geometry': zones_geometry,
                                                'returnedAreaMetersSquare': returnedAreaMetersSquare})

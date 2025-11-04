@@ -38,8 +38,8 @@ def test_core_dggrs_description():
         pprint(response.json())
         assert DggrsDescription(**response.json())
         assert response.status_code == 200
-        print(f"Success test case with collections dggs-description (suitability_hytruck, {grid})")
-        response = client.get(f'/dggs-api/v1-pre/collections/suitability_hytruck_{grid}/dggs/{grid}')
+        print(f"Success test case with collections dggs-description (dggal_{grid}_hytruck, {grid})")
+        response = client.get(f'/dggs-api/v1-pre/collections/dggal_{grid}_hytruck/dggs/{grid}')
         pprint(response.json())
         assert DggrsDescription(**response.json())
         assert response.status_code == 200

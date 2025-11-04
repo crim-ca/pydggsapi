@@ -62,6 +62,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
             filter_ += np.array(converted.zoneIds)[np.isin(converted.target_zoneIds, filtered_zoneIds)].tolist()
         else:
             if (zone_id_repr == 'int'):
+                filtered_zoneIds = [int(z) for z in filtered_zoneIds]
                 filtered_zoneIds = dggrs_provider.zoneId_int2str(filtered_zoneIds)
             filter_ += filtered_zoneIds
     if (skipped == len(collection)):

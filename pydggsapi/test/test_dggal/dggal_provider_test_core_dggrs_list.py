@@ -30,8 +30,8 @@ def test_core_dggs_list():
     assert response.status_code == 200
 
     for grid in support_grids:
-        print(f"Success test case with collections dggs-list (suitability_hytruck, {grid})")
-        response = client.get(f'/dggs-api/v1-pre/collections/suitability_hytruck_{grid}/dggs')
+        print(f"Success test case with collections dggs-list (dggal_{grid}_hytruck, {grid})")
+        response = client.get(f'/dggs-api/v1-pre/collections/dggal_{grid}_hytruck/dggs')
         pprint(response.json())
         assert DggrsListResponse(**response.json())
         assert response.status_code == 200
