@@ -5,20 +5,22 @@ from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import Abstr
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel
 
 import os
 import tempfile
 import logging
-from typing import Union, List
-from dggrid4py import DGGRIDv8
-from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
-import dggrid4py
-from geopandas.geoseries import GeoSeries
 import shapely
+import numpy as np
+import decimal
+from typing import Union, List, Final
+from dggrid4py import DGGRIDv8
+from dggrid4py.igeo7 import get_z7string_resolution
+from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
+from geopandas.geoseries import GeoSeries
 from dotenv import load_dotenv
 from shapely.geometry import box
-from dataclasses import dataclass, field
-import numpy as np
+from dataclasses import dataclass
 
 logger = logging.getLogger()
 
@@ -36,12 +38,9 @@ class IGEO7MetafileConfig():
     output_hier_ndx_system: str = 'Z7'
     output_hier_ndx_form: str = 'DIGIT_STRING'
     # initial vertex lon setting
-    dggs_vert0_lon: float = 11.25
-
-
-@dataclass
-class IGEO7Properties(IGEO7MetafileConfig):
-    geodetic_conversion: bool = False
+    dggs_vert0_lon: decimal.Decimal | float | str = 11.20
+    dggs_vert0_lat: Final[decimal.Decimal | float | str] = 58.28252559
+    dggs_vert0_azimuth: Final[decimal.Decimal | float | str] = 0.0
 
 
 def _authalic_to_geodetic(geometry, convert: bool) -> GeoSeries:
@@ -85,19 +84,16 @@ class IGEO7Provider(AbstractDGGRSProvider):
             15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
         }
         self.dggrs = 'IGEO7'
-        crs = params.pop("crs", "authalic")
-        if (crs.root is None):
-            crs.root = "authalic"
-        self.properties = IGEO7Properties(**params)
+        self.wgs84_geodetic_conversion = True
+        crs = params.pop("crs", CrsModel("authalic"))
         if (not isinstance(crs.root, str)):
-            raise NotImplementedError("CRS model not support, please use wkt string")
-        if (crs.root.lower() == "wgs84"):
-            self.properties.geodetic_conversion = True
-            self.properties.dggs_vert0_lon = 11.20
-        self.properties.__class__ = IGEO7MetafileConfig
+            raise NotImplementedError("CRS model not support, please use wkt")
+        if (crs.root.lower() != "wgs84"):
+            self.wgs84_geodetic_conversion = False
+        self.properties = IGEO7MetafileConfig(**params)
 
     def convert(self, zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
-        raise NotImplementedError
+        raise NotImplementedError(f"{__name__} convert not support")
 
     def get(self, zoom):
         # zoom must be integer and between 0 and 15 inclusive
@@ -110,16 +106,16 @@ class IGEO7Provider(AbstractDGGRSProvider):
 
     def generate_hexgrid(self, bbox, resolution):
         # ISEA7H grid at resolution, for extent of provided WGS84 rectangle into GeoDataFrame
-        bbox = _geodetic_to_authalic(bbox, self.properties.geodetic_conversion)[0]
+        bbox = _geodetic_to_authalic(bbox, self.wgs84_geodetic_conversion)[0]
         gdf = self.dggrid_instance.grid_cell_polygons_for_extent(self.dggrs, resolution, clip_geom=bbox, **self.properties.__dict__)
-        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.properties.geodetic_conversion)
+        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
     def generate_hexcentroid(self, bbox, resolution):
         # ISEA7H grid at resolution, for extent of provided WGS84 rectangle into GeoDataFrame
-        bbox = _geodetic_to_authalic(bbox, self.properties.geodetic_conversion)[0]
+        bbox = _geodetic_to_authalic(bbox, self.wgs84_geodetic_conversion)[0]
         gdf = self.dggrid_instance.grid_cell_centroids_for_extent(self.dggrs, resolution, clip_geom=bbox, **self.properties.__dict__)
-        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.properties.geodetic_conversion)
+        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
     # default values from dggrid4py on clip_subset_type and clip_cell_res
@@ -128,7 +124,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
                                                                     clip_subset_type=clip_subset_type,
                                                                     clip_cell_res=clip_cell_res,
                                                                     **self.properties.__dict__)
-        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.properties.geodetic_conversion)
+        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
     # default values from dggrid4py on clip_subset_type and clip_cell_res
@@ -137,19 +133,19 @@ class IGEO7Provider(AbstractDGGRSProvider):
                                                                    zone_level, clip_subset_type=clip_subset_type,
                                                                    clip_cell_res=clip_cell_res,
                                                                    **self.properties.__dict__)
-        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.properties.geodetic_conversion)
+        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
     def cellid_from_centroid(self, geodf_points_wgs84, zoomlevel):
-        geodf_points_wgs84 = _geodetic_to_authalic(geodf_points_wgs84, self.properties.geodetic_conversion)
+        geodf_points_wgs84 = _geodetic_to_authalic(geodf_points_wgs84, self.wgs84_geodetic_conversion)
         gdf = self.dggrid_instance.cells_for_geo_points(geodf_points_wgs84, True, self.dggrs, zoomlevel, **self.properties.__dict__)
-        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.properties.geodetic_conversion)
+        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
     def cellids_from_extent(self, clip_geom, zoomlevel):
-        clip_geom = _geodetic_to_authalic(clip_geom, self.properties.geodetic_conversion)[0]
+        clip_geom = _geodetic_to_authalic(clip_geom, self.wgs84_geodetic_conversion)[0]
         gdf = self.dggrid_instance.grid_cellids_for_extent(self.dggrs, zoomlevel, clip_geom=clip_geom, **self.properties.__dict__)
-        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.properties.geodetic_conversion)
+        gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
     def zoneId_str2int(self, cellIds: list) -> list:
@@ -168,7 +164,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
 
     def get_cells_zone_level(self, cellIds: List[str]):
         try:
-            zones_level = dggrid4py.igeo7.get_z7string_resolution(cellIds[0])
+            zones_level = get_z7string_resolution(cellIds[0])
             return [zones_level]
         except Exception as e:
             logger.error(f'{__name__} zone id {cellIds} dggrid get zone level failed : {e}')
@@ -192,7 +188,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
     def zonesinfo(self, cellIds: List[str]):
-        zone_level = dggrid4py.igeo7.get_z7string_resolution(cellIds[0])
+        zone_level = get_z7string_resolution(cellIds[0])
         try:
             centroid = self.centroid_from_cellid(cellIds, zone_level).geometry
             hex_geometry = self.hexagon_from_cellid(cellIds, zone_level).geometry
