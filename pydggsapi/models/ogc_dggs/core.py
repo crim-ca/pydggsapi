@@ -84,8 +84,12 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
     zoneinfo = dggrs_provider.zonesinfo(zoneId)
     filter_ = 0
     for k, v in collection.items():
+        zoneId = [zoneinfoReq.zoneId]
         cp = collection_provider[v.collection_provider.providerId]
         datasource_id = v.collection_provider.datasource_id
+        if (v.collection_provider.dggrsId != dggs_info.id and
+                v.collection_provider.dggrsId not in dggrs_provider.dggrs_conversion):
+            continue
         if (v.collection_provider.dggrsId != dggs_info.id and
                 v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId,
@@ -95,14 +99,14 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
         else:
             if (cp.datasources[datasource_id].zone_id_repr == 'int'):
                 zoneId = dggrs_provider.zoneId_str2int(zoneId)
-        data = cp.get_data(zoneId, zonelevel, v.collection_provider.datasource_id)
+        data = cp.get_data(zoneId, zonelevel, datasource_id)
         filter_ += len(data.zoneIds)
     zoneId = zoneinfoReq.zoneId  # reset the zoneId to original one as string
     if (filter_ > 0):
         dggs_link = '/'.join(str(current_url).split('/')[:-3])
         dggs_link = Link(href=dggs_link, rel='[ogc-rel:dggrs]', title='Link back to /dggs (get list of supported dggs)')
         data_link = Link(href=str(current_url) + '/data', rel='[ogc-rel:dggrs-zone-data]', title='Link to data-retrieval for the zoneId)')
-        return_ = {'id': str(zoneId)}
+        return_ = {'id': zoneId}
         return_['level'] = zoneinfo.zone_level
         return_['links'] = [data_link, dggs_link]
         return_['shapeType'] = zoneinfo.shapeType
