@@ -108,7 +108,7 @@ def test_zone_query_dggrs_zones():
     #zones = ZonesResponse(**response.json())
     #return_zones_list = zones.zones
     #assert len(return_zones_list) > 0
-    assert response.status_code == 204
+    assert response.status_code == 400
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},

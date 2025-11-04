@@ -368,15 +368,22 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
         min_ = v.collection_provider.min_refinement_level
-        # if the dggrsId is not the primary dggrs supported by the collection.
+        # if the dggrsId is not the native dggrs supported by the collection,
+        # check if the native dggrs supports conversion
         if (zonesReq.dggrsId != v.collection_provider.dggrsId
-                and zonesReq.dggrsId in dggrs_provider.dggrs_conversion):
-            max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
-        if (zone_level > max_ or zone_level < min_):
-            logger.warning(f'{__name__} query zones list, zone level {zone_level} is not within the collection\'s refinement level: {min_} {max_}')
+                and v.collection_provider.dggrsId not in dggrs_provider.dggrs_conversion):
             skip_collection.append(k)
+            continue
+        if (zonesReq.dggrsId != v.collection_provider.dggrsId
+                and v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
+            max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
+        if (zone_level < min_ or zone_level > max_):
+            logger.warning(f'{__name__} query zones list, zone level {zone_level} is not within the {k} refinement level: {min_} {max_}')
+            skip_collection.append(k)
+
     if (len(collection) == len(skip_collection)):
         raise HTTPException(status_code=400, detail=f"f'{__name__} query zones list, zone level {zone_level} is over refinement for all collections")
+    filtered_collections = {k: v for k, v in collection.items() if (k not in skip_collection)}
     if (bbox is not None):
         try:
             bbox = box(*bbox)
@@ -390,7 +397,7 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             logger.error(f'{__name__} query zones list, bbox converstion failed : {e}')
             raise HTTPException(status_code=400, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
     try:
-        result = query_zones_list(bbox, zone_level, limit, dggrs_description, dggrs_provider, collection, collection_provider,
+        result = query_zones_list(bbox, zone_level, limit, dggrs_description, dggrs_provider, filtered_collections, collection_provider,
                                   compact_zone, zonesReq.parent_zone, returntype, returngeometry, filter, include_datetime)
         if (result is None):
             return Response(status_code=204)
@@ -433,9 +440,15 @@ async def dggrs_zones_data(req: Request,
     skip_collection = []
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
+        # if the dggrsId is not the native dggrs supported by the collection,
+        # check if the native dggrs supports conversion
+        if (zonedataReq.dggrsId != v.collection_provider.dggrsId
+                and v.collection_provider.dggrsId not in dggrs_provider.dggrs_conversion):
+            skip_collection.append(k)
+            continue
         # if the dggrsId is not the primary dggrs supported by the collection.
         if (zonedataReq.dggrsId != v.collection_provider.dggrsId
-                and zonedataReq.dggrsId in dggrs_provider.dggrs_conversion):
+                and v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         for z in relative_levels:
             if (z > max_):
@@ -444,9 +457,10 @@ async def dggrs_zones_data(req: Request,
     if (len(collection) == len(skip_collection)):
         raise HTTPException(status_code=400,
                             detail=f"f'{__name__} zone id {zoneId} with relative depth: {depth} is over refinement for all collections")
+    filtered_collections = {k: v for k, v in collection.items() if (k not in skip_collection)}
     try:
         result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
-                                 dggrs_provider, collection, collection_providers, returntype,
+                                 dggrs_provider, filtered_collections, collection_providers, returntype,
                                  returngeometry, filter, include_datetime, include_properties, exclude_properties)
         if (result is None):
             return Response(status_code=204)
