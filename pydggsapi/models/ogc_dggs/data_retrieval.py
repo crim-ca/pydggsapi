@@ -59,6 +59,7 @@ def query_zone_data(
     data_col_dims = {}
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
+    from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
     for cid, c in collection.items():
         logger.debug(f"{__name__} handling {cid}")
         cp = collection_provider[c.collection_provider.providerId]
@@ -105,12 +106,11 @@ def query_zone_data(
             tmp_dggrs_provider = dggrs_provider if (not convert) else global_dggrs_providers[c.collection_provider.dggrsId]
             if (converted_z >= cmin_rf):
                 try:
+                    idx = tmp_dggrs_provider.zoneId_str2int(idx) if (zone_id_repr == 'int') else idx
+                    collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
+                                                    include_datetime, incl_props, excl_props)
                     if (zone_id_repr == 'int'):
-                        idx = tmp_dggrs_provider.zoneId_str2int(idx)
-                    collection_result = cp.get_data(
-                        idx, converted_z, datasource_id, cql_filter, include_datetime, incl_props, excl_props
-                    )
-                    if (zone_id_repr == 'int'):
+                        collection_result.zoneIds = [int(result_zone_id) for result_zone_id in collection_result.zoneIds]
                         collection_result.zoneIds = tmp_dggrs_provider.zoneId_int2str(collection_result.zoneIds)
                 except DatetimeNotDefinedError:
                     pass

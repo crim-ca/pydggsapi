@@ -35,6 +35,8 @@ ivea_validation_gpd = gpd.GeoDataFrame(columns=[''])
 
 geoextent = GeoExtent(ll=GeoPoint(aoi.bounds[1], aoi.bounds[0]), ur=GeoPoint(aoi.bounds[3], aoi.bounds[2]))
 
+non_exist_geoextent = GeoExtent(ll=GeoPoint(non_exist_aoi.bounds[1], non_exist_aoi.bounds[0]), ur=GeoPoint(non_exist_aoi.bounds[3], non_exist_aoi.bounds[2]))
+
 
 zones_list = ivea7h.listZones(7, geoextent)
 validation_zones_text_ids = [ivea7h.getZoneTextID(z) for z in zones_list]

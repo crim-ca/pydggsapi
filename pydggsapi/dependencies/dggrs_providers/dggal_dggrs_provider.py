@@ -30,6 +30,8 @@ def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool=False) -> GeoJSO
             if vertices:
                 for i in range(vertices.count):
                     coordinates.append((vertices[i].lon, vertices[i].lat))
+                # to make the polygon a closed linestring
+                coordinates.append((vertices[0].lon, vertices[0].lat))
                 return GeoJSONPolygon(type="Polygon", coordinates=[coordinates])
             return None
 

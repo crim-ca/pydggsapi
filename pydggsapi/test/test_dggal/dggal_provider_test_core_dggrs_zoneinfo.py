@@ -30,16 +30,16 @@ validation_centroids= {'ivea7h': [] , 'rhealpix': []}
 
 for zone_id in cellids['ivea7h']:
     polygon = generateZoneGeometry(ivea7h, zone_id, None, False)
-    head = polygon.coordinates[0][0]
-    polygon.coordinates[0].append(head)
+    ##head = polygon.coordinates[0][0]
+    #polygon.coordinates[0].append(head)
     centroid = generateZoneGeometry(ivea7h, zone_id, None, True)
     validation_hexagons['ivea7h'].append(shapely.from_geojson(json.dumps(polygon.__dict__)))
     validation_centroids['ivea7h'].append(shapely.from_geojson(json.dumps(centroid.__dict__)))
 
 for zone_id in cellids['rhealpix']:
     polygon = generateZoneGeometry(rhealpix, zone_id, None, False)
-    head = polygon.coordinates[0][0]
-    polygon.coordinates[0].append(head)
+    #head = polygon.coordinates[0][0]
+    #polygon.coordinates[0].append(head)
     centroid = generateZoneGeometry(rhealpix, zone_id, None, True)
     validation_hexagons['rhealpix'].append(shapely.from_geojson(json.dumps(polygon.__dict__)))
     validation_centroids['rhealpix'].append(shapely.from_geojson(json.dumps(centroid.__dict__)))
