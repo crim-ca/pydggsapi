@@ -78,7 +78,7 @@ def test_zone_query_dggrs_zones():
             assert len(zones.zones) > 0
             assert response.status_code == 200
 
-            print(f"Success test case with dggs zones query ({g}, parent zone: {grid[g][0]}, zone_level=6, compact=False, geojson)")
+            print(f"Success test case with dggs zones query ({g}, parent zone: {grid[g][0]}, zone_level=7, compact=False, geojson)")
             response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', headers={'Accept': 'Application/geo+json'},
                                   params={"parent_zone": grid[g][0], 'zone_level': 7, 'compact_zone': False, 'filter': c})
 

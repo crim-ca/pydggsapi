@@ -64,4 +64,4 @@ def test_data_retrieval_h3():
 
     print(f"Empty test case with data-retrieval query (h3, {non_exists[0]}, relative_depth=2)")
     response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{non_exists[0]}/data', params={'zone-depth': 2})
-    assert response.status_code == 400
+    assert response.status_code == 204
