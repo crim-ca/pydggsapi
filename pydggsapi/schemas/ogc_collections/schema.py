@@ -4,24 +4,24 @@
 
 from __future__ import annotations
 
-from typing import Dict
+from typing import Annotated, Dict, Optional
 
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+
+from pydggsapi.schemas.common_basemodel import CommonBaseModel, OmitIfNone
 
 
-class Properties1(BaseModel):
-    readOnly: bool
-    x_ogc_role: str
+class Property(CommonBaseModel):
     type: str
-    x_ogc_propertySeq: int
+    format: Annotated[Optional[str], OmitIfNone] = None
+    title: Annotated[Optional[str], OmitIfNone] = None
+    description: Annotated[Optional[str], OmitIfNone] = None
+    language: Annotated[Optional[str], OmitIfNone] = None
+    readOnly: Annotated[Optional[bool], OmitIfNone] = None
+    x_ogc_role: Annotated[Optional[str], OmitIfNone] = None
+    x_ogc_propertySeq: Annotated[Optional[int], OmitIfNone] = None
 
 
-class Schema(BaseModel):
-    schema: str
-    id: str
-    type: str = "Object"
-    title: str
-    description: str
-    properties: Dict[str, Properties1]
-
-
+class JsonSchemaResponse(JSONResponse):
+    media_type = "application/schema+json"

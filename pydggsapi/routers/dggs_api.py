@@ -17,10 +17,9 @@ from pydggsapi.schemas.ogc_collections.collections import CollectionDesc as ogc_
 from pydggsapi.schemas.ogc_collections.collections import Collections as ogc_Collections
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc
 from pydggsapi.schemas.ogc_collections.queryables import CollectionQueryables
-from pydggsapi.schemas.ogc_collections.queryables import Properties as QueryablesProperties
+from pydggsapi.schemas.ogc_collections.schema import JsonSchemaResponse
 
-
-from pydggsapi.models.ogc_dggs.core import query_support_dggs, query_dggrs_definition, query_zone_info, landingpage
+from pydggsapi.models.ogc_dggs.core import get_queryables, query_support_dggs, query_dggrs_definition, query_zone_info, landingpage
 from pydggsapi.models.ogc_dggs.data_retrieval import query_zone_data
 from pydggsapi.models.ogc_dggs.zone_query import query_zones_list
 
@@ -234,7 +233,13 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
                 rel="[ogc-rel:dggrs-list]",
                 type="application/json",
                 title="DGGS list"
-            )
+            ),
+            Link(
+                href=f"{req.url}/collections/{collectionId}/queryables",
+                rel="[ogc-rel:queryables]",
+                type="application/schema+json",
+                title="Queryable properties from the collection.",
+            ),
         ]
         dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
         min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
@@ -248,9 +253,15 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
         raise HTTPException(status_code=404, detail=f'{__name__} {collectionId} not found')
 
 
-@router.get("/collections/{collectionId}/queryables", tags=['ogc-dggs-api'])
-async def get_collection_queryables(req: Request, collection: Dict[str, Collection] = Depends(_get_collection),
-                                    response_model=CollectionQueryables):
+@router.get(
+    "/collections/{collectionId}/queryables",
+    tags=['ogc-dggs-api'],
+    response_class=JsonSchemaResponse,  # override Content-Type response header
+)
+async def get_collection_queryables_request(
+    req: Request,
+    collection: Dict[str, Collection] = Depends(_get_collection),
+):
     _, collection = collection.popitem()
     if (collection is None):
         # Error, should not be None, it should be handled by _get_collection
@@ -261,9 +272,10 @@ async def get_collection_queryables(req: Request, collection: Dict[str, Collecti
     if (collection_provider is None):
         # Error, should not be None, it should be handled by _get_collection_provider
         raise HTTPException(status_code=404, detail=f'{__name__} {collection.collection_provider.providerId} not found')
-    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id).data
-    items = [QueryablesProperties(id=k, type=v) for k, v in fields.items()]
-    return CollectionQueryables(queryables=items)
+    schema_id = str(req.url).split('?')[0].split('#')[0]  # remove query/fragments if any indicated
+    queryables = get_queryables(collection, collection_provider)
+    queryables.id_ = schema_id
+    return queryables
 
 
 @router.get("/conformance", tags=['ogc-dggs-api'])

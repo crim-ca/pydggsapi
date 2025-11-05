@@ -3,6 +3,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem, DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
 from pydggsapi.schemas.api.collections import Collection
+from pydggsapi.schemas.ogc_collections.queryables import CollectionQueryables, Property
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
@@ -11,8 +12,9 @@ from fastapi import FastAPI
 from starlette.requests import URL
 from urllib.parse import urljoin
 
-from typing import Dict
+from typing import Dict, Optional, Union
 from pprint import pprint
+import datetime
 import logging
 import os
 
@@ -38,7 +40,7 @@ def landingpage(current_url: URL, app: FastAPI) -> LandingPageResponse:
     return LandingPageResponse(title=app.title, version=app.version, description=app.description, links=links)
 
 
-def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription]):
+def query_support_dggs(current_url, selected_dggrs: Dict[str, DggrsDescription]) -> DggrsListResponse:
     # DGGRID_ISEA7H_seqnum
     logger.debug(f'{__name__} support dggs')
     support_dggrs = []
@@ -76,8 +78,14 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     return dggrs_description
 
 
-def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
-                    collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider]):
+def query_zone_info(
+    zoneinfoReq: ZoneInfoRequest,
+    current_url: URL,
+    dggs_info: DggrsDescription,
+    dggrs_provider: AbstractDGGRSProvider,
+    collection: Dict[str, Collection],
+    collection_provider: Dict[str, AbstractCollectionProvider],
+) -> Optional[ZoneInfoResponse]:
     logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
     zoneId = [zoneinfoReq.zoneId]
     zonelevel = dggrs_provider.get_cells_zone_level(zoneId)[0]
@@ -114,3 +122,30 @@ def query_zone_info(zoneinfoReq: ZoneInfoRequest, current_url, dggs_info: DggrsD
         logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}, zoneinfo: {pprint(return_)}')
         return ZoneInfoResponse(**return_)
     return None
+
+
+def get_json_schema_property(data_type: Union[str, datetime.datetime, datetime.date, datetime.time]) -> Property:
+    if data_type in ["date", "date-time", "datetime", "time"]:
+        fmt = data_type.replace("datetime", "date-time")
+        return Property(type="string", format=fmt)
+    elif isinstance(data_type, (datetime.datetime, datetime.date, datetime.time)):
+        fmt = data_type.__name__.replace("datetime", "date-time")
+        return Property(type="string", format=fmt)
+    elif any(data_type.startswith(fmt) for fmt in ['int', 'float', 'double']):
+        fmt = data_type if data_type != 'int' else None
+        typ = 'number' if data_type != 'int' else 'integer'
+        prop = {"type": typ, "format": fmt}
+    else:
+        prop = {"type": data_type}
+    return Property(**prop)
+
+
+def get_queryables(collection: Collection, collection_provider: AbstractCollectionProvider) -> CollectionQueryables:
+    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id).data
+    col_id = collection.id
+    queryables = {}
+    for key, typ in fields.items():
+        prop_id = f"{col_id}.{key}"
+        prop = get_json_schema_property(typ)
+        queryables[prop_id] = prop
+    return CollectionQueryables(properties=queryables)

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pydggsapi.schemas.ogc_collections.schema import Property
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder, datetime_cql_validation
@@ -66,11 +67,6 @@ class ZonesDataRequest(BaseModel):
         if self.exclude_properties is not None:
             self.exclude_properties = self.exclude_properties.split(",")
         return self
-
-
-class Property(BaseModel):
-    type: str
-    title: Optional[str] = None
 
 
 class Value(BaseModel):
