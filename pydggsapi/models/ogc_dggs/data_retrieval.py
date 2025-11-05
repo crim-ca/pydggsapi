@@ -59,7 +59,6 @@ def query_zone_data(
     data_col_dims = {}
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
-    from pydggsapi.api import dggrs_providers as global_dggrs_providers
     for cid, c in collection.items():
         logger.debug(f"{__name__} handling {cid}")
         cp = collection_provider[c.collection_provider.providerId]

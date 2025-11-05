@@ -137,8 +137,8 @@ class DGGALProvider(AbstractDGGRSProvider):
             logger.info(f'{__name__} query zones list, number of hexagons: {len(zones_list)}')
         if (parent_zone is not None):
             try:
+                parent_zone_level = self.get_cells_zone_level([parent_zone])[0]
                 parent_zone = self.mygrid.getZoneFromTextID(parent_zone)
-                parent_zone_level = self.get_cells_zone_level([parent_zone])
                 subzones_list = self.mygrid.getSubZones(parent_zone, (zone_level - parent_zone_level))
                 subzones_list = set(int(z) for z in subzones_list)
                 zones_list = (zones_list & subzones_list) if (bbox is not None) else subzones_list
