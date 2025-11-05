@@ -12,6 +12,7 @@ The attributes of Abstract Datasource Info class are:
 - ``datetime_col``: a string of column name to specify the datetime column of the datasource. default to ``None``.
 - ``zone_groups`` : A dictionary to map the refinement level to the column name that stores the zone IDs.
 - ``nodata_mapping``: A dictionary to map nodata value for a data type. Uses in zone data retrieval with ``zarr+zip`` returns values for NA. Default to ``np.nan``.
+- ``zone_id_repr``: a string to indicate the zone id representation used in the datasource, it supports ``int`` and ``str``. Default is ``str``  
 
 
 

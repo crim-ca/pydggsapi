@@ -2,9 +2,10 @@ DGGAL DGGRS Provider
 --------------------
 
 The DGGRS provider DGGALProvider uses ``dggal 0.0.5`` to generate various DGGRS. The current implementation supports the following grids:
-ISEA7H_Z7
-IVEA7H
-rHEALPix
+
+- ISEA7H_Z7
+- IVEA7H
+- rHEALPix
 
 Initialisation parameters
 =========================
