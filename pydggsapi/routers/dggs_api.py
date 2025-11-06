@@ -78,7 +78,7 @@ def _import_collection_provider(providerConfig: dict):
 def _get_dggrs_provider(dggrsId):
     global dggrs_providers
     try:
-        return copy.deepcopy(dggrs_providers[dggrsId])
+        return dggrs_providers[dggrsId]
     except KeyError:
         logger.error(f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
         raise HTTPException(status_code=500, detail=f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
@@ -87,9 +87,9 @@ def _get_dggrs_provider(dggrsId):
 def _get_collection_provider(providerId=None):
     global collection_providers
     if (providerId is None):
-        return collection_providers.copy()
+        return collection_providers
     try:
-        return {providerId: copy.deepcopy(collection_providers[providerId])}
+        return {providerId: collection_providers[providerId]}
     except KeyError:
         logger.error(f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
         raise HTTPException(status_code=500, detail=f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
