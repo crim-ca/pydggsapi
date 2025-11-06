@@ -78,7 +78,7 @@ def _import_collection_provider(providerConfig: dict):
 def _get_dggrs_provider(dggrsId):
     global dggrs_providers
     try:
-        return dggrs_providers[dggrsId]
+        return copy.deepcopy(dggrs_providers[dggrsId])
     except KeyError:
         logger.error(f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
         raise HTTPException(status_code=500, detail=f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
@@ -87,9 +87,9 @@ def _get_dggrs_provider(dggrsId):
 def _get_collection_provider(providerId=None):
     global collection_providers
     if (providerId is None):
-        return collection_providers
+        return collection_providers.copy()
     try:
-        return {providerId: collection_providers[providerId]}
+        return {providerId: copy.deepcopy(collection_providers[providerId])}
     except KeyError:
         logger.error(f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
         raise HTTPException(status_code=500, detail=f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
@@ -98,7 +98,7 @@ def _get_collection_provider(providerId=None):
 def _get_dggrs_description(dggrsId: str = Path(...)):
     global dggrs
     try:
-        return dggrs[dggrsId]
+        return copy.deepcopy(dggrs[dggrsId])
     except KeyError as e:
         logger.error(f'{__name__} {dggrsId} not supported : {e}')
         raise HTTPException(status_code=400, detail=f'{__name__}  _get_dggrs_description failed:  {dggrsId} not supported: {e}')
@@ -107,9 +107,9 @@ def _get_dggrs_description(dggrsId: str = Path(...)):
 def _get_collection(collectionId=None, dggrsId=None):
     global collections, dggrs_providers
     if (collectionId is None):
-        return collections
+        return collections.copy()
     try:
-        c = {collectionId: collections[collectionId]}
+        c = {collectionId: copy.deepcopy(collections[collectionId])}
     except KeyError:
         logger.error(f'{__name__} : {collectionId} not found')
         raise HTTPException(status_code=400, detail=f'{__name__}  _get_collection failed: {collectionId} not found')
