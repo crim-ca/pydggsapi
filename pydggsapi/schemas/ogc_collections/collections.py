@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pydggsapi.schemas.common_basemodel import _OmitIfNone, CommonBaseModel
+from pydggsapi.schemas.common_basemodel import OmitIfNone, CommonBaseModel
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
 from pydggsapi.schemas.ogc_collections.extent import Spatial, Temporal
 
@@ -9,8 +9,6 @@ from enum import Enum
 from typing import List, Optional, Union, Annotated
 
 from pydantic import AnyUrl, BaseModel, Field, conint, RootModel
-
-OmitIfNone = _OmitIfNone()
 
 
 class DataType1(Enum):
