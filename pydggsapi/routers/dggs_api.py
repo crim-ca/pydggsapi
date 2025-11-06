@@ -155,6 +155,8 @@ def _get_return_type(
     if fmt and (returntypes is None or all(typ in browser_ignore_types for typ in returntypes_raw)):
         fmt = str(fmt).lower()
         returntypes = support_formats.get(fmt)  # could still be none if unmapped
+        if returntypes is None:
+            raise HTTPException(406, detail=f"Requested format '{fmt}' is not supported.")
     if returntypes is None:
         returntypes = default_return
     if isinstance(returntypes, str):
@@ -164,7 +166,7 @@ def _get_return_type(
     if not intersection:
         if '*/*' in returntypes:
             return default_return
-        raise HTTPException(406, detail="The return type is not supported.")
+        raise HTTPException(406, detail="Requested content-type is not supported.")
     returntype = intersection[0]
     return returntype
 
