@@ -37,22 +37,23 @@ def test_data_retrieval_h3():
     assert "not supported" in response.text
     assert response.status_code == 400
 
-    print(f"Fail test case withdata-retrieval query (h3, {cellids[0]}, relative_depth=4) over refinement")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'zone-depth': 4})
+    print(f"Fail test case withdata-retrieval query (h3, {cellids[0]}, relative_depth=9) over refinement")
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'zone-depth': 9})
     assert response.status_code == 400
 
     print(f"Success test case with data-retrieval query (h3, {cellids[0]})")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data')
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'zone-depth': 0})
     data = ZonesDataDggsJsonResponse(**response.json())
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (h3, {cellids[0]}, return = geojson)")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'})
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', headers={'accept': 'application/geo+json'},
+                          params={'zone-depth': 0})
     data = ZonesDataGeoJson(**response.json())
     assert response.status_code == 200
 
     print(f"Success test case with data-retrieval query (h3, {cellids[0]}, return = geojson, geometry='zone-centroid')")
-    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid'},
+    response = client.get(f'/dggs-api/v1-pre/dggs/h3/zones/{cellids[0]}/data', params={'geometry': 'zone-centroid', "zone-depth": 0},
                           headers={'accept': 'application/geo+json'})
     data = ZonesDataGeoJson(**response.json())
     assert response.status_code == 200

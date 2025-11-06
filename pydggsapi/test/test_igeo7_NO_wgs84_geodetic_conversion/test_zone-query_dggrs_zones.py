@@ -33,19 +33,16 @@ extra_conf = {
     "output_hier_ndx_system": 'Z7',
     "output_hier_ndx_form": 'DIGIT_STRING',
     # initial vertex lon setting
-    "dggs_vert0_lon": 11.20
+    "dggs_vert0_lon": 11.25
 }
 
 aoi = shapely.Polygon(aoi)
 aoi_authalic = geoseries_to_authalic(gpd.GeoSeries(aoi))[0]
 non_exist_aoi = shapely.Polygon(non_exist_aoi)
-validation_zone_level_5_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 5, clip_geom=aoi_authalic, **extra_conf)
-validation_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 8, clip_geom=aoi_authalic, **extra_conf)
-validation_centroids_gdf = dggrid.grid_cell_centroids_for_extent('IGEO7', 8, clip_geom=aoi_authalic, **extra_conf)
+validation_zone_level_5_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 5, clip_geom=aoi, **extra_conf)
+validation_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 8, clip_geom=aoi, **extra_conf)
+validation_centroids_gdf = dggrid.grid_cell_centroids_for_extent('IGEO7', 8, clip_geom=aoi, **extra_conf)
 
-validation_hexagons_gdf.geometry = geoseries_to_geodetic(validation_hexagons_gdf.geometry)
-validation_centroids_gdf.geometry = geoseries_to_geodetic(validation_centroids_gdf.geometry)
-validation_zone_level_5_hexagons_gdf.geometry = geoseries_to_geodetic(validation_zone_level_5_hexagons_gdf.geometry)
 
 validation_zone_level_5_hexagons_gdf.set_index('name', inplace=True)
 validation_hexagons_gdf.set_index('name', inplace=True)
