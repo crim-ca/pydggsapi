@@ -39,7 +39,8 @@ def test_data_retrieval():
 
     print(f"Fail test case withdata-retrieval query (igeo7, {cellids[0]}, relative_depth=6) over refinement")
     response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'zone-depth': 6})
-    assert response.status_code == 204
+    assert "over refinement" in response.text
+    assert response.status_code == 400
 
     print(f"Success test case with data-retrieval query (igeo7, {cellids[0]})")
     response = client.get(f'/dggs-api/v1-pre/dggs/igeo7/zones/{cellids[0]}/data', params={'zone-depth': '0'})

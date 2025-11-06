@@ -41,28 +41,24 @@ def test_zone_query_dggrs_zones_VH3_2_IGEO7():
     print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, compact=False)")
     bounds = list(map(str, aoi.bounds))
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', params={"bbox": ",".join(bounds), 'compact_zone': False})
-    pprint(response.json())
     zones = ZonesResponse(**response.json())
     assert len(zones.zones) > 0
     assert response.status_code == 200
 
     print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, zone_level=2, compact=False)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', params={"bbox": ",".join(bounds), 'zone_level': 2, 'compact_zone': False})
-    #pprint(response.json())
     #zones = ZonesResponse(**response.json())
     #assert len(zones.zones) > 0
     assert response.status_code == 400
 
     print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, zone_level=6, compact=False)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', params={"bbox": ",".join(bounds), 'zone_level': 6, 'compact_zone': False})
-    pprint(response.json())
     zones = ZonesResponse(**response.json())
     assert len(zones.zones) > 0
     assert response.status_code == 200
 
     print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, zone_level=6, compact=True)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', params={"bbox": ",".join(bounds), 'zone_level': 6, 'compact_zone': True})
-    pprint(response.json())
     zones = ZonesResponse(**response.json())
     assert len(zones.zones) > 0
     assert response.status_code == 200
@@ -70,7 +66,6 @@ def test_zone_query_dggrs_zones_VH3_2_IGEO7():
     print(f"Success test case with dggs zones query (h3, bbox: {aoi.bounds}, zone_level=6, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', headers={'Accept': 'Application/geo+json'},
                           params={"bbox": ",".join(bounds), 'zone_level': 6, 'compact_zone': False})
-    pprint(response.json())
     zones_geojson = ZonesGeoJson(**response.json())
     assert len(zones.zones) > 0
     assert response.status_code == 200
@@ -78,7 +73,6 @@ def test_zone_query_dggrs_zones_VH3_2_IGEO7():
     print(f"Success test case with dggs zones query (h3, parent zone: {cellids[0]}, zone_level=6, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', headers={'Accept': 'Application/geo+json'},
                           params={"parent_zone": cellids[0], 'zone_level': 6, 'compact_zone': False})
-    pprint(response.json())
     zones_geojson = ZonesGeoJson(**response.json())
     return_features_list = zones_geojson.features
     assert len(zones.zones) > 0
@@ -86,14 +80,14 @@ def test_zone_query_dggrs_zones_VH3_2_IGEO7():
 
     print(f"Fail test case with dggs zones query (h3, parent zone: {cellids[0]}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', headers={'Accept': 'Application/geo+json'},
-                          params={"parent_zone": cellids[0], 'zone_level': 8, 'compact_zone': False})
-    pprint(response.json())
+                          params={"parent_zone": cellids[0], 'zone_level': 14, 'compact_zone': False})
     assert response.status_code == 400
 
     print(f"Empty test case with dggs zones query (h3, bbox: {non_exist_aoi.bounds}, zone_level=6, compact=False, geojson)")
     non_exist_bounds = list(map(str, non_exist_aoi.bounds))
+
     response = client.get('/dggs-api/v1-pre/dggs/h3/zones', headers={'Accept': 'Application/geo+json'},
-                          params={"bbox": non_exist_bounds, 'zone_level': 6, 'compact_zone': False})
+                          params={"bbox": ",".join(non_exist_bounds), 'zone_level': 6, 'compact_zone': False})
     assert response.status_code == 204
 
     print(f"Empty test case with dggs zones query (h3, parent zone: {non_exists[0]}, zone_level=6, compact=False, geojson)")
