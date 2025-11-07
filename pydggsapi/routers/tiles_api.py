@@ -50,6 +50,8 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     collection_provider = _get_collection_provider(collection.collection_provider.providerId)[collection.collection_provider.providerId]
     ds = collection_provider.datasources[collection.collection_provider.datasource_id]
     id_col = getattr(ds, "id_col", "zone_id")
+    if (id_col == ''):
+        id_col = "zone_id"
     bbox, tile = mercator.getWGS84bbox(tilesreq.z, tilesreq.x, tilesreq.y)
     res_info = mercator.get(tile.z)
     tile_width_km = float(res_info["Tile width deg lons"]) / 0.01 * 0.4  # in tile_width_km
@@ -68,6 +70,8 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     logger.debug(f'{__name__} zone level:{zone_level}, tile width:{tile_width_km}, bbox:{bbox}')
     zoneslist = dggrs_provider.zoneslist(clip_bound, zone_level, parent_zone=None, returngeometry='zone-region', compact=False)
     geometry = [shapely.from_geojson(json.dumps(g.__dict__)) for g in zoneslist.geometry]
+    if (collection.collection_provider.dggrs_zoneid_repr != "textual"):
+        zoneslist.zones = dggrs_provider.zone_id_from_textual(zoneslist.zones, collection.collection_provider.dggrs_zoneid_repr)
     zoneslist = gpd.GeoDataFrame({'zone_id': zoneslist.zones}, geometry=geometry).set_index('zone_id')
     zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level, collection.collection_provider.datasource_id)
     if (len(zones_data.zoneIds) == 0):
@@ -76,7 +80,9 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
     zones_data = gpd.GeoDataFrame(zones_data.data, index=zones_data.zoneIds, columns=list(zones_data.cols_meta.keys()))
-    zones_data = zones_data.join(zoneslist).reset_index(names=id_col)
+    zones_data = zoneslist.join(zones_data).reset_index(names=id_col)
+    if (collection.collection_provider.dggrs_zoneid_repr != 'textual'):
+        zones_data[id_col] = dggrs_provider.zone_id_to_textual(zones_data[id_col].values, collection.collection_provider.dggrs_zoneid_repr)
     geometry = zones_data['geometry'].values
     zones_data = zones_data.drop(columns='geometry')
     features = zones_data.to_dict(orient='records')
