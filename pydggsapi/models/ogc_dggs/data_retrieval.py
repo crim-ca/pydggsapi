@@ -1,5 +1,8 @@
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Property, Value, ZonesDataDggsJsonResponse, Feature, ZonesDataGeoJson
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import (
+    Property, Schema, Shape, Value, ZonesDataDggsJsonResponse,
+    Feature, ZonesDataGeoJson, Dimension
+)
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZonesElement
 from pydggsapi.schemas.api.collections import Collection
@@ -14,7 +17,7 @@ from pydggsapi.dependencies.api.utils import getCQLAttributes
 from fastapi.responses import FileResponse
 from urllib import parse
 from numcodecs import Blosc
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Tuple, Union
 from scipy.stats import mode
 from pygeofilter.ast import AstType
 import shapely
@@ -57,7 +60,7 @@ def query_zone_data(
     data = {}
     data_type = {}
     nodata_mapping = {}
-    data_col_dims = {}
+    data_col_dims: Dict[Tuple[str, str], Dimension] = {}  # per-collection dimensions to manage distinct ones per provider
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
     for cid, c in collection.items():
@@ -111,6 +114,7 @@ def query_zone_data(
             logger.debug(f"{__name__} {cid} get_data done")
             if (len(collection_result.zoneIds) > 0):
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}
+                data_col_dims.update({(cid, dim.name): dim for dim in collection_result.dimensions or []})
                 cp_nodata_mapping = cp.datasources[datasource_id].nodata_mapping
                 collection_nodata = {k: cp_nodata_mapping.get("default", np.nan) for k in list(cols_name.keys())}
                 collection_nodata_keys = [k.lower() for k in cp_nodata_mapping.keys() if (k != "default")]
@@ -137,11 +141,6 @@ def query_zone_data(
                     data[z] = data[z].drop(columns=[f'geometry{cid}'], errors='ignore')
                 except KeyError:
                     data[z] = master
-                if 'dimensions' in collection_result.cols_meta:
-                    data_col_dims.update(collection_result.cols_meta['dimensions'])
-                if include_datetime:
-                    data_col_dims.update()
-                sub_zones = len(idx)
     if (len(data.keys()) == 0):
         return None
     zarr_root, tmpfile = None, None
@@ -176,8 +175,13 @@ def query_zone_data(
             properties.update({c: get_json_schema_property(data_type[c]) for c in diff})
             diff = set(list(d.index)) - set(list(values.keys()))
             values.update({c: [] for c in diff})
+            sub_zones = len(set(zoneIds))
             for i, column in enumerate(d.index):
-                values[column].append(Value(**{'depth': z - base_level, 'shape': {'count': len(v[i, :])}, "data": v[i, :].tolist()}))
+                data_dims = {
+                    dim.name: dim.grid.cellsCount
+                    for (col, name), dim in data_col_dims.items()
+                    if column.startswith(f"{col}.")  # only dimensions of matching collections
+                }
                 if (zarr_root is not None):
                     root = zarr_root
                     if (f'zone_level_{z}' not in zarr_root.group_keys()):
@@ -188,11 +192,19 @@ def query_zone_data(
                     if ('zoneId' not in root.array_keys()):
                         sub_zarr = root.create_dataset('zoneId', data=zoneIds, compressor=compressor)
                         sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
+                    # FIXME: if 'data_dims' exist, need to create dimension arrays...
                     export_data = v[i, :]
                     export_data[pd.isna(export_data)] = nodata_mapping[column]
                     export_data = export_data.astype(data_type[column].lower())
                     sub_zarr = root.create_dataset(f'{column}_zone_level_' + str(z), data=export_data, compressor=compressor)
                     sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
+                else:  # DGGS-(UB)JSON
+                    data_count = len(v[i, :])
+                    values[column].append(Value(
+                        depth=z - base_level,
+                        shape=Shape(count=data_count, subZones=sub_zones, dimensions=data_dims or None),
+                        data=v[i, :].tolist(),
+                    ))
     if (zarr_root is not None):
         zarr_root.attrs.update({k: v.__dict__ for k, v in properties.items()})
         zarr.consolidate_metadata(zipstore)
@@ -204,7 +216,7 @@ def query_zone_data(
     relative_levels if (base_level == relative_levels[0]) else relative_levels[1:]
     relative_levels = [rl - base_level for rl in relative_levels]
     return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': relative_levels,
-               'properties': properties, 'values': values}
+               'schema': Schema(properties=properties), 'values': values}
     if data_col_dims:
-        return_['dimensions'] = [{'name': dim, **dim_info} for dim, dim_info in data_col_dims.items()]
+        return_['dimensions'] = list(data_col_dims.values())
     return ZonesDataDggsJsonResponse(**return_)

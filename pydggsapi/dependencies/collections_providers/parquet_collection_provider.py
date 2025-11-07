@@ -8,6 +8,7 @@ from pydggsapi.schemas.api.collection_providers import (
     CollectionProviderGetDataDictReturn
 )
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Dimension, DimensionGrid
 from dataclasses import dataclass
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sql import to_sql_where
@@ -66,6 +67,13 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             if exclude_properties:
                 incl -= set(exclude_properties)
             cols = f"{','.join(incl)}, {datasource.id_col}"
+
+        # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
+        sort_by = ""
+        if datasource.datetime_col is not None:
+            cols += f", {datasource.datetime_col}"
+            sort_by = f" ORDER BY {datasource.datetime_col} ASC"
+
         sql = f"""select {cols} from read_parquet('{datasource.filepath}')
                   where {datasource.id_col} in (SELECT UNNEST(?))"""
         if (cql_filter is not None):
@@ -77,6 +85,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
                 fieldmapping.update({zone_datetime_placeholder: datasource.datetime_col})
             cql_sql = to_sql_where(cql_filter, fieldmapping)
             sql += f"and {cql_sql}"
+        sql += sort_by
         try:
             result_df = datasource.conn.sql(sql, params=[zoneIds]).df()
         except Exception as e:
@@ -85,10 +94,26 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         result_id = result_df[datasource.id_col]
         result_df = result_df.drop(datasource.id_col, axis=1)
         cols_meta = {k: v.name for k, v in dict(result_df.dtypes).items()}
+        cols_dims = None
+        if datasource.datetime_col and result_df.size > 0:
+            datetime_interval = result_df[datasource.datetime_col].agg(['min', 'max']).to_dict()
+            cols_dims = [
+                Dimension(
+                    name=datasource.datetime_col,
+                    interval=[datetime_interval['min'], datetime_interval['max']],
+                    grid=DimensionGrid(
+                        cellsCount=len(result_df[datasource.datetime_col]),
+                        coordinates=result_df[datasource.datetime_col].tolist(),
+                    )
+                )
+            ]
+            cols_meta.pop(datasource.datetime_col, None)
+            result_df.drop(datasource.datetime_col, axis=1, inplace=True)  # remove since reported as metadata
         result_df = result_df.to_numpy()
         result_id = result_id.to_list()
         result_df = result_df.tolist()
         result.zoneIds, result.cols_meta, result.data = result_id, cols_meta, result_df
+        result.dimensions = cols_dims
         return result
 
     def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataReturn:
