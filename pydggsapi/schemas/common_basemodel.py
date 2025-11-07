@@ -7,6 +7,9 @@ class _OmitIfNone:
     pass
 
 
+OmitIfNone = _OmitIfNone()
+
+
 class CommonBaseModel(BaseModel):
 
     @model_serializer

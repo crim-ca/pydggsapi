@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+from pydggsapi.schemas.ogc_collections.schema import Property
 
 
 class SpatialTypes(BaseModel):
@@ -21,20 +23,13 @@ class TemporalTypes(BaseModel):
     enum: List[str]
 
 
-class Properties(BaseModel):
-    id: str
-    title: Optional[str]=""
-    description: Optional[str]=""
-    language: Optional[str]=""
-    type: str
-    # spatial_types: SpatialTypes = Field(..., alias='spatial-types')
-    # temporal_types: TemporalTypes = Field(..., alias='temporal-types')
-    links: Optional[str]=""
-
-
 class CollectionQueryables(BaseModel):
-    queryables: List[Properties]
+    schema_: str = Field("https://json-schema.org/draft/2020-12/schema", alias="$schema")
+    id_: Optional[str] = Field(None, alias="$id")
+    type: str = "object"
+    properties: Dict[str, Property]
 
+    model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
 
 # class Model(BaseModel):
 #    type: str

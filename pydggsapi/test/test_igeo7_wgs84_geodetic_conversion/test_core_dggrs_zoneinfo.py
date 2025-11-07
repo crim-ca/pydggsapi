@@ -33,10 +33,12 @@ extra_conf = {
     "output_hier_ndx_system": 'Z7',
     "output_hier_ndx_form": 'DIGIT_STRING',
     # initial vertex lon setting
-    "dggs_vert0_lon": 11.25
+    "dggs_vert0_lon": 11.20
 }
 validation_hexagons_gdf = dggrid.grid_cell_polygons_from_cellids(cellids, 'IGEO7', 8, **extra_conf)
 validation_centroids_gdf = dggrid.grid_cell_centroids_from_cellids(cellids, 'IGEO7', 8, **extra_conf)
+validation_hexagons_gdf.geometry = geoseries_to_geodetic(validation_hexagons_gdf.geometry)
+validation_centroids_gdf.geometry = geoseries_to_geodetic(validation_centroids_gdf.geometry)
 validation_hexagons_gdf.set_index('name', inplace=True)
 validation_centroids_gdf.set_index('name', inplace=True)
 

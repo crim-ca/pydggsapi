@@ -43,19 +43,21 @@ class IGEO7MetafileConfig():
     dggs_vert0_azimuth: Final[decimal.Decimal | float | str] = 0.0
 
 
+# Alway returns a GeoSeries
 def _authalic_to_geodetic(geometry, convert: bool) -> GeoSeries:
-    if (not convert):
-        return geometry
     if (not isinstance(geometry, GeoSeries)):
         geometry = GeoSeries(geometry)
+    if (not convert):
+        return geometry
     return geoseries_to_geodetic(geometry)
 
 
+# Alway returns a GeoSeries
 def _geodetic_to_authalic(geometry, convert: bool) -> GeoSeries:
-    if (not convert):
-        return geometry
     if (not isinstance(geometry, GeoSeries)):
         geometry = GeoSeries(geometry)
+    if (not convert):
+        return geometry
     return geoseries_to_authalic(geometry)
 
 

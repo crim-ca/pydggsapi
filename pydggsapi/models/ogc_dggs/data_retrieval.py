@@ -5,6 +5,7 @@ from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZonesElement
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn
 
+from pydggsapi.models.ogc_dggs.core import get_json_schema_property
 
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider, DatetimeNotDefinedError
@@ -179,7 +180,7 @@ def query_zone_data(
             if v[nan_mask].size > 0:
                 v[nan_mask] = np.nan
             diff = set(list(d.index)) - set(list(properties.keys()))
-            properties.update({c: Property(**{'type': data_type[c]}) for c in diff})
+            properties.update({c: get_json_schema_property(data_type[c]) for c in diff})
             diff = set(list(d.index)) - set(list(values.keys()))
             values.update({c: [] for c in diff})
             for i, column in enumerate(d.index):

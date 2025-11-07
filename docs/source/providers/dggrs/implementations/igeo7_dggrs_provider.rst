@@ -65,7 +65,7 @@ Example of parameter settings
                  "definition_link": "https://agile-giss.copernicus.org/articles/6/32/2025/", 
                  "defaultDepth": 1, 
                  "classname": "igeo7_dggrs_provider.IGEO7Provider",
-                 "parmeters": { "dggs_vert0_lon": 11.25 }
+                 "parameters": { "dggs_vert0_lon": 11.25 }
                 }
             }
 	}
