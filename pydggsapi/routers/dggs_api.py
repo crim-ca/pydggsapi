@@ -45,9 +45,10 @@ router = APIRouter()
 dggrs, dggrs_providers, collections, collection_providers = {}, {}, {}, {}
 
 
-def _import_dggrs_class(dggrsId):
+def _import_dggrs_class(dggrsId, crs=None):
     try:
         classname, initial_params = get_dggrs_class(dggrsId)
+        initial_params.update({"crs": crs})
         if (classname is None):
             logger.error(f'{__name__} {dggrsId} class not found.')
             raise Exception(f'{__name__} {dggrsId} class not found.')
@@ -146,7 +147,7 @@ if (c1 is False or c2 is False):
     raise Exception(f'{__name__} collection_provider: either collection providerId or dggrsId not exists ')
 
 for dggrsId in dggrs.keys():
-    dggrs_providers[dggrsId] = _import_dggrs_class(dggrsId)
+    dggrs_providers[dggrsId] = _import_dggrs_class(dggrsId, dggrs[dggrsId].crs)
 
 for providerId, providerConfig in collection_providers.items():
     collection_providers[providerId] = _import_collection_provider(providerConfig)
