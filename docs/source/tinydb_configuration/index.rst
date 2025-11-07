@@ -62,7 +62,13 @@ The dictionary associated with the collection ID defines metadata and methods to
    - ``providerId``: :ref:`the collection provider ID  <collection_providers>`
 
    - ``dggrsId``: :ref:`the dggrs provider ID <dggrs>`
-   
+ 
+   - ``dggrs_zone_id_repr``: It is a string to indicate the zone ID representation used in the datasource. It must be in one of the values from the following selection list : 
+      
+      - ``['int', 'textual', 'hexstring']``
+       
+       It defaults to ``textual``. The API alway assume the zone ID from requests are using ``textual`` representation. If the datasource is not using ``textual`` representation, the API performs conversion from ``textual`` representation to the representation used in the datasource. The conversion is provided by the :ref:`DGGRS provider <dggrs_zone_id_repr>`
+
    - ``max_refinement_level``: the maximum refinement level(the finest) of the data. 
 
    - ``min_refinement_level``: the minimum refinement level(the coarsest) of the data. 

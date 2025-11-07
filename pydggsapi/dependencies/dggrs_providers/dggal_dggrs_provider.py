@@ -71,15 +71,29 @@ class DGGALProvider(AbstractDGGRSProvider):
     def convert(self, zoneIds: list, targedggrs: type[AbstractDGGRSProvider]):
         raise NotImplementedError
 
-    def zoneId_str2int(self, cellIds: list) -> list:
+    def zone_id_from_textual(self, cellIds: list, zone_id_repr: str) -> list:
         if (len(cellIds) == 0):
             return []
-        return [self.mygrid.getZoneFromTextID(z) for z in cellIds]
+        if (zone_id_repr == "textual"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            return [self.mygrid.getZoneFromTextID(z) for z in cellIds]
+        if (zone_id_repr == "hexstring"):
+            raise ValueError("{__name__} dggal doesn't support hexstring zone id representation")
 
-    def zoneId_int2str(self, cellIds: list) -> list:
+    def zone_id_to_textual(self, cellIds: list, zone_id_repr: str) -> list:
         if (len(cellIds) == 0):
             return []
-        return [self.mygrid.getZoneTextID(z) for z in cellIds]
+        if (zone_id_repr == "textual"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            # get_data return zone id in string format
+            if (isinstance(cellIds[0], str)):
+                return [self.mygrid.getZoneTextID(int(z)) for z in cellIds]
+            else:
+                return [self.mygrid.getZoneTextID(z) for z in cellIds]
+        if (zone_id_repr == "hexstring"):
+            raise ValueError("{__name__} dggal doesn't support hexstring zone id representation")
 
     def get_cls_by_zone_level(self, zone_level: int) -> float:
         return self.mygrid.getMetersPerSubZoneFromLevel(zone_level, 0)

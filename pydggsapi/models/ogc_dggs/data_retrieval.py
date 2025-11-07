@@ -68,7 +68,7 @@ def query_zone_data(
         cmin_rf = c.collection_provider.min_refinement_level
         datasource_vars = list(cp.get_datadictionary(datasource_id).data.keys())
         intersection = (set(datasource_vars) & cql_attributes)
-        zone_id_repr = cp.datasources[datasource_id].zone_id_repr
+        zone_id_repr = c.collection_provider.dggrs_zoneid_repr
         # check if the cql attributes contain inside the datasource columns
         # The datasource of the collection must consist all columns that match with the attributes of the cql filter
         if ((len(cql_attributes) > 0)):
@@ -107,12 +107,11 @@ def query_zone_data(
             tmp_dggrs_provider = dggrs_provider if (not convert) else global_dggrs_providers[c.collection_provider.dggrsId]
             if (converted_z >= cmin_rf):
                 try:
-                    idx = tmp_dggrs_provider.zoneId_str2int(idx) if (zone_id_repr == 'int') else idx
+                    idx = tmp_dggrs_provider.zone_id_from_textual(idx, zone_id_repr) if (zone_id_repr != 'textual') else idx
                     collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
                                                     include_datetime, incl_props, excl_props)
-                    if (zone_id_repr == 'int'):
-                        collection_result.zoneIds = [int(result_zone_id) for result_zone_id in collection_result.zoneIds]
-                        collection_result.zoneIds = tmp_dggrs_provider.zoneId_int2str(collection_result.zoneIds)
+                    if (zone_id_repr != 'textual'):
+                        collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr)
                 except DatetimeNotDefinedError:
                     pass
             logger.debug(f"{__name__} {cid} get_data done")

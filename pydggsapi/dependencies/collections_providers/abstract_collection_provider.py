@@ -4,7 +4,7 @@ from pydggsapi.schemas.api.collection_providers import (
 )
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional, Literal, Any
+from typing import List, Dict, Optional, Any
 from pygeofilter.ast import AstType
 import numpy as np
 
@@ -15,7 +15,6 @@ class AbstractDatasourceInfo(ABC):
     exclude_data_cols: List[str] = field(default_factory=list)
     zone_groups: Optional[Dict[str, str]] = field(default_factory=dict)
     datetime_col: str = None
-    zone_id_repr: Literal['int', 'str'] = 'str'
     nodata_mapping: Optional[Dict[str, Any]] = field(default_factory=lambda: {"default": np.nan})
 
 

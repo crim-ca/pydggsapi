@@ -101,12 +101,12 @@ def query_zone_info(
         if (v.collection_provider.dggrsId != dggs_info.id and
                 v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId,
-                                                     zone_repr=cp.datasources[datasource_id].zone_id_repr)
+                                                     v.collection_provider.dggrs_zoneid_repr)
             zoneId = converted_zones.target_zoneIds
             zonelevel = converted_zones.target_res[0]
         else:
-            if (cp.datasources[datasource_id].zone_id_repr == 'int'):
-                zoneId = dggrs_provider.zoneId_str2int(zoneId)
+            if (v.collection_provider.dggrs_zoneid_repr != 'textual'):
+                zoneId = dggrs_provider.zone_id_from_textual(zoneId, v.collection_provider.dggrs_zoneid_repr)
         data = cp.get_data(zoneId, zonelevel, datasource_id)
         filter_ += len(data.zoneIds)
     zoneId = zoneinfoReq.zoneId  # reset the zoneId to original one as string

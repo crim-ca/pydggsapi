@@ -33,7 +33,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         datasource_id = v.collection_provider.datasource_id
         cp_id = v.collection_provider.providerId
         datasource_vars = list(collection_provider[cp_id].get_datadictionary(datasource_id).data.keys())
-        zone_id_repr = collection_provider[cp_id].datasources[datasource_id].zone_id_repr
+        zone_id_repr = v.collection_provider.dggrs_zoneid_repr
         intersection = (set(datasource_vars) & cql_attributes)
         # check if the cql attributes contain inside the datasource
         # The datasource of the collection must consist all columns that match with the attributes of the cql filter
@@ -48,8 +48,8 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
             converted_zones = converted.target_zoneIds
             converted_level = converted.target_res[0]
         else:
-            if (zone_id_repr == 'int'):
-                converted_zones = dggrs_provider.zoneId_str2int(converted_zones)
+            if (zone_id_repr != 'textual'):
+                converted_zones = dggrs_provider.zone_id_from_textual(converted_zones, zone_id_repr)
         try:
             filtered_zoneIds = collection_provider[cp_id].get_data(converted_zones, converted_level,
                                                                    datasource_id, cql_filter, include_datetime).zoneIds
@@ -61,9 +61,8 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
             # and the zoneIds is in original repr (str)
             filter_ += np.array(converted.zoneIds)[np.isin(converted.target_zoneIds, filtered_zoneIds)].tolist()
         else:
-            if (zone_id_repr == 'int'):
-                filtered_zoneIds = [int(z) for z in filtered_zoneIds]
-                filtered_zoneIds = dggrs_provider.zoneId_int2str(filtered_zoneIds)
+            if (zone_id_repr != 'textual'):
+                filtered_zoneIds = dggrs_provider.zone_id_to_textual(filtered_zoneIds, zone_id_repr)
             filter_ += filtered_zoneIds
     if (skipped == len(collection)):
         raise ValueError(f"{__name__} query zones list cql attributes({cql_attributes}) not found in all collections.")

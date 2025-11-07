@@ -150,10 +150,10 @@ class IGEO7Provider(AbstractDGGRSProvider):
         gdf.geometry = _authalic_to_geodetic(gdf.geometry, self.wgs84_geodetic_conversion)
         return gdf
 
-    def zoneId_str2int(self, cellIds: list) -> list:
+    def zone_id_from_textual(self, cellIds: list, zone_id_repr: str) -> list:
         raise NotImplementedError
 
-    def zoneId_int2str(self, cellIds: list) -> list:
+    def zone_id_to_textual(self, cellIds: list, zone_id_repr: str) -> list:
         raise NotImplementedError
 
     def get_cls_by_zone_level(self, zone_level: int):

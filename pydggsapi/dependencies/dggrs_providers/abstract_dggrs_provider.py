@@ -17,11 +17,11 @@ class AbstractDGGRSProvider(ABC):
     dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
 
     @abstractmethod
-    def zoneId_str2int(self, cellIds: list) -> list:
+    def zone_id_from_textual(self, cellIds: list, zone_id_repr: str) -> list:
         raise NotImplementedError
 
     @abstractmethod
-    def zoneId_int2str(self, cellIds: list) -> list:
+    def zone_id_to_textual(self, cellIds: list, zone_id_repr: str) -> list:
         raise NotImplementedError
 
     @abstractmethod
@@ -53,6 +53,6 @@ class AbstractDGGRSProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def convert(self, zoneIds: list, targetdggrs: Any, zone_repr: str = 'str') -> DGGRSProviderConversionReturn:
+    def convert(self, zoneIds: list, targetdggrs: Any, zone_id_repr: str = 'textual') -> DGGRSProviderConversionReturn:
         raise NotImplementedError
 
