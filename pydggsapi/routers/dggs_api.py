@@ -195,8 +195,6 @@ for providerId, providerConfig in collection_providers.items():
     collection_providers[providerId] = _import_collection_provider(providerConfig)
 
 
-
-
 # Landing page and conformance
 @router.get(
     "/",

@@ -27,16 +27,17 @@ class H3Provider(AbstractDGGRSProvider):
         igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
         self.dggrs_conversion = {'igeo7': igeo7_conversion_properties}
 
-    def convert(self, zoneIds: list, targetdggrs: str):
+    def convert(self, zoneIds: list, targetdggrs: str, zone_id_repr: str = 'textual'):
         from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
         if (targetdggrs in self.dggrs_conversion):
             if (targetdggrs == 'igeo7'):
                 igeo7 = global_dggrs_providers['igeo7']
-                res_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in zoneIds]
-                for i, area in enumerate(res_list):
+                # convert from h3 zone's area to igeo7 refinement level
+                target_zones_refinement_list = [[h3.cell_area(id_), self._cell_to_shapely(id_, 'zone-region')] for id_ in zoneIds]
+                for i, zone in enumerate(target_zones_refinement_list):
                     for k, v in igeo7.data.items():
-                        if (area[0] > v['Area (km^2)']):
-                            res_list[i][0] = k
+                        if (zone[0] > v['Area (km^2)']):
+                            target_zones_refinement_list[i][0] = k
                             break
                 v_ids = []
                 target_zoneIds = []
@@ -44,13 +45,18 @@ class H3Provider(AbstractDGGRSProvider):
                 try:
                     # ~ 0.05s for one iter with using actualdggrs.zoneslist
                     # ~ 0.03s for one iter with using get centriod method. (1s reduced in total for 49 zones)
-                    for i, res in enumerate(res_list):
-                        r = igeo7.generate_hexcentroid(shapely.box(*res[1].bounds), res[0])
-                        selection = [shapely.within(g, res[1]) for g in r['geometry']]
+                    # position 0 == igeo7 refinement level, posiiton 1 == bound
+                    for i, zone in enumerate(target_zones_refinement_list):
+                        print("here0")
+                        r = igeo7.generate_hexcentroid(shapely.box(*zone[1].bounds), zone[0])
+                        print("here1")
+                        selection = [shapely.within(g, zone[1]) for g in r['geometry']]
                         selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
+                        if (zone_id_repr != 'textual'):
+                            selection = igeo7.zone_id_from_textual(selection, zone_id_repr)
                         target_zoneIds += selection
                         v_ids += [zoneIds[i]] * len(selection)
-                        target_res_list += [res[0]] * len(selection)
+                        target_res_list += [zone[0]] * len(selection)
                 except Exception as e:
                     logger.error(f'{__name__} forward transform failed : {e}')
                     raise Exception(f'{__name__} forward transform failed : {e}')
@@ -59,6 +65,27 @@ class H3Provider(AbstractDGGRSProvider):
                 return DGGRSProviderConversionReturn(zoneIds=v_ids, target_zoneIds=target_zoneIds, target_res=target_res_list)
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
+
+    def zone_id_from_textual(self, cellIds: list, zone_id_repr: str) -> list:
+        # for h3,  textaul == hexstring
+        if (len(cellIds) == 0):
+            return []
+        if (zone_id_repr == "textual" or zone_id_repr == "hexstring"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            return [h3.str_to_int(z) for z in cellIds]
+
+    def zone_id_to_textual(self, cellIds: list, zone_id_repr: str) -> list:
+        if (len(cellIds) == 0):
+            return []
+        if (zone_id_repr == "textual" or zone_id_repr == "hexstring"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            # get_data return zone id in string format
+            if (isinstance(cellIds[0], str)):
+                return [h3.int_to_str(int(z)) for z in cellIds]
+        return [h3.int_to_str(z) for z in cellIds]
+
 
     def get_cls_by_zone_level(self, zone_level) -> float:
         return h3.average_hexagon_edge_length(zone_level, unit='km')

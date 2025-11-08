@@ -26,7 +26,22 @@
           "datasource_id": "hytruck"
         }
       }
+    },
+    "3": {
+      "suitability_hytruck_parquet_rhealpix": {
+        "title": "Suitability Modelling for Hytruck in parquet format with HEALPix",
+        "description": "Desc",
+        "collection_provider": {
+          "providerId": "parquet",
+          "dggrsId": "rhealpix",
+		  "dggrs_zoneId_repr": "int",
+          "min_refinement_level": 5,
+          "max_refinement_level": 7,
+          "datasource_id": "hytruck_parquet_in_rhealpix"
+        }
+      }
     }
+	
   },
   "dggrs": {
     "1": {
@@ -50,7 +65,20 @@
         "defaultDepth": 5,
         "classname": "h3_dggrs_provider.H3Provider"
       }
+    },
+    "3": {
+      "rhealpix": {
+        "title": "rHEALPix using dggal",
+        "description": "An equal area and axis-aligned grid with square zones topology and a refinement ratio of 9 defined in the rHEALPix projection using 50° E prime meridian (equivalent to PROJ implementation with parameters +proj=rhealpix +lon_0=50 +ellps=WGS84), the original hierarchical indexing, and scanline-based sub-zone ordering",
+		"crs": "wgs84",
+        "shapeType": "square",
+        "definition_link": "https://www.opengis.net/def/dggrs/OGC/1.0/rHEALPix",
+		"defaultDepth": 1,
+        "classname": "dggal_dggrs_provider.DGGALProvider",
+		"parameters": {"grid": "rHEALPix"}
+      }
     }
+	
   },
   "collection_providers": {
     "1": {
@@ -103,7 +131,14 @@
 			  "id_col": "cell_ids",
 			  "data_cols": ["*"],
 			  "datetime_col": "column_name_of_datetime"
+            },
+            "hytruck_parquet_in_rhealpix": {
+              "filepath": "<local file path or path of a cloud bucket>",
+			  "id_col": "cell_ids",
+			  "data_cols": ["*"],
+			  "datetime_col": "column_name_of_datetime"
             }
+			
           }
         }
       }

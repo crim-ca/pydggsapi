@@ -15,7 +15,6 @@ The attributes of Abstract Datasource Info class are:
 
 
 
-
 Abstract Collection providers
 =============================
 

@@ -1,5 +1,5 @@
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature
-from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesResponse, ZonesGeoJson, zone_datetime_placeholder
+from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesResponse, ZonesGeoJson
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.api.collections import Collection
 
@@ -11,8 +11,6 @@ from pydggsapi.dependencies.api.utils import getCQLAttributes
 import numpy as np
 from pygeofilter.ast import AstType
 from typing import Dict
-import numpy as np
-import itertools
 import logging
 
 logger = logging.getLogger()
@@ -35,7 +33,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         datasource_id = v.collection_provider.datasource_id
         cp_id = v.collection_provider.providerId
         datasource_vars = list(collection_provider[cp_id].get_datadictionary(datasource_id).data.keys())
-
+        zone_id_repr = v.collection_provider.dggrs_zoneid_repr
         intersection = (set(datasource_vars) & cql_attributes)
         # check if the cql attributes contain inside the datasource
         # The datasource of the collection must consist all columns that match with the attributes of the cql filter
@@ -46,9 +44,12 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         if (v.collection_provider.dggrsId != dggrs_info.id and
                 v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             # perform conversion
-            converted = dggrs_provider.convert(result.zones, v.collection_provider.dggrsId)
+            converted = dggrs_provider.convert(result.zones, v.collection_provider.dggrsId, zone_id_repr)
             converted_zones = converted.target_zoneIds
             converted_level = converted.target_res[0]
+        else:
+            if (zone_id_repr != 'textual'):
+                converted_zones = dggrs_provider.zone_id_from_textual(converted_zones, zone_id_repr)
         try:
             filtered_zoneIds = collection_provider[cp_id].get_data(converted_zones, converted_level,
                                                                    datasource_id, cql_filter, include_datetime).zoneIds
@@ -56,9 +57,12 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
             filtered_zoneIds = []
             pass
         if (converted is not None):
-            # If conversion take place, it is a 3 level mapping, from child to parent, from parnet to the original dggrs
+            # The zoneId repr of target_zoneIds and the filtered_zoneIds is aligned, no need to handle
+            # and the zoneIds is in original repr (str)
             filter_ += np.array(converted.zoneIds)[np.isin(converted.target_zoneIds, filtered_zoneIds)].tolist()
         else:
+            if (zone_id_repr != 'textual'):
+                filtered_zoneIds = dggrs_provider.zone_id_to_textual(filtered_zoneIds, zone_id_repr)
             filter_ += filtered_zoneIds
     if (skipped == len(collection)):
         raise ValueError(f"{__name__} query zones list cql attributes({cql_attributes}) not found in all collections.")

@@ -61,6 +61,7 @@ def query_zone_data(
     data_col_dims = {}
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
+    from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
     for cid, c in collection.items():
         logger.debug(f"{__name__} handling {cid}")
         cp = collection_provider[c.collection_provider.providerId]
@@ -68,7 +69,8 @@ def query_zone_data(
         cmin_rf = c.collection_provider.min_refinement_level
         datasource_vars = list(cp.get_datadictionary(datasource_id).data.keys())
         intersection = (set(datasource_vars) & cql_attributes)
-        # check if the cql attributes contain inside the datasource
+        zone_id_repr = c.collection_provider.dggrs_zoneid_repr
+        # check if the cql attributes contain inside the datasource columns
         # The datasource of the collection must consist all columns that match with the attributes of the cql filter
         if ((len(cql_attributes) > 0)):
             if ((len(intersection) == 0) or (len(intersection) != len(cql_attributes))):
@@ -89,7 +91,8 @@ def query_zone_data(
             g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
             converted_z = z
             if (convert):
-                # convert the source dggrs ID to the datasource dggrs zoneID
+                # convert the source dggrs ID to the datasource dggrs zoneID.
+                # To simplify the zoneId repr handling, we keep all zoneIds in str repr.
                 converted = dggrs_provider.convert(v.zoneIds, c.collection_provider.dggrsId)
                 tmp = gpd.GeoDataFrame({'vid': v.zoneIds}, geometry=g).set_index('vid')
                 # Store the mapping in master pd
@@ -102,11 +105,14 @@ def query_zone_data(
             idx = master.index.values.tolist()
             logger.debug(f"{__name__} {cid} get_data")
             collection_result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
+            tmp_dggrs_provider = dggrs_provider if (not convert) else global_dggrs_providers[c.collection_provider.dggrsId]
             if (converted_z >= cmin_rf):
                 try:
-                    collection_result = cp.get_data(
-                        idx, converted_z, datasource_id, cql_filter, include_datetime, incl_props, excl_props
-                    )
+                    idx = tmp_dggrs_provider.zone_id_from_textual(idx, zone_id_repr) if (zone_id_repr != 'textual') else idx
+                    collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
+                                                    include_datetime, incl_props, excl_props)
+                    if (zone_id_repr != 'textual'):
+                        collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr)
                 except DatetimeNotDefinedError:
                     pass
             logger.debug(f"{__name__} {cid} get_data done")

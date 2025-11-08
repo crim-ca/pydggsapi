@@ -90,7 +90,8 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             else:
                 cols = set(datatree.data_vars) if ("*" in datasource.data_cols) else set(datasource.data_cols)
                 cols = list(cols - set(datasource.exclude_data_cols))
-                zarr_result = datatree.sel({id_col: np.array(zoneIds, dtype=datatree[id_col].dtype)})
+                idx_mask = datatree[id_col].isin(np.array(zoneIds, dtype=datatree[id_col].dtype))
+                zarr_result = datatree.sel({id_col: idx_mask})
                 zarr_result = zarr_result.to_dataset()[cols]
         except Exception as e:
             # Zarr will raise exception if nothing matched
