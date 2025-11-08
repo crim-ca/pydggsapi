@@ -13,6 +13,12 @@ import json
 from pydantic import BaseModel, conint, model_validator
 
 zone_query_support_returntype = ['application/json', 'application/geo+json']
+zone_query_support_formats = {
+    'json': 'application/json',
+    'geojson': 'application/geo+json',
+    'geo+json': 'application/geo+json',
+}
+zone_query_support_formats.update({typ: typ for typ in zone_query_support_returntype})
 zone_query_support_geometry = ['zone-centroid', 'zone-region']
 zone_datetime_placeholder = '_pydggs_datetime'
 

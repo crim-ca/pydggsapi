@@ -11,12 +11,13 @@ from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import Abstr
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider, DatetimeNotDefinedError
 from pydggsapi.dependencies.api.utils import getCQLAttributes
 
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from urllib import parse
 from numcodecs import Blosc
 from typing import List, Dict, Optional, Union
 from scipy.stats import mode
 from pygeofilter.ast import AstType
+import ubjson
 import shapely
 import tempfile
 import numpy as np
@@ -36,7 +37,7 @@ def query_zone_data(
     dggrs_provider: AbstractDGGRSProvider,
     collection: Dict[str, Collection],
     collection_provider: List[AbstractCollectionProvider],
-    returntype='application/dggs-json',
+    returntype='application/json',  # DGGS-JSON by default
     returngeometry='zone-region',
     cql_filter: AstType = None,
     include_datetime: bool = False,
@@ -213,4 +214,11 @@ def query_zone_data(
                'properties': properties, 'values': values}
     if data_col_dims:
         return_['dimensions'] = [{'name': dim, **dim_info} for dim, dim_info in data_col_dims.items()]
-    return ZonesDataDggsJsonResponse(**return_)
+    dggs_json = ZonesDataDggsJsonResponse(**return_)
+    if (returntype == 'application/ubjson'):
+        dggs_ubjson = ubjson.dumpb(dggs_json.model_dump(mode='json'), no_float32=False)
+        return Response(dggs_ubjson, headers={
+            'content-type': 'application/ubjson',
+            'content-disposition': 'attachment; name="dggs-zone-data"; filename="dggs-zone-data.ubjson"',
+        })
+    return dggs_json
