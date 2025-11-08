@@ -9,9 +9,11 @@ pydggsapi uses TinyDB to store the definitions of collections, DGGRS providers a
 
 This structure provides two abstract class definitions that allow developers to quickly implement new DGGRS and Collection providers to work with pydggsapi. The DGGRS and collections providers serve as accessors to collections. Currently, it supports: 
 
-* DGGRS: `IGEO7 <https://agile-giss.copernicus.org/articles/6/32/2025/>`_ ,  `H3 <https://h3geo.org/>`_
+* DGGRS: `IGEO7 <https://agile-giss.copernicus.org/articles/6/32/2025/>`_ ,  `H3 <https://h3geo.org/>`_, `HEALPix <https://arxiv.org/pdf/astro-ph/0409513>`_ , `rHEALPix <https://dx.doi.org/10.1088/1755-1315/34/1/012012>`_, `IVEA7H <https://docs.ogc.org/is/21-038r1/21-038r1.html#ivea7h-dggrs>`_, `ISEA7H_Z7`
 
-* Collection provider: Clickhouse, Zarr
+  The `HEALPix`, `rHEALPix`, `IVEA7H` and `ISEA7H_Z7` grids using `dggal 0.0.5 <https://dggal.org/>`_ implementation. Thanks for the contribution. 
+
+* Collection provider: Clickhouse, Zarr, Parquet
 
 Quick setup 
 ---------------------------
