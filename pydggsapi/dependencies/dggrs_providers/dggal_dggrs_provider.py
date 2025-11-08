@@ -9,17 +9,18 @@ from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderGetRelativeZoneLe
 import shapely
 import logging
 from dggal import Application, pydggal_setup, CRS, ogc, epsg, GeoExtent, Array, GeoPoint
-from dggal import IVEA7H, ISEA7H_Z7, rHEALPix
+from dggal import IVEA7H, ISEA7H_Z7, rHEALPix, HEALPix
 from typing import Union, List
 
 logger = logging.getLogger()
 supported_grids = {'IVEA7H': IVEA7H,
                    'RHEALPIX': rHEALPix,
-                   'ISEA7H_Z7': ISEA7H_Z7}
+                   'ISEA7H_Z7': ISEA7H_Z7,
+                   'HEALPIX': HEALPix}
 
 
 # helper function to generate geometry geojson of a zoneId
-def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool=False) -> GeoJSONPoint|GeoJSONPolygon|None:
+def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool = False) -> GeoJSONPoint | GeoJSONPolygon | None:
     if (crs is None) or crs == CRS(ogc, 84) or crs == CRS(epsg, 4326):
         if centroids:
             centroid = dggrs.getZoneWGS84Centroid(zone)
