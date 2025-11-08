@@ -6,18 +6,18 @@ The DGGRS provider DGGALProvider uses ``dggal 0.0.5`` to generate various DGGRS.
 - ISEA7H_Z7
 - IVEA7H
 - rHEALPix
+- HEALPix
 
 Initialisation parameters
 =========================
 The initialisation parameters dictionary: ``parameters`` in the :ref:`dggrs table<dggrs>` provides which grid the instance is going to support.
 
-Users can specify the grid in the ``parameters`` by the keyword ``grid``. For example: 
-
+Users can specify the grid in the ``parameters`` by the keyword ``grid``. The grid names are case insensitive.  For example: 
 
 .. code-block:: json
    :caption: Define the ivea7h grid
 
-	 "dggrs": {"1": 
+	"dggrs": {"1": 
             {"ivea7h": 
                 {"title": "IVEA7H DGGRS provided by dggal",
                  "description": "An equal area hexagonal grid with a refinement ratio of 7 defined in the IVEA projection, using the same global indexing and sub-zone ordering as for ISEA7H", 

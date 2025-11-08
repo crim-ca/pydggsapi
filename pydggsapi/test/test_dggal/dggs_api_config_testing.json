@@ -74,6 +74,7 @@
         "collection_provider": {
           "providerId": "zarr",
           "dggrsId": "ivea7h",
+		  "dggrs_zoneid_repr": "int",
           "min_refinement_level": 5,
           "max_refinement_level": 8,
           "datasource_id": "dggal_ivea7h_hytruck"
@@ -87,6 +88,7 @@
         "collection_provider": {
           "providerId": "zarr",
           "dggrsId": "rhealpix",
+		  "dggrs_zoneid_repr": "int",
           "min_refinement_level": 5,
           "max_refinement_level": 7,
           "datasource_id": "dggal_rhealpix_hytruck"
@@ -204,8 +206,7 @@
                 	"6": "ref_6",
                 	"7": "ref_7",
 					"8": "ref_8"
-              		},
-				"zone_id_repr": "int"
+              		}
             	},
 			"dggal_rhealpix_hytruck": {
               	"filepath": "~/Geoinformatics/Gitlab/my_local_test/pydggs_dggal/rhealpix_hytruck_data_tree.zarr",
@@ -213,10 +214,8 @@
                 	"5": "ref_5",
                 	"6": "ref_6",
                 	"7": "ref_7"
-              		},
-				"zone_id_repr": "int"
+              		}
             	}
-			
         }
       }
     },

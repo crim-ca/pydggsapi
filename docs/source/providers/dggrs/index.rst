@@ -18,17 +18,11 @@ DGGRS zone ID representation
 ----------------------------
 The API always assumes the zone ID from requests is using the 'textual' representation. The definition of ``textual`` zone ID representation depends on the DGGRS and the DGGRS provider implementation. 
 
-The DGGRS provider should implement the following two functions to support different zone ID representations, both functions take two parameters: ``zone_ids``  and ``zone_id_repr``.
+For the API to support datasources with different zone ID representations of the same grid, the DGGRS provider has to implement he following two functions to support conversion between the textual and others' representations of the zone ID, both functions take two parameters: ``zone_ids``  and ``zone_id_repr``.
 
 - ``zone_id_from_textual``: converts zone IDs from the ``textual`` format to the representation specified by ``zone_id_repr``. 
 
 - ``zone_id_to_textual``  : converts zone IDs from the representation specified by ``zone_id_repr`` to the ``textual`` format.
-
-
-
-
-
-
 
 
 DGGRS conversion
