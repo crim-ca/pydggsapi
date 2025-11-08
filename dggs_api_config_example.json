@@ -34,7 +34,7 @@
         "collection_provider": {
           "providerId": "parquet",
           "dggrsId": "rhealpix",
-		  "dggrs_zoneId_repr": "int",
+		  "dggrs_zoneid_repr": "int",
           "min_refinement_level": 5,
           "max_refinement_level": 7,
           "datasource_id": "hytruck_parquet_in_rhealpix"
