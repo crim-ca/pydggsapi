@@ -80,7 +80,8 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
     zones_data = gpd.GeoDataFrame(zones_data.data, index=zones_data.zoneIds, columns=list(zones_data.cols_meta.keys()))
-    zones_data = zoneslist.join(zones_data).reset_index(names=id_col)
+    zones_data.index = zones_data.index.astype(zoneslist.index.dtype)
+    zones_data = zones_data.join(zoneslist).reset_index(names=id_col)
     if (collection.collection_provider.dggrs_zoneid_repr != 'textual'):
         zones_data[id_col] = dggrs_provider.zone_id_to_textual(zones_data[id_col].values, collection.collection_provider.dggrs_zoneid_repr)
     geometry = zones_data['geometry'].values
