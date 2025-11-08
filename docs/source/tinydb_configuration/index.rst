@@ -63,7 +63,7 @@ The dictionary associated with the collection ID defines metadata and methods to
 
    - ``dggrsId``: :ref:`the dggrs provider ID <dggrs>`
  
-   - ``dggrs_zone_id_repr``: It is a string to indicate the zone ID representation used in the datasource. It must be in one of the values from the following selection list : 
+   - ``dggrs_zoneid_repr``: It is a string to indicate the zone ID representation used in the datasource. It must be in one of the values from the following selection list : 
       
       - ``['int', 'textual', 'hexstring']``
        
