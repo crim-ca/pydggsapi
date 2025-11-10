@@ -246,10 +246,10 @@ class IGEO7Provider(AbstractDGGRSProvider):
                     hex_gdf.reset_index(inplace=True)
                 else:
                     i = -1
-            hex_gdf = hex_gdf.drop_duplicates(subset=['name'])
+            hex_gdf = hex_gdf.drop_duplicates(subset=['name']).set_index('name')
             logger.info(f'{__name__} query zones list, compact : {len(hex_gdf)}')
         if (returngeometry != 'zone-region'):
-            hex_gdf = self.centroid_from_cellid(hex_gdf['name'].values, zone_level)
+            hex_gdf = self.centroid_from_cellid(hex_gdf.index.values, zone_level)
         area = [self.data[zone_level]['Area (km^2)'] * 1000000] * len(hex_gdf)
         geotype = GeoJSONPolygon if (returngeometry == 'zone-region') else GeoJSONPoint
         geometry = [geotype(**eval(shapely.to_geojson(g))) for g in hex_gdf['geometry'].values.tolist()]
