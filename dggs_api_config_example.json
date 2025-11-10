@@ -95,7 +95,7 @@
         	},
 			"hytruck_clickhouse":{
 				"table": "<table name>",
-				"zoneId_cols": {
+				"zone_groups": {
 				  "9": "column of refinement level 9",
 				  "8": "column of refinement level 8", 
 				  "7": "column of refinement level 7",
