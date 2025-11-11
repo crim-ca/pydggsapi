@@ -94,7 +94,7 @@ class ZonesRequest(BaseModel):
         )
     )
     limit: Optional[int] = Query(default=1000)
-    bbox_crs: Optional[str] = Query(default=None)
+    bbox_crs: Optional[str] = Query(alias="bbox-crs", default=None)
     bbox: Optional[str] = Query(default=None)
     geometry: Optional[Literal['zone-centroid', 'zone-region']] = Query(default=None)
     filter: Optional[str] = Query(default=None)
