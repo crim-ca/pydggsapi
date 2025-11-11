@@ -1,8 +1,8 @@
 from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest
-from typing import Annotated, List, Optional, Union, Tuple
-from fastapi import Depends
+from typing import Annotated, List, Optional, Union, Tuple, Literal
+from fastapi import Depends, Query
 from fastapi.exceptions import HTTPException
 
 from pygeofilter.parsers.cql_json import parse as cql_json_parser
@@ -66,25 +66,46 @@ def datetime_cql_validation(datetime: str | None, cql_filter: str | None) -> Ast
     return datetime, cql_filter
 
 
-class ZonesRequest(DggrsDescriptionRequest):
-    zone_level: Optional[conint(ge=0)] = None
-    compact_zone: Optional[bool] = None
-    parent_zone: Optional[Union[int, str]] = None
-    limit: Optional[int] = None
-    bbox_crs: Optional[str] = None
-    bbox: Annotated[
-        Optional[Union[List[float], Tuple[float, float, float, float]]],
-        Depends(bbox_converter)
-    ] = None
-    geometry: Optional[str] = None
-    filter: Optional[str] = None
-    datetime: Optional[str] = None
+#class ZonesRequest(DggrsDescriptionRequest):
+class ZonesRequest(BaseModel):
+    zone_level: Optional[conint(ge=0)] = Query(
+        default=None,
+        alias="zone-level",
+        description=(
+            "The DGGS hierarchy level at which to return the list of zones. The precision of the calculation to return the results depends on this parameter."
+            "Returned zones will have a level equal or smaller to this specified level. If `compact-zones` is set to true, all returned zones will be of this zone level. "
+            "If not specified, this defaults to the most detailed zone that the system is able to return for the specific request."
+        )
+    )
+    compact_zone: Optional[bool] = Query(
+        default=True,
+        alias="compact-zone",
+        description=(
+            "If set to true (default), when the list of DGGS zones to be returned at the requested resolution (zone-level) includes all children of a parent zone,"
+            " the parent zone will be returned as a shorthand for that list of children zone.  If set to false, all zones returned will be of the requested zone level."
+        )
+    )
+    parent_zone: Optional[Union[int, str]] = Query(
+        default=None,
+        alias="parent-zone",
+        description=(
+            "The optional parent zone parameter restricts a zone query to only return zones within that parent zone."
+            "Used together with `zone-level`, it allows to explore the response for a large zone query in a hierarchical manner."
+        )
+    )
+    limit: Optional[int] = Query(default=1000)
+    bbox_crs: Optional[str] = Query(default=None)
+    bbox: Optional[str] = Query(default=None)
+    geometry: Optional[Literal['zone-centroid', 'zone-region']] = Query(default=None)
+    filter: Optional[str] = Query(default=None)
+    datetime: Optional[str] = Query(default=None)
 
     @model_validator(mode="after")
     def validation(self):
         if (self.bbox is None and self.parent_zone is None):
             raise HTTPException(status_code=400, detail='Either bbox or parent-zone must be set')
         if (self.bbox is not None):
+            self.bbox = bbox_converter(self.bbox)
             if (len(self.bbox) != 4):
                 raise HTTPException(status_code=400, detail='bbox length is not equal to 4')
         if (self.geometry is not None):

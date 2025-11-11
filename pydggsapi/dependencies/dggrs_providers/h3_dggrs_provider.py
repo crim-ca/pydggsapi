@@ -47,9 +47,7 @@ class H3Provider(AbstractDGGRSProvider):
                     # ~ 0.03s for one iter with using get centriod method. (1s reduced in total for 49 zones)
                     # position 0 == igeo7 refinement level, posiiton 1 == bound
                     for i, zone in enumerate(target_zones_refinement_list):
-                        print("here0")
                         r = igeo7.generate_hexcentroid(shapely.box(*zone[1].bounds), zone[0])
-                        print("here1")
                         selection = [shapely.within(g, zone[1]) for g in r['geometry']]
                         selection = [r.iloc[j]['name'] for j in range(len(selection)) if (selection[j] == True)]
                         if (zone_id_repr != 'textual'):

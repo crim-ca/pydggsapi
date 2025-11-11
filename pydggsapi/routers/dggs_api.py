@@ -396,7 +396,9 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 
 @router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
-async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depends()],
+async def list_dggrs_zones(req: Request,
+                           dggrsDesc: Annotated[DggrsDescriptionRequest, Path()],
+                           zonesReq: Annotated[ZonesRequest, Query()],
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
                            dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
@@ -423,11 +425,11 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
         min_ = v.collection_provider.min_refinement_level
         # if the dggrsId is not the native dggrs supported by the collection,
         # check if the native dggrs supports conversion
-        if (zonesReq.dggrsId != v.collection_provider.dggrsId
+        if (dggrsDesc.dggrsId != v.collection_provider.dggrsId
                 and v.collection_provider.dggrsId not in dggrs_provider.dggrs_conversion):
             skip_collection.append(k)
             continue
-        if (zonesReq.dggrsId != v.collection_provider.dggrsId
+        if (dggrsDesc.dggrsId != v.collection_provider.dggrsId
                 and v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         if (zone_level < min_ or zone_level > max_):
@@ -442,10 +444,10 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             bbox = box(*bbox)
             bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
             if (bbox_crs != 'wgs84'):
-                logger.info(f'{__name__} query zones list {zonesReq.dggrsId}, original bbox: {bbox}')
+                logger.info(f'{__name__} query zones list {dggrsDesc.dggrsId}, original bbox: {bbox}')
                 project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
                 bbox = transform(project, bbox)
-                logger.info(f'{__name__} query zones list {zonesReq.dggrsId}, transformed bbox: {bbox}')
+                logger.info(f'{__name__} query zones list {dggrsDesc.dggrsId}, transformed bbox: {bbox}')
         except Exception as e:
             logger.error(f'{__name__} query zones list, bbox converstion failed : {e}')
             raise HTTPException(status_code=400, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
