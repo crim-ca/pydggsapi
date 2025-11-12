@@ -3,7 +3,7 @@
     "1": {
       "suitability_hytruck": {
         "title": "Suitability Modelling for Hytruck",
-        "description": "Desc",
+        "description": "Suitablilit analysis using IGEO7 DGGRS for the Hytruck project. Datasource stored in a clickhouse DB. Around 3M rows at refinement level 9",
 		"extent": {"spatial": {"bbox":[ [5.86307954788208, 47.31793212890625, 31.61196517944336, 70.0753173828125] ] }} ,
         "collection_provider": {
           "providerId": "clickhouse",
@@ -17,6 +17,7 @@
     "2": {
       "suitability_hytruck_parquet": {
         "title": "Suitability Modelling for Hytruck in parquet format",
+        "description": "Suitablilit analysis using IGEO7 DGGRS for the Hytruck project. Datasource stored in a parquet file. Around 3M rows at refinement level 9",
         "description": "Desc",
         "collection_provider": {
           "providerId": "parquet",
@@ -26,31 +27,59 @@
           "datasource_id": "hytruck"
         }
       }
+    },
+    "3": {
+      "suitability_hytruck_parquet_rhealpix": {
+        "title": "Suitability Modelling for Hytruck in parquet format with HEALPix",
+        "description": "Suitablilit analysis using rHEALPix DGGRS for the Hytruck project. Datasource stored in a parquet file",
+		"collection_provider": {
+          "providerId": "parquet",
+          "dggrsId": "rhealpix",
+		  "dggrs_zoneid_repr": "int",
+          "min_refinement_level": 5,
+          "max_refinement_level": 7,
+          "datasource_id": "hytruck_parquet_in_rhealpix"
+        }
+      }
     }
+	
   },
   "dggrs": {
     "1": {
       "igeo7": {
-        "title": "ISEA7H z7string",
-        "description": "desc",
+        "title": "IGEO7 DGGRS with z7string",
+        "description": "IGEO7, a novel pure aperture 7 hexagonal DGGS, and Z7, its associated hierarchical integer indexing system",
         "crs": "wgs84",
         "shapeType": "hexagon",
-        "definition_link": "http://testing",
-        "defaultDepth": 5,
+        "definition_link": "https://agile-giss.copernicus.org/articles/6/32/2025/",
+        "defaultDepth": 1,
         "classname": "igeo7_dggrs_provider.IGEO7Provider"
       }
     },
     "2": {
       "h3": {
-        "title": "h3",
-        "description": "desc",
+        "title": "H3 indexes points and shapes into a hexagonal grid.",
+        "description": "H3 is a discrete global grid system for indexing geographies into a hexagonal grid, developed at Uber.",
         "crs": "wgs84",
         "shapeType": "hexagon",
-        "definition_link": "http://h3test",
-        "defaultDepth": 5,
+        "definition_link": "https://h3geo.org/",
+        "defaultDepth": 1,
         "classname": "h3_dggrs_provider.H3Provider"
       }
+    },
+    "3": {
+      "rhealpix": {
+        "title": "rHEALPix using dggal",
+        "description": "An equal area and axis-aligned grid with square zones topology and a refinement ratio of 9 defined in the rHEALPix projection using 50° E prime meridian (equivalent to PROJ implementation with parameters +proj=rhealpix +lon_0=50 +ellps=WGS84), the original hierarchical indexing, and scanline-based sub-zone ordering",
+		"crs": "wgs84",
+        "shapeType": "square",
+        "definition_link": "https://www.opengis.net/def/dggrs/OGC/1.0/rHEALPix",
+		"defaultDepth": 1,
+        "classname": "dggal_dggrs_provider.DGGALProvider",
+		"parameters": {"grid": "rHEALPix"}
+      }
     }
+	
   },
   "collection_providers": {
     "1": {
@@ -66,7 +95,7 @@
         	},
 			"hytruck_clickhouse":{
 				"table": "<table name>",
-				"zoneId_cols": {
+				"zone_groups": {
 				  "9": "column of refinement level 9",
 				  "8": "column of refinement level 8", 
 				  "7": "column of refinement level 7",
@@ -103,7 +132,14 @@
 			  "id_col": "cell_ids",
 			  "data_cols": ["*"],
 			  "datetime_col": "column_name_of_datetime"
+            },
+            "hytruck_parquet_in_rhealpix": {
+              "filepath": "<local file path or path of a cloud bucket>",
+			  "id_col": "cell_ids",
+			  "data_cols": ["*"],
+			  "datetime_col": "column_name_of_datetime"
             }
+			
           }
         }
       }

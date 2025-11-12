@@ -62,7 +62,13 @@ The dictionary associated with the collection ID defines metadata and methods to
    - ``providerId``: :ref:`the collection provider ID  <collection_providers>`
 
    - ``dggrsId``: :ref:`the dggrs provider ID <dggrs>`
-   
+ 
+   - ``dggrs_zoneid_repr``: It is a string to indicate the zone ID representation used in the datasource. It must be in one of the values from the following selection list : 
+      
+      - ``['int', 'textual', 'hexstring']``
+       
+       It defaults to ``textual``. The API alway assume the zone ID from requests are using ``textual`` representation. If the datasource is not using ``textual`` representation, the API performs conversion from ``textual`` representation to the representation used in the datasource. The conversion is provided by the :ref:`DGGRS provider <dggrs_zone_id_repr>`
+
    - ``max_refinement_level``: the maximum refinement level(the finest) of the data. 
 
    - ``min_refinement_level``: the minimum refinement level(the coarsest) of the data. 
@@ -107,6 +113,8 @@ The dictionary associated with the dggrs ID defines metadata and the actual impl
 
     3. ``classname`` : The actual implementation module under dependencies/dggrs_providers
 
+    4. ``parameters``: Initialisation parameters in a dictionary format for the DGGRS provider.
+
 Here is an example on how to define DGGRS for IGEO7 and H3. 
 
 .. code-block:: json
@@ -118,8 +126,10 @@ Here is an example on how to define DGGRS for IGEO7 and H3.
                  "crs": "wgs84", 
                  "shapeType": "hexagon", 
                  "definition_link": "https://agile-giss.copernicus.org/articles/6/32/2025/", 
-                 "defaultDepth": 5, 
-                 "classname": "igeo7_dggrs_provider.IGEO7Provider" }
+                 "defaultDepth": 1, 
+                 "classname": "igeo7_dggrs_provider.IGEO7Provider",
+                 "parameters": {"geodetic_conversion": true} 
+                }
             },
             "2": 
             {"h3": 
@@ -128,7 +138,7 @@ Here is an example on how to define DGGRS for IGEO7 and H3.
                 "crs": "wgs84", 
                 "shapeType": "hexagon", 
                 "definition_link": "https://h3geo.org/", 
-                "defaultDepth": 5, 
+                "defaultDepth": 1, 
                 "classname": "h3_dggrs_provider.H3Provider"}
             }
     }

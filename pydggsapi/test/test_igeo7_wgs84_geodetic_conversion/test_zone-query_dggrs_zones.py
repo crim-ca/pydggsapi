@@ -33,16 +33,19 @@ extra_conf = {
     "output_hier_ndx_system": 'Z7',
     "output_hier_ndx_form": 'DIGIT_STRING',
     # initial vertex lon setting
-    "dggs_vert0_lon": 11.25
+    "dggs_vert0_lon": 11.20
 }
 
 aoi = shapely.Polygon(aoi)
 aoi_authalic = geoseries_to_authalic(gpd.GeoSeries(aoi))[0]
 non_exist_aoi = shapely.Polygon(non_exist_aoi)
-validation_zone_level_5_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 5, clip_geom=aoi, **extra_conf)
-validation_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 8, clip_geom=aoi, **extra_conf)
-validation_centroids_gdf = dggrid.grid_cell_centroids_for_extent('IGEO7', 8, clip_geom=aoi, **extra_conf)
+validation_zone_level_5_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 5, clip_geom=aoi_authalic, **extra_conf)
+validation_hexagons_gdf = dggrid.grid_cell_polygons_for_extent('IGEO7', 8, clip_geom=aoi_authalic, **extra_conf)
+validation_centroids_gdf = dggrid.grid_cell_centroids_for_extent('IGEO7', 8, clip_geom=aoi_authalic, **extra_conf)
 
+validation_hexagons_gdf.geometry = geoseries_to_geodetic(validation_hexagons_gdf.geometry)
+validation_centroids_gdf.geometry = geoseries_to_geodetic(validation_centroids_gdf.geometry)
+validation_zone_level_5_hexagons_gdf.geometry = geoseries_to_geodetic(validation_zone_level_5_hexagons_gdf.geometry)
 
 validation_zone_level_5_hexagons_gdf.set_index('name', inplace=True)
 validation_hexagons_gdf.set_index('name', inplace=True)
@@ -91,7 +94,7 @@ def test_zone_query_dggrs_zones():
     assert all([validation_zones_list[i] == z for i, z in enumerate(return_zones_list)])
     assert response.status_code == 200
 
-    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone-level=8, compact=False)")
+    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'zone-level': 8, 'compact-zone': False})
     zones = ZonesResponse(**response.json())
     return_zones_list = zones.zones
@@ -102,7 +105,7 @@ def test_zone_query_dggrs_zones():
     assert all([validation_zones_list[i] == z for i, z in enumerate(return_zones_list)])
     assert response.status_code == 200
 
-    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone-level=2, compact=False)")
+    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=2, compact=False)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'zone-level': 2, 'compact-zone': False})
     #pprint(response.json())
     #zones = ZonesResponse(**response.json())
@@ -110,7 +113,7 @@ def test_zone_query_dggrs_zones():
     #assert len(return_zones_list) > 0
     assert response.status_code == 400
 
-    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone-level=8, compact=False, geojson)")
+    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
                           params={"bbox": ",".join(bounds), 'zone-level': 8, 'compact-zone': False})
     print(response.json())
@@ -125,20 +128,20 @@ def test_zone_query_dggrs_zones():
     assert all([shapely.equals(return_gdf.iloc[i]['geometry'], validation_hexagons_gdf.iloc[i]['geometry']) for i in range(len(return_gdf))])
     assert response.status_code == 200
 
-    print(f"Success test case with dggs zones query (igeo7, parent zone: {cellids[0]}, zone-level=8, compact=False, geojson)")
+    print(f"Success test case with dggs zones query (igeo7, parent zone: {cellids[0]}, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
                           params={"parent-zone": cellids[0], 'zone-level': 8, 'compact-zone': False})
     zones_geojson = ZonesGeoJson(**response.json())
     return_features_list = zones_geojson.features
     assert response.status_code == 200
 
-    print(f"Empty test case with dggs zones query (igeo7, bbox: {non_exist_aoi.bounds}, zone-level=8, compact=False, geojson)")
+    print(f"Empty test case with dggs zones query (igeo7, bbox: {non_exist_aoi.bounds}, zone_level=8, compact=False, geojson)")
     non_exist_bounds = list(map(str, non_exist_aoi.bounds))
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
                           params={"bbox": ",".join(non_exist_bounds), 'zone-level': 8, 'compact-zone': False})
     assert response.status_code == 204
 
-    print(f"Empty test case with dggs zones query (igeo7, parent zone: 055266135, zone-level=8, compact=False, geojson)")
+    print(f"Empty test case with dggs zones query (igeo7, parent zone: 055266135, zone_level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
                           params={"parent-zone": '055266135', 'zone-level': 8, 'compact-zone': False})
     assert response.status_code == 204

@@ -59,28 +59,28 @@ def test_zone_query_dggrs_zones():
         for c in cql_ok:
             print(f"Test cql: {c}")
             print(f"Success test case with dggs zones query ({g}, bbox: {aoi.bounds}, compact=False)")
-            response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', params={"bbox": ",".join(bounds), 'compact_zone': False,
-                                                                               "filter": c})
+            response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', params={"bbox": ",".join(bounds), 'compact-zone': False,
+                                                                              "filter": c})
             zones = ZonesResponse(**response.json())
             assert len(zones.zones) > 0
             assert response.status_code == 200
 
             print(f"Success test case with dggs zones query ({g}, bbox: {aoi.bounds}, zone_level=6, compact=False)")
-            response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', params={"bbox": ",".join(bounds), 'zone_level': 6, 'compact_zone': False,
-                                                                               "filter": c})
+            response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', params={"bbox": ",".join(bounds), 'zone-level': 6, 'compact-zone': False,
+                                                                              "filter": c})
             zones = ZonesResponse(**response.json())
             assert len(zones.zones) > 0
             assert response.status_code == 200
 
-            print(f"Success test case with dggs zones query ({g}, bbox: {aoi.bounds}, zone_level=7, compact=False, geojson)")
+            print(f"Success test case with dggs zones query ({g}, bbox: {aoi.bounds}, zone_level=6, compact=False, geojson)")
             response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', headers={'Accept': 'Application/geo+json'},
-                                  params={"bbox": ",".join(bounds), 'zone_level': 7, 'compact_zone': False, 'filter': c})
+                                  params={"bbox": ",".join(bounds), 'zone-level': 6, 'compact-zone': False, 'filter': c})
             assert len(zones.zones) > 0
             assert response.status_code == 200
 
-            print(f"Success test case with dggs zones query ({g}, parent zone: {grid[g][0]}, zone_level=8, compact=False, geojson)")
+            print(f"Success test case with dggs zones query ({g}, parent zone: {grid[g][0]}, zone_level=7, compact=False, geojson)")
             response = client.get(f'/dggs-api/v1-pre/dggs/{g}/zones', headers={'Accept': 'Application/geo+json'},
-                                  params={"parent_zone": grid[g][0], 'zone_level': 7, 'compact_zone': False, 'filter': c})
+                                  params={"parent-zone": grid[g][0], 'zone-level': 7, 'compact-zone': False, 'filter': c})
 
             assert len(zones.zones) > 0
             assert response.status_code == 200

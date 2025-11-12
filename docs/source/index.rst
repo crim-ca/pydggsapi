@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+
 pydggsapi documentation
 =======================
 
@@ -30,3 +31,4 @@ OGC API - DGGS specifies an API for accessing data organised according to a Disc
    introduction
    Configuration <tinydb_configuration/index>
    providers/index
+   API endpoints examples <example_notebook/Endpoints_Examples.ipynb>

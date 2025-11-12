@@ -10,7 +10,23 @@ from fastapi.exceptions import HTTPException
 from fastapi import Query
 from pydantic import AnyUrl, Field, ConfigDict, model_validator
 
-support_returntype = ['application/json', 'application/zarr+zip', 'application/geo+json']
+zone_data_support_returntype = [
+    'application/json',     # DGGS-JSON
+    'application/ubjson',   # DGGS-UBJSON
+    'application/zarr+zip',
+    'application/geo+json',
+]
+zone_data_support_formats = {
+    'json': 'application/json',
+    'dggs-json': 'application/json',
+    'dggs+json': 'application/json',
+    'ubjson': 'application/ubjson',
+    'dggs+ubjson': 'application/ubjson',
+    'zarr': 'application/zarr+zip',
+    'geojson': 'application/geo+json',
+    'geo+json': 'application/geo+json',
+}
+zone_data_support_formats.update({typ: typ for typ in zone_data_support_returntype})
 
 
 class ZonesDataRequest(CommonBaseModel):

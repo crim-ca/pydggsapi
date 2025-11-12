@@ -25,13 +25,13 @@ def landingpage(current_url: URL, app: FastAPI) -> LandingPageResponse:
     base_url = str(current_url)
     root_url = urljoin(base_url, "/")
     self_link = Link(href=base_url, rel='self', type='application/json', title='Landing Page')
-    service_desc_link = Link(href=urljoin(root_url, app.openapi_url), rel='service-desc', type='application/json', title='OpenAPI specification')
-    service_doc_link = Link(href=urljoin(root_url, app.docs_url), rel='service-desc', type='text/html', title='OpenAPI swagger interface')
+    service_desc_link = Link(href=urljoin(root_url, app.openapi_url), rel='service-desc', type='application/vnd.oai.openapi+json; version=3.1', title='OpenAPI specification')
+    service_doc_link = Link(href=urljoin(root_url, app.docs_url), rel='service-doc', type='text/html', title='OpenAPI swagger interface')
     described_by_link = Link(href='https://docs.ogc.org/DRAFTS/21-038.html', rel='describedby', type='text/html', title='API Documentation')
     conformance_link = Link(href=urljoin(base_url, './conformance'), rel='http://www.opengis.net/def/rel/ogc/1.0/conformance',
                             type='application/json', title='Conformance classes implemented by this API.')
-    dggs_list_link =Link(href=urljoin(base_url, './dggs'), rel='[ogc-rel:dggrs-list]', type='application/json',
-                         title='List of DGGS implemented by this API.')
+    dggs_list_link = Link(href=urljoin(base_url, './dggs'), rel='[ogc-rel:dggrs-list]', type='application/json',
+                          title='List of DGGS implemented by this API.')
     links = [self_link, service_desc_link, service_doc_link, described_by_link, conformance_link, dggs_list_link]
     service_meta_url = os.environ.get('SERVICE_META_URL', None)
     if service_meta_url:
@@ -100,9 +100,13 @@ def query_zone_info(
             continue
         if (v.collection_provider.dggrsId != dggs_info.id and
                 v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
-            converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId)
+            converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId,
+                                                     v.collection_provider.dggrs_zoneid_repr)
             zoneId = converted_zones.target_zoneIds
             zonelevel = converted_zones.target_res[0]
+        else:
+            if (v.collection_provider.dggrs_zoneid_repr != 'textual'):
+                zoneId = dggrs_provider.zone_id_from_textual(zoneId, v.collection_provider.dggrs_zoneid_repr)
         data = cp.get_data(zoneId, zonelevel, datasource_id)
         filter_ += len(data.zoneIds)
     zoneId = zoneinfoReq.zoneId  # reset the zoneId to original one as string

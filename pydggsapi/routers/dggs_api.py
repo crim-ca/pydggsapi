@@ -4,13 +4,25 @@
 # in the main api.py under /dggs-api/v1-pre
 
 from fastapi import APIRouter, HTTPException, Depends, Request, Path, Query
-from typing import Annotated, Optional, Dict, Union
+from typing import Annotated, Dict, List, Optional, Union
 
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest, DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest, ZonesDataDggsJsonResponse, ZonesDataGeoJson, support_returntype
-from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse, ZonesGeoJson, zone_query_support_returntype
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import (
+    ZonesDataRequest,
+    ZonesDataDggsJsonResponse,
+    ZonesDataGeoJson,
+    zone_data_support_formats,
+    zone_data_support_returntype,
+)
+from pydggsapi.schemas.ogc_dggs.dggrs_zones import (
+    ZonesRequest,
+    ZonesResponse,
+    ZonesGeoJson,
+    zone_query_support_formats,
+    zone_query_support_returntype,
+)
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import LandingPageResponse, Link
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc as ogc_CollectionDesc
@@ -44,10 +56,19 @@ router = APIRouter()
 
 dggrs, dggrs_providers, collections, collection_providers = {}, {}, {}, {}
 
+browser_ignore_types = [
+    'text/html',
+    'text/xml',
+    'application/xhtml+xml',
+    'application/xml',
+    '*/*',
+]
 
-def _import_dggrs_class(dggrsId):
+
+def _import_dggrs_class(dggrsId, crs=None):
     try:
         classname, initial_params = get_dggrs_class(dggrsId)
+        initial_params.update({"crs": crs})
         if (classname is None):
             logger.error(f'{__name__} {dggrsId} class not found.')
             raise Exception(f'{__name__} {dggrsId} class not found.')
@@ -121,11 +142,33 @@ def _get_collection(collectionId=None, dggrsId=None):
     return c
 
 
-def _get_return_type(req: Request, support_returntype, default_return='application/json'):
-    returntypes = req.headers.get('accept').lower() if (req.headers.get('accept') is not None) else default_return
-    returntypes = returntypes.split(',')
+def _get_return_type(
+    req: Request,
+    support_returntype: List[str],
+    support_formats: Dict[str, str],
+    default_return: str = 'application/json',
+) -> str:
+    returntypes = req.headers.get('accept').lower() if (req.headers.get('accept') is not None) else ''
+    returntypes = [typ.strip() for typ in returntypes.split(',')]
+    returntypes_raw = [typ.split(';')[0].strip() for typ in returntypes]
+    # if using a browser auto-injecting visualization content-types, allow ignoring them if format is provided
+    fmt = req.query_params.get('f')
+    if fmt and (returntypes is None or all(typ in browser_ignore_types for typ in returntypes_raw)):
+        fmt = str(fmt).lower()
+        returntypes = support_formats.get(fmt)  # could still be none if unmapped
+        if returntypes is None:
+            raise HTTPException(406, detail=f"Requested format '{fmt}' is not supported.")
+    if returntypes is None:
+        returntypes = default_return
+    if isinstance(returntypes, str):
+        returntypes = [returntypes]
+    returntypes = returntypes + returntypes_raw
     intersection = [i for i in returntypes if i in support_returntype]
-    returntype = intersection[0] if (len(intersection) > 0) else default_return
+    if not intersection:
+        if '*/*' in returntypes:
+            return default_return
+        raise HTTPException(406, detail="Requested content-type is not supported.")
+    returntype = intersection[0]
     return returntype
 
 
@@ -146,12 +189,10 @@ if (c1 is False or c2 is False):
     raise Exception(f'{__name__} collection_provider: either collection providerId or dggrsId not exists ')
 
 for dggrsId in dggrs.keys():
-    dggrs_providers[dggrsId] = _import_dggrs_class(dggrsId)
+    dggrs_providers[dggrsId] = _import_dggrs_class(dggrsId, dggrs[dggrsId].crs)
 
 for providerId, providerConfig in collection_providers.items():
     collection_providers[providerId] = _import_collection_provider(providerConfig)
-
-
 
 
 # Landing page and conformance
@@ -355,13 +396,15 @@ async def dggrs_zone_info(req: Request, zoneinfoReq: ZoneInfoRequest = Depends()
 
 @router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
 @router.get("/collections/{collectionId}/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
-async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depends()],
+async def list_dggrs_zones(req: Request,
+                           dggrsDesc: Annotated[DggrsDescriptionRequest, Path()],
+                           zonesReq: Annotated[ZonesRequest, Query()],
                            dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
                            dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)):
 
-    returntype = _get_return_type(req, zone_query_support_returntype, 'application/json')
+    returntype = _get_return_type(req, zone_query_support_returntype, zone_query_support_formats, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
     zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_description.defaultDepth
     compact_zone = zonesReq.compact_zone if (zonesReq.compact_zone is not None) else True
@@ -382,11 +425,11 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
         min_ = v.collection_provider.min_refinement_level
         # if the dggrsId is not the native dggrs supported by the collection,
         # check if the native dggrs supports conversion
-        if (zonesReq.dggrsId != v.collection_provider.dggrsId
+        if (dggrsDesc.dggrsId != v.collection_provider.dggrsId
                 and v.collection_provider.dggrsId not in dggrs_provider.dggrs_conversion):
             skip_collection.append(k)
             continue
-        if (zonesReq.dggrsId != v.collection_provider.dggrsId
+        if (dggrsDesc.dggrsId != v.collection_provider.dggrsId
                 and v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         if (zone_level < min_ or zone_level > max_):
@@ -401,10 +444,10 @@ async def list_dggrs_zones(req: Request, zonesReq: Annotated[ZonesRequest, Depen
             bbox = box(*bbox)
             bbox_crs = zonesReq.bbox_crs if (zonesReq.bbox_crs is not None) else "wgs84"
             if (bbox_crs != 'wgs84'):
-                logger.info(f'{__name__} query zones list {zonesReq.dggrsId}, original bbox: {bbox}')
+                logger.info(f'{__name__} query zones list {dggrsDesc.dggrsId}, original bbox: {bbox}')
                 project = pyproj.Transformer.from_crs(bbox_crs, "wgs84", always_xy=True).transform
                 bbox = transform(project, bbox)
-                logger.info(f'{__name__} query zones list {zonesReq.dggrsId}, transformed bbox: {bbox}')
+                logger.info(f'{__name__} query zones list {dggrsDesc.dggrsId}, transformed bbox: {bbox}')
         except Exception as e:
             logger.error(f'{__name__} query zones list, bbox converstion failed : {e}')
             raise HTTPException(status_code=400, detail=f"{__name__} query zones list, bbox converstion failed : {e}")
@@ -433,7 +476,7 @@ async def dggrs_zones_data(req: Request,
                            dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
                            collection: Dict[str, Collection] = Depends(_get_collection),
                            collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider)) -> ZonesDataDggsJsonResponse | FileResponse:
-    returntype = _get_return_type(req, support_returntype, 'application/json')
+    returntype = _get_return_type(req, zone_data_support_returntype, zone_data_support_formats, 'application/json')
     zoneId = zonedataReq.zoneId
     depth = zonedataQuery.zone_depth if (zonedataQuery.zone_depth is not None) else [dggrs_description.defaultDepth]
     returngeometry = zonedataQuery.geometry if (zonedataQuery.geometry is not None) else 'zone-region'

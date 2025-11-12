@@ -17,6 +17,14 @@ class AbstractDGGRSProvider(ABC):
     dggrs_conversion: Optional[Dict[str, conversion_properties]] = {}
 
     @abstractmethod
+    def zone_id_from_textual(self, cellIds: list, zone_id_repr: str) -> list:
+        raise NotImplementedError
+
+    @abstractmethod
+    def zone_id_to_textual(self, cellIds: list, zone_id_repr: str) -> list:
+        raise NotImplementedError
+
+    @abstractmethod
     # return unit km
     def get_cls_by_zone_level(self, zone_level: int) -> float:
         raise NotImplementedError
@@ -45,6 +53,6 @@ class AbstractDGGRSProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def convert(self, zoneIds: list, targetdggrs: Any) -> DGGRSProviderConversionReturn:
+    def convert(self, zoneIds: list, targetdggrs: Any, zone_id_repr: str = 'textual') -> DGGRSProviderConversionReturn:
         raise NotImplementedError
 
