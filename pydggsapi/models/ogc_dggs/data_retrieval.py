@@ -56,7 +56,7 @@ def query_zone_data(
         result.relative_zonelevels[base_level] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': [g]})
     else:
         result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels, returngeometry)
-    # get data and form a master dataframe (seleceted providers) for each zone level
+    # get data and form a master dataframe (selected providers) for each zone level
     data = {}
     data_type = {}
     nodata_mapping = {}
