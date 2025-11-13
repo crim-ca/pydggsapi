@@ -64,7 +64,6 @@ def query_zone_data(
     data_col_dims: Dict[Tuple[str, str], Dimension] = {}  # per-collection dimensions to manage distinct ones per provider
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
-    from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
     for cid, c in collection.items():
         logger.debug(f"{__name__} handling {cid}")
         cp = collection_provider[c.collection_provider.providerId]
@@ -102,13 +101,17 @@ def query_zone_data(
                 master = pd.DataFrame({'vid': converted.zoneIds, 'zoneId': converted.target_zoneIds}).set_index('vid')
                 master = master.join(tmp).reset_index().set_index('zoneId')
                 converted_z = converted.target_res[0]
+
+                from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
+                tmp_dggrs_provider = global_dggrs_providers[c.collection_provider.dggrsId]
             else:
                 cf_zoneIds = v.zoneIds
                 master = gpd.GeoDataFrame(cf_zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
+                tmp_dggrs_provider = dggrs_provider
+
             idx = master.index.values.tolist()
             logger.debug(f"{__name__} {cid} get_data")
             collection_result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
-            tmp_dggrs_provider = dggrs_provider if (not convert) else global_dggrs_providers[c.collection_provider.dggrsId]
             if (converted_z >= cmin_rf):
                 try:
                     idx = tmp_dggrs_provider.zone_id_from_textual(idx, zone_id_repr) if (zone_id_repr != 'textual') else idx
