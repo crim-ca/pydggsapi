@@ -39,7 +39,7 @@ def generateZoneGeometry(dggrs, zone, crs=None, centroids: bool = False) -> GeoJ
     else:
         if centroids:
             centroid = dggrs.getZoneCRSCentroid(zone, crs)
-            return GeoJSONPoint(type=Point, coordinates=(centroid.lon.value, centroid.lat.value))
+            return GeoJSONPoint(type="Point", coordinates=(centroid.lon.value, centroid.lat.value))
         else:
             vertices = dggrs.getZoneRefinedCRSVertices(zone, crs, 0)
             coordinates = []
