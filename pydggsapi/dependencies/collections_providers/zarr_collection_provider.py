@@ -104,7 +104,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
+    def get_datadictionary(self, datasource_id: str, include_zone_id: bool = True) -> CollectionProviderGetDataDictReturn:
         try:
             datatree = self.datasources[datasource_id]
         except KeyError as e:
@@ -112,5 +112,6 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             raise Exception(f'{__name__} {datasource_id} not found: {e}.')
         datatree = datatree.filehandle[list(datatree.zone_groups.values())[0]]
         data = {i[0]: str(i[1].dtype) for i in datatree.data_vars.items()}
-        data.update({'zone_id': 'string'})
+        if include_zone_id:
+            data.update({'zone_id': 'string'})
         return CollectionProviderGetDataDictReturn(data=data)

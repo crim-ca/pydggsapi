@@ -91,18 +91,21 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         result.zoneIds, result.cols_meta, result.data = result_id, cols_meta, result_df
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataReturn:
+    def get_datadictionary(self, datasource_id: str, include_zone_id: bool = True) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataDictReturn(data={})
         try:
             datasource = self.datasources[datasource_id]
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found.')
             raise Exception(f'{__name__} {datasource_id} not found.')
+        excl = datasource.exclude_data_cols
+        if not include_zone_id:
+            excl.append(datasource.id_col)
         if ("*" in datasource.data_cols):
-            cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
+            cols = f"* EXCLUDE({','.join(excl)})" if excl else "*"
         else:
-            cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
-            cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
+            cols_intersection = set(datasource.data_cols) | {datasource.id_col} - set(excl)
+            cols = ','.join(cols_intersection)
         sql = f"""select {cols} from read_parquet('{datasource.filepath}') limit 1"""
         try:
             result_df = datasource.conn.sql(sql).df()

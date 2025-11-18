@@ -145,7 +145,7 @@ def get_json_schema_property(data_type: Union[str, datetime.datetime, datetime.d
 
 
 def get_queryables(collection: Collection, collection_provider: AbstractCollectionProvider) -> CollectionQueryables:
-    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id).data
+    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id, include_zone_id=False).data
     col_id = collection.id
     queryables = {}
     for key, typ in fields.items():

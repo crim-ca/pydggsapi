@@ -97,7 +97,7 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
+    def get_datadictionary(self, datasource_id: str, include_zone_id: bool = True) -> CollectionProviderGetDataDictReturn:
         try:
             datasource = self.datasources[datasource_id]
         except KeyError:
@@ -110,5 +110,6 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} get_datadictionary failed : {e}')
             raise Exception(f'{__name__} datasource_id not found: {datasource_id}')
         data = {r[0]: r[1] for r in db_result if (r[0] in datasource.data_cols)}
-        data.update({'zone_id': 'string'})
+        if include_zone_id:
+            data.update({'zone_id': 'string'})
         return CollectionProviderGetDataDictReturn(data=data)
