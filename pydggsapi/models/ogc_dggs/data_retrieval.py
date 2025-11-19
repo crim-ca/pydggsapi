@@ -162,7 +162,7 @@ def query_zone_data(
         zipstore = zarr.ZipStore(tmpfile[1], mode='w')
         zarr_root = zarr.group(zipstore)
 
-    for z, d in data.items():
+    for z, d in sorted(data.items()):  # in case of multiple depths, returned them ascending
         if (returntype == 'application/geo+json'):
             d.reset_index(inplace=True)
             geometry = d['geometry'].values
