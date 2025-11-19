@@ -131,8 +131,8 @@ class ZonesDataDggsJsonResponse(CommonBaseModel):
     zoneId: str
     depths: List[int]
     schema: Schema
-    values: Dict[str, List[Value]]
     dimensions: Annotated[Optional[List[Dimension]], OmitIfNone] = None
+    values: Dict[str, List[Value]]
 
     model_config = ConfigDict(validate_by_name=True, validate_by_alias=True)
 
