@@ -28,6 +28,8 @@ zone_data_support_formats = {
 }
 zone_data_support_formats.update({typ: typ for typ in zone_data_support_returntype})
 
+ZoneGeometryType = Literal['zone-centroid', 'zone-region']
+
 
 class ZonesDataRequest(CommonBaseModel):
     zone_depth: Optional[str] = Query(
@@ -39,7 +41,7 @@ class ZonesDataRequest(CommonBaseModel):
             "a range (int-int) of depths, or a comma-separated list of specific depth values or ranges."
         )
     )
-    geometry: Optional[Literal['zone-centroid', 'zone-region']] = Query(default=None)
+    geometry: Optional[ZoneGeometryType] = Query(default=None)
     filter: Optional[str] = Query(default=None)
     datetime: Optional[str] = Query(default=None)
     properties: Optional[str] = Query(
