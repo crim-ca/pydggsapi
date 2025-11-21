@@ -276,7 +276,7 @@ async def list_collection_by_id(collectionId: str, req: Request, response_model=
                 title="DGGS list"
             ),
             Link(
-                href=f"{req.url}/collections/{collectionId}/queryables",
+                href=f"{req.url}/queryables",
                 rel="[ogc-rel:queryables]",
                 type="application/schema+json",
                 title="Queryable properties from the collection.",

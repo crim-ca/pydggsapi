@@ -32,7 +32,10 @@ def landingpage(current_url: URL, app: FastAPI) -> LandingPageResponse:
                             type='application/json', title='Conformance classes implemented by this API.')
     dggs_list_link = Link(href=urljoin(base_url, './dggs'), rel='[ogc-rel:dggrs-list]', type='application/json',
                           title='List of DGGS implemented by this API.')
-    links = [self_link, service_desc_link, service_doc_link, described_by_link, conformance_link, dggs_list_link]
+    collections_link = Link(href=urljoin(base_url, './collections'), rel='[ogc-rel:data]', type='application/json',
+                            title='List of available Collections')
+
+    links = [self_link, service_desc_link, service_doc_link, described_by_link, conformance_link, collections_link, dggs_list_link]
     service_meta_url = os.environ.get('SERVICE_META_URL', None)
     if service_meta_url:
         service_meta_link = Link(href=service_meta_url, rel='service-meta', type='application/json', title='API metadata')
