@@ -20,6 +20,8 @@ class CommonBaseModel(BaseModel):
         """
         values = {}
         for key, val in self:
+            if key not in self.model_fields:
+                continue  # can happen if a 'CommonBaseModel' is used by a derived class
             field = self.model_fields[key]
             if any(isinstance(m, _OmitIfNone) for m in field.metadata) and val is None:
                 continue
