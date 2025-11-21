@@ -46,7 +46,7 @@ def query_zone_data(
     include_datetime: bool = False,
     include_properties: Optional[List[str]] = None,
     exclude_properties: Optional[List[str]] = None,
-) -> Optional[Union[ZonesDataDggsJsonResponse, ZonesDataGeoJson, FileResponse]]:
+) -> Optional[Union[ZonesDataDggsJsonResponse, ZonesDataGeoJson, FileResponse, Response]]:
     logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}, relative_levels: {relative_levels}, return: {returntype}, geometry: {returngeometry}')
     # generate cell ids, geometry for relative_depth, if the first element of relative_levels equal to base_level
     # skip it, add it manually
@@ -122,7 +122,7 @@ def query_zone_data(
                 except DatetimeNotDefinedError:
                     pass
             logger.debug(f"{__name__} {cid} get_data done")
-            if (len(collection_result.zoneIds) > 0):
+            if collection_result.zoneIds:
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}
                 data_col_dims.update({(cid, dim.name): dim for dim in collection_result.dimensions or []})
                 cp_nodata_mapping = cp.datasources[datasource_id].nodata_mapping
@@ -133,8 +133,14 @@ def query_zone_data(
                 nodata_mapping.update(collection_nodata)
                 data_type.update(cols_name)
                 id_ = np.array(collection_result.zoneIds).reshape(-1, 1)
-                tmp = pd.DataFrame(np.concatenate([id_, collection_result.data], axis=-1),
-                                   columns=['zoneId'] + list(cols_name.keys())).set_index('zoneId')
+                if (collection_result.datetimes):
+                    dates = np.array(collection_result.datetimes).reshape(-1, 1)
+                    array = np.concatenate([id_, collection_result.data, dates], axis=-1)
+                    names = ['zoneId'] + list(cols_name) + ['datetime']
+                else:
+                    array = np.concatenate([id_, collection_result.data], axis=-1)
+                    names = ['zoneId'] + list(cols_name)
+                tmp = pd.DataFrame(array, columns=names).set_index('zoneId')
                 master = master.join(tmp)
                 pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
                 master = master.astype(pre_numeric_cols).astype(cols_name)
@@ -151,7 +157,7 @@ def query_zone_data(
                     data[z] = data[z].drop(columns=[f'geometry{cid}'], errors='ignore')
                 except KeyError:
                     data[z] = master
-    if (len(data.keys()) == 0):
+    if not data:
         return None
     zarr_root, tmpfile = None, None
     features = []
@@ -170,12 +176,23 @@ def query_zone_data(
             d = d.drop(columns='geometry')
             d['depth'] = z - base_level
             feature = d.to_dict(orient='records')
-            feature = [Feature(**{'type': "Feature", 'id': id_ + i, 'geometry': geojson(**shapely.geometry.mapping(geometry[i])), 'properties': f}) for i, f in enumerate(feature)]
+            feature = [
+                Feature(
+                    type="Feature",
+                    id=id_ + i,
+                    geometry=geojson(**shapely.geometry.mapping(geometry[i])),
+                    properties=f,
+                )
+                for i, f in enumerate(feature)
+                # skip features with all-nan column properties, excluding datetime and zone ID/depth details
+                if all([pd.notna(v) for k, v in f.items() if k in data_type.keys()])
+            ]
             features += feature
             id_ += len(d)
             logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
         else:
             zoneIds = d.index.values.astype(str).tolist()
+            d.drop(columns=['datetime'], inplace=True, errors='ignore')
             d = d.T
             nan_mask = d.isna()
             v = d.values
@@ -185,7 +202,7 @@ def query_zone_data(
             properties.update({c: get_json_schema_property(data_type[c]) for c in diff})
             diff = set(list(d.index)) - set(list(values.keys()))
             values.update({c: [] for c in diff})
-            sub_zones = len(set(zoneIds))
+            sub_zones_count = len(set(zoneIds))
             for i, column in enumerate(d.index):
                 data_dims = {
                     dim.name: dim.grid.cellsCount
@@ -212,7 +229,7 @@ def query_zone_data(
                     data_count = len(v[i, :])
                     values[column].append(Value(
                         depth=z - base_level,
-                        shape=Shape(count=data_count, subZones=sub_zones, dimensions=data_dims or None),
+                        shape=Shape(count=data_count, subZones=sub_zones_count, dimensions=data_dims or None),
                         data=v[i, :].tolist(),
                     ))
     if (zarr_root is not None):
@@ -221,9 +238,8 @@ def query_zone_data(
         zipstore.close()
         return FileResponse(tmpfile[1], headers={'content-type': 'application/zarr+zip'})
     if (returntype == 'application/geo+json'):
-        return ZonesDataGeoJson(**{'type': 'FeatureCollection', 'features': features})
+        return ZonesDataGeoJson(type='FeatureCollection', features=features)
     link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
-    relative_levels if (base_level == relative_levels[0]) else relative_levels[1:]
     relative_levels = [rl - base_level for rl in relative_levels]
     return_ = {'dggrs': link, 'zoneId': str(zoneId), 'depths': relative_levels,
                'schema': Schema(properties=properties), 'values': values}
