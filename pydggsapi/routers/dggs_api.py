@@ -406,7 +406,7 @@ async def list_dggrs_zones(req: Request,
 
     returntype = _get_return_type(req, zone_query_support_returntype, zone_query_support_formats, 'application/json')
     returngeometry = zonesReq.geometry if (zonesReq.geometry is not None) else 'zone-region'
-    zone_level = zonesReq.zone_level if (zonesReq.zone_level is not None) else dggrs_description.defaultDepth
+    zone_level = zonesReq.zone_level
     compact_zone = zonesReq.compact_zone if (zonesReq.compact_zone is not None) else True
     limit = zonesReq.limit if (zonesReq.limit is not None) else 100000
     parent_zone = zonesReq.parent_zone
@@ -416,6 +416,8 @@ async def list_dggrs_zones(req: Request,
     # Parameters checking
     if (parent_zone is not None):
         parent_level = dggrs_provider.get_cells_zone_level([parent_zone])[0]
+        # If the zone-level is not specified, use the parent-zone refinement level + 1 as the zone level value.
+        zone_level = zone_level if (zone_level is not None) else parent_level + 1
         if (parent_level > zone_level):
             logger.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
             raise HTTPException(status_code=400, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")

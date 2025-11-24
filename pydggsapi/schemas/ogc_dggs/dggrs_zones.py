@@ -108,6 +108,8 @@ class ZonesRequest(BaseModel):
             self.bbox = bbox_converter(self.bbox)
             if (len(self.bbox) != 4):
                 raise HTTPException(status_code=400, detail='bbox length is not equal to 4')
+            if (self.zone_level is None):
+                raise HTTPException(status_code=400, detail='zone-level must be specified')
         if (self.geometry is not None):
             if (self.geometry not in zone_query_support_geometry):
                 raise HTTPException(status_code=400, detail=f"{self.geometry} is not supported")

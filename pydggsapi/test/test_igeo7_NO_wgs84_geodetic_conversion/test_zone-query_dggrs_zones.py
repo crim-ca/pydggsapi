@@ -25,7 +25,7 @@ non_exist_aoi = [[113.81837742963569, 22.521237932154797],
           [114.41438573041694, 22.521237932154797]]
 
 aoi_3035 = [5204952.96287564, 3973761.18085118, 5324408.86305371, 4067507.93907037]
-cellids = ['00010220', '0001022011', '0001022012']
+cellids = ['00010220', '000102201', '0001022012']
 zone_level = [5, 6, 7, 8, 9]
 extra_conf = {
     "output_address_type": 'HIERNDX',
@@ -79,17 +79,11 @@ def test_zone_query_dggrs_zones():
     assert "bbox length is not equal to 4" in response.text
     assert response.status_code == 400
 
-    print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, compact=False)")
+    # missing zone-level
+    print(f"Fail test case with dggs zones query (igeo7, bbox: {aoi.bounds}, compact=False)")
     bounds = list(map(str, aoi.bounds))
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'compact-zone': False})
-    zones = ZonesResponse(**response.json())
-    return_zones_list = zones.zones
-    return_zones_list.sort()
-    validation_zones_list = validation_zone_level_5_hexagons_gdf.index.values.astype(str).tolist()
-    validation_zones_list.sort()
-    assert len(validation_zones_list) == len(return_zones_list)
-    assert all([validation_zones_list[i] == z for i, z in enumerate(return_zones_list)])
-    assert response.status_code == 200
+    assert response.status_code == 400
 
     print(f"Success test case with dggs zones query (igeo7, bbox: {aoi.bounds}, zone-level=8, compact=False)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', params={"bbox": ",".join(bounds), 'zone-level': 8, 'compact-zone': False})
@@ -128,6 +122,15 @@ def test_zone_query_dggrs_zones():
     print(f"Success test case with dggs zones query (igeo7, parent zone: {cellids[0]}, zone-level=8, compact=False, geojson)")
     response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
                           params={"parent-zone": cellids[0], 'zone-level': 8, 'compact-zone': False})
+    zones_geojson = ZonesGeoJson(**response.json())
+    return_features_list = zones_geojson.features
+    assert response.status_code == 200
+
+    # no zone-level is passed, default to parent-zone refinement level + 1
+    # cellids[1] refinement level = 7 , expect zone-level to be 8
+    print(f"Success test case with dggs zones query (igeo7, parent zone: {cellids[1]}, compact=False, geojson)")
+    response = client.get('/dggs-api/v1-pre/dggs/igeo7/zones', headers={'Accept': 'Application/geo+json'},
+                          params={"parent-zone": cellids[1], 'compact-zone': False})
     zones_geojson = ZonesGeoJson(**response.json())
     return_features_list = zones_geojson.features
     assert response.status_code == 200
