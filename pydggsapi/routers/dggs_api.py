@@ -418,9 +418,9 @@ async def list_dggrs_zones(req: Request,
         parent_level = dggrs_provider.get_cells_zone_level([parent_zone])[0]
         # If the zone-level is not specified, use the parent-zone refinement level + 1 as the zone level value.
         zone_level = zone_level if (zone_level is not None) else parent_level + 1
-        if (parent_level > zone_level):
-            logger.error(f'{__name__} query zones list, parent level({parent_level}) > zone level({zone_level})')
-            raise HTTPException(status_code=400, detail=f"query zones list, parent level({parent_level}) > zone level({zone_level})")
+        if (parent_level >= zone_level):
+            logger.error(f'{__name__} query zones list, parent zone refinement level ({parent_level}) is finer or equal to the requested zone-level({zone_level}).')
+            raise HTTPException(status_code=400, detail=f"query zones list, parent zone refinement level ({parent_level}) is finer or equal to the requested zone-level({zone_level}).")
     skip_collection = []
     for k, v in collection.items():
         max_ = v.collection_provider.max_refinement_level
