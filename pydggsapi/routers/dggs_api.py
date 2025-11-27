@@ -250,6 +250,8 @@ async def list_collections(req: Request) -> Union[ogc_Collections, Response]:
             collection.links = collection_links
             collection.__class__ = ogc_CollectionDesc
             collectionsResponse.collections.append(collection)
+        collectionsResponse.numberMatched = len(collectionsResponse.collections)
+        collectionsResponse.numberReturned = len(collectionsResponse.collections)
     except Exception as e:
         logger.error(f'{__name__} {e}')
         traceback.print_exc()

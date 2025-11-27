@@ -126,9 +126,14 @@ class CollectionDesc(CommonBaseModel):
         None, description='Maximum cell size for usage of the collection.'
     )
 
-class Collections(BaseModel):
-    links: List[Link]
-    timeStamp: Optional[datetime] = None
-    #numberMatched: Optional[NumberMatched] = None
-    #numberReturned: Optional[NumberReturned] = None
+
+class Collections(CommonBaseModel):
     collections: List[CollectionDesc]
+    links: List[Link]
+    timeStamp: Annotated[Optional[datetime], OmitIfNone] = None
+    numberMatched: Annotated[Optional[int], OmitIfNone] = Field(
+        None, ge=0, description='The number of collections that match the query (if a query was provided).'
+    )
+    numberReturned: Annotated[Optional[int], OmitIfNone] = Field(
+        None, ge=0, description='The number of collections returned in the response.'
+    )
