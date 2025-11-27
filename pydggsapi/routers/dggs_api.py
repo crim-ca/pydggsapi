@@ -303,6 +303,7 @@ async def list_collection_by_id(collectionId: str, req: Request) -> Union[ogc_Co
     "/collections/{collectionId}/queryables",
     tags=['ogc-dggs-api'],
     response_class=JsonSchemaResponse,  # override Content-Type response header
+    response_model=None,
 )
 async def get_collection_queryables_request(
     req: Request,

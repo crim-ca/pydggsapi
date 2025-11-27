@@ -2,7 +2,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
 from pydggsapi.dependencies.api.collections import get_collections_info
 
-from typing import Dict
+from typing import Any, Dict, Tuple
 from tinydb import TinyDB
 import logging
 import os
@@ -36,7 +36,7 @@ def get_conformance_classes():
     ]
 
 
-def _checkIfTableExists():
+def _checkIfTableExists() -> TinyDB:
     db = TinyDB(os.environ.get('dggs_api_config'))
     if ('dggrs' not in db.tables()):
         logger.error(f"{__name__} dggrs table not found.")
@@ -44,7 +44,7 @@ def _checkIfTableExists():
     return db
 
 
-def get_dggrs_class(dggrsId: str) -> (str, dict):
+def get_dggrs_class(dggrsId: str) -> Tuple[str, Dict[str, Any]]:
     try:
         db = _checkIfTableExists()
     except Exception as e:
