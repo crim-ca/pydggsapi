@@ -9,7 +9,7 @@ import os
 logger = logging.getLogger()
 
 
-def get_collections_info():
+def get_collections_info() -> dict[str, Collection]:
     db = TinyDB(os.environ.get('dggs_api_config'))
     if ('collections' not in db.tables()):
         logger.error(f'{__name__} collections table not found.')
@@ -28,4 +28,3 @@ def get_collections_info():
         collection_config['id'] = cid
         collections_dict[cid] = Collection(**collection_config)
     return collections_dict
-
