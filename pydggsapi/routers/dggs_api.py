@@ -207,8 +207,8 @@ async def landing_page(req: Request):
     return landingpage(req.url, req.app)
 
 
-@router.get("/collections", tags=['ogc-dggs-api'])
-async def list_collections(req: Request, response_model=ogc_Collections):
+@router.get("/collections", tags=['ogc-dggs-api'], response_model=ogc_Collections)
+async def list_collections(req: Request):
     collectionsResponse = ogc_Collections(
         links=[
             Link(
@@ -251,12 +251,11 @@ async def list_collections(req: Request, response_model=ogc_Collections):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f'{__name__} {e}')
 
-    # return JSONResponse(content=collectionsResponse)
     return collectionsResponse
 
 
-@router.get("/collections/{collectionId}", tags=['ogc-dggs-api'])
-async def list_collection_by_id(collectionId: str, req: Request, response_model=ogc_CollectionDesc):
+@router.get("/collections/{collectionId}", tags=['ogc-dggs-api'], response_model=ogc_CollectionDesc)
+async def list_collection_by_id(collectionId: str, req: Request):
 
     collections_info = _get_collection()
     # logger.info(f'{collections_info.keys()}')
