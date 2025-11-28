@@ -143,3 +143,16 @@ def test_extent(extent, expect):
     """
     result = Extent(**extent)
     assert result.model_dump() == expect
+
+
+def test_extent_additional_no_interval_invalid():
+    extent = {
+        "elevation": {
+            "vrs": "some-elevation-reference-system",
+            # "interval": [[0, 200]],  # omitted on purpose
+            "unit": "m",
+            "variableType": "continuous",
+        }
+    }
+    with pytest.raises(ValueError):
+        Extent(**extent)

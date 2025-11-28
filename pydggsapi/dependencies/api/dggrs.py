@@ -15,11 +15,12 @@ def get_conformance_classes():
         "https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/core",
         "https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/landing-page",
         "https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/json",
-        "https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections",
         # "https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/html",
         # technically OAS 3.1 used here, but OGC still catching up...
         # (https://github.com/opengeospatial/ogcapi-common/issues/208)
         "https://www.opengis.net/spec/ogcapi-common-1/1.0/conf/oas30",
+        "https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections",
+        "https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/umd-collection",
         "https://www.opengis.net/spec/ogcapi-common-3/1.0/conf/queryables",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/core",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/root-dggs",

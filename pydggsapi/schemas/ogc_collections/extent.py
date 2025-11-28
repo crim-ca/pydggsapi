@@ -162,11 +162,11 @@ class AdditionalExtent(CommonBaseModel):
     # NOTE:
     #   contrary to other extents, here we purposely use 'default=None' to remove the fields if omitted
     #   (trs, vrs, definition) are mutually exclusive, and therefore, should be provided explicitly if needed
-    #   'interval' is needed will all 3 cases, but not required for "other" undefined combinations
-    interval: Annotated[
-        List[conlist(Optional[Coord], min_length=2, max_length=2)],
-        OmitIfNone,
-    ] = Field(None, min_length=1)
+    #   interval is always needed (either in combination of the others, or on its own)
+    #   see:
+    #       - https://github.com/opengeospatial/ogcapi-common/issues/368)
+    #       - https://docs.ogc.org/DRAFTS/20-024.html#ats_umd-collection_extent-uad-definition
+    interval: List[conlist(Optional[Coord], min_length=2, max_length=2)] = Field(..., min_length=1)
     trs: Annotated[Optional[str], OmitIfNone] = Field(None)
     vrs: Annotated[Optional[str], OmitIfNone] = Field(None)
     definition: Annotated[Optional[str], OmitIfNone] = Field(None)
@@ -190,16 +190,10 @@ class AdditionalExtent(CommonBaseModel):
 
     @model_validator(mode="after")
     def validate(self) -> AdditionalExtent:
-        # FIXME: adjust logic as eventually defined... (https://github.com/opengeospatial/ogcapi-common/issues/368)
         mutually_exclusive = ['trs', 'vrs', 'definition']
-        minimally_required = ['interval']
-        minreq_props = [prop for prop in minimally_required if getattr(self, prop) is not None]
         mutex_props = [prop for prop in mutually_exclusive if getattr(self, prop) is not None]
-        if len(minreq_props) > 1 and len(mutex_props) > 1:
-            raise ValueError(
-                f"Only one of {mutually_exclusive} can be provided "
-                f"when at least one of {minimally_required} properties is provided."
-            )
+        if len(mutex_props) > 1:
+            raise ValueError(f"Only one of {mutually_exclusive} can be provided.")
         if getattr(self, "unit", None) is not None and getattr(self, "unitLang", None) is None:
             logger.warning("Using default 'unitLang=UCUM' undefined for 'unit' provided in AdditionalExtent")
             self.unitLang = "UCUM"
