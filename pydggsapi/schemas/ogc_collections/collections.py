@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pydggsapi.schemas.common_basemodel import OmitIfNone, CommonBaseModel
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link
-from pydggsapi.schemas.ogc_collections.extent import Spatial, Temporal
+from pydggsapi.schemas.ogc_collections.extent import Extent
 
 
 from datetime import datetime
@@ -19,15 +19,6 @@ class DataType1(Enum):
 
 class DataType(RootModel):
     root: Union[str, DataType1]
-
-
-class Extent(BaseModel):
-    spatial: Optional[Spatial] = Field(
-        None, description='The spatial extent of the data in the collection.'
-    )
-    temporal: Optional[Temporal] = Field(
-        None, description='The temporal extent of the features in the collection.'
-    )
 
 
 class CollectionDesc(CommonBaseModel):
@@ -48,7 +39,7 @@ class CollectionDesc(CommonBaseModel):
     )
     attribution: Annotated[Optional[str], OmitIfNone] = Field(None, title='attribution for the collection')
     links: List[Link] = Field(
-        lambda: [],
+        [],
         examples=[
             [
                 {

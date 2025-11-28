@@ -3,8 +3,19 @@
 # that means this module export a FastAPI router that gets mounted
 # in the main api.py under /dggs-api/v1-pre
 
-from fastapi import APIRouter, HTTPException, Depends, Request, Path, Query
 from typing import Annotated, Dict, List, Optional, Union
+from functools import cache
+import logging
+import copy
+import importlib
+import traceback
+
+import pyproj
+from fastapi import APIRouter, HTTPException, Depends, Request, Path, Query
+from fastapi.responses import JSONResponse, FileResponse, Response
+from starlette.datastructures import URL
+from shapely.geometry import box
+from shapely.ops import transform
 
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.api.collection_providers import CollectionProvider
@@ -42,15 +53,6 @@ from pydggsapi.dependencies.api.dggrs import get_dggrs_descriptions, get_dggrs_c
 
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
-
-from fastapi.responses import JSONResponse, FileResponse, Response
-import logging
-import copy
-import pyproj
-import importlib
-import traceback
-from shapely.geometry import box
-from shapely.ops import transform
 
 logger = logging.getLogger()
 router = APIRouter()
@@ -99,6 +101,7 @@ def _import_collection_provider(providerConfig: CollectionProvider) -> AbstractC
         raise Exception(f'{__name__} {providerConfig.classname} import failed, {e}')
 
 
+@cache
 def _get_dggrs_provider(dggrsId: str) -> AbstractDGGRSProvider:
     global dggrs_providers
     try:
@@ -108,6 +111,7 @@ def _get_dggrs_provider(dggrsId: str) -> AbstractDGGRSProvider:
         raise HTTPException(status_code=500, detail=f'{__name__} _get_dggrs_provider: {dggrsId} not found in dggrs providers')
 
 
+@cache
 def _get_collection_provider(providerId: Optional[str] = None) -> dict[str, AbstractCollectionProvider]:
     global collection_providers
     if (providerId is None):
@@ -119,6 +123,7 @@ def _get_collection_provider(providerId: Optional[str] = None) -> dict[str, Abst
         raise HTTPException(status_code=500, detail=f'{__name__} _get_collection_provider: {providerId} not found in collection providers')
 
 
+@cache
 def _get_dggrs_description(dggrsId: str = Path(...)) -> DggrsDescription:
     global dggrs
     try:
@@ -128,6 +133,7 @@ def _get_dggrs_description(dggrsId: str = Path(...)) -> DggrsDescription:
         raise HTTPException(status_code=400, detail=f'{__name__}  _get_dggrs_description failed:  {dggrsId} not supported: {e}')
 
 
+@cache
 def _get_collection(collectionId: Optional[str] = None, dggrsId: Optional[str] = None) -> dict[str, Collection]:
     global collections, dggrs_providers
     if (collectionId is None):
@@ -211,6 +217,36 @@ async def landing_page(req: Request) -> Union[LandingPageResponse, Response]:
     return landingpage(req.url, req.app)
 
 
+def describe_collection(collection: Collection, collection_url: Union[str, URL]) -> ogc_CollectionDesc:
+    collection_links = [
+        Link(
+            href=f"{collection_url}",
+            rel="self",
+            type="application/json",
+            title="this document"
+        ),
+        Link(
+            href=f"{collection_url}/dggs",
+            rel="[ogc-rel:dggrs-list]",
+            type="application/json",
+            title="DGGS list"
+        ),
+        Link(
+            href=f"{collection_url}/queryables",
+            rel="[ogc-rel:queryables]",
+            type="application/schema+json",
+            title="Queryable properties from the collection.",
+        ),
+    ]
+    dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
+    min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
+    col = ogc_CollectionDesc(**collection.model_dump(exclude={'collection_provider'}))
+    col.minScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(max_rf)*1000) / 0.00028)
+    col.maxScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(min_rf)*1000) / 0.00028)
+    col.links.extend(collection_links)
+    return col
+
+
 @router.get("/collections", tags=['ogc-dggs-api'], response_model=ogc_Collections)
 async def list_collections(req: Request) -> Union[ogc_Collections, Response]:
     collectionsResponse = ogc_Collections(
@@ -228,28 +264,8 @@ async def list_collections(req: Request) -> Union[ogc_Collections, Response]:
         collections_info = _get_collection()
         # logger.info(f'{collections_info.keys()}')
         for collectionId, collection in collections_info.items():
-            # logger.info(f'{dir(collection)}')
-            collection_links = [
-                Link(
-                    href=f"{req.url}/{collectionId}",
-                    rel="self",
-                    type="application/json",
-                    title="this document"
-                ),
-                Link(
-                    href=f"{req.url}/{collectionId}/dggs",
-                    rel="[ogc-rel:dggrs-list]",
-                    type="application/json",
-                    title="DGGS list"
-                )
-            ]
-            dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
-            min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
-            collection.minScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(max_rf)*1000) / 0.00028)
-            collection.maxScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(min_rf)*1000) / 0.00028)
-            collection.links = collection_links
-            collection.__class__ = ogc_CollectionDesc
-            collectionsResponse.collections.append(collection)
+            col = describe_collection(collection, f"{req.url}/{collectionId}")
+            collectionsResponse.collections.append(col)
         collectionsResponse.numberMatched = len(collectionsResponse.collections)
         collectionsResponse.numberReturned = len(collectionsResponse.collections)
     except Exception as e:
@@ -267,34 +283,8 @@ async def list_collection_by_id(collectionId: str, req: Request) -> Union[ogc_Co
     # logger.info(f'{collections_info.keys()}')
     if collectionId in collections_info.keys():
         collection = collections_info[collectionId]
-        collection_links = [
-            Link(
-                href=f"{req.url}",
-                rel="self",
-                type="application/json",
-                title="this document"
-            ),
-            Link(
-                href=f"{req.url}/dggs",
-                rel="[ogc-rel:dggrs-list]",
-                type="application/json",
-                title="DGGS list"
-            ),
-            Link(
-                href=f"{req.url}/queryables",
-                rel="[ogc-rel:queryables]",
-                type="application/schema+json",
-                title="Queryable properties from the collection.",
-            ),
-        ]
-        dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
-        min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
-        collection.minScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(max_rf)*1000) / 0.00028)
-        collection.maxScaleDenominator = int((dggrs_provider.get_cls_by_zone_level(min_rf)*1000) / 0.00028)
-        collection.links = collection_links
-        collection.__class__ = ogc_CollectionDesc
-
-        return collection
+        col = describe_collection(collection, req.url)
+        return col
     else:
         raise HTTPException(status_code=404, detail=f'{__name__} {collectionId} not found')
 
