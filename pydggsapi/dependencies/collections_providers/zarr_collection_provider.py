@@ -4,6 +4,7 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
     DatetimeNotDefinedError
 )
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Dimension, DimensionGrid
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 
 from pygeofilter.ast import AstType
@@ -11,9 +12,10 @@ from pygeofilter.backends.sql import to_sql_where
 
 import xarray as xr
 import xarray_sql as xql
-from typing import List
-from dataclasses import dataclass
 import numpy as np
+import pandas as pd
+from typing import List, Any
+from dataclasses import dataclass
 import logging
 
 logger = logging.getLogger()
@@ -36,16 +38,17 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         try:
             for k, v in datasources.items():
                 datasource = ZarrDatasourceInfo(**v)
-                datasource.filehandle = xr.open_datatree(datasource.filepath)
+                datasource.filehandle = xr.open_datatree(datasource.filepath, engine="zarr")
                 self.datasources[k] = datasource
         except Exception as e:
             logger.error(f'{__name__} create datasource failed: {e}')
             raise Exception(f'{__name__} create datasource failed: {e}')
 
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
+    def get_data(self, zoneIds: List[Any], res: int, datasource_id: str,
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
-                 exclude_properties: List[str] = None) -> CollectionProviderGetDataReturn:
+                 exclude_properties: List[str] = None,
+                 padding: bool = True) -> CollectionProviderGetDataReturn:
         datatree = None
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
@@ -79,12 +82,14 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                     excl.extend(exclude_properties or [])
                     cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
                 else:
-                    incl = cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+                    incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
                     if include_properties:
                         incl &= set(include_properties)
                     if exclude_properties:
                         incl -= set(exclude_properties)
                     cols = f"{','.join(incl)}, {id_col}"
+                if datasource.datetime_col is not None:
+                    cols += f", {datasource.datetime_col}"
                 sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({cql_sql}) """
                 zarr_result = xr.Dataset.from_dataframe(ctx.sql(sql).to_pandas().set_index(id_col))
             else:
@@ -97,11 +102,39 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             # Zarr will raise exception if nothing matched
             logger.error(f'{__name__} {datasource_id} sel failed: {e}')
             return result
+        zarr_result = zarr_result.drop_vars('spatial_ref')
+        cols_dims = []
+        grid_indexs_value = [zoneIds]
+        grid_cols = [id_col]
+        grid_dates = None
         cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
-        zarr_result = zarr_result.to_array()
-        zoneIds = zarr_result[id_col].values.astype(str).tolist()
-        data = zarr_result.data.T.tolist()
-        result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
+        # follows the datetime handling from parquet provider.
+        if (datasource.datetime_col not in list(zarr_result.coords.keys())):
+            zarr_result = zarr_result.assign_coords({datasource.datetime_col: zarr_result[datasource.datetime_col]})
+        # Create the Dimension retrun from coordinates
+        for dim_name, dim_value in zarr_result.coords.items():
+            if (dim_name != id_col):
+                values = np.sort(np.unique(dim_value.values))
+                if (dim_name == datasource.datetime_col):
+                    grid_dates = np.sort(dim_value.values.astype(str)).tolist()
+                    values = grid_dates
+                grid_cols.append(dim_name)
+                grid_indexs_value.append(dim_value.values)
+                cols_dims.append(Dimension(name=dim_name,
+                                           interval=[values[0], values[-1]],
+                                           grid=DimensionGrid(cellsCount=len(values), coordinates=values)
+                                           )
+                                 )
+        grid = pd.MultiIndex.from_product(grid_indexs_value, names=grid_cols).to_frame(index=False)
+        # flatten the zarr dataset to pandas dataframe and apply paddding
+        zarr_result = zarr_result.to_dataframe().reset_index()
+        if (padding):
+            zarr_result = pd.merge(grid, zarr_result, how='left', on=grid_cols)
+        zoneIds = zarr_result[id_col].tolist()
+        zarr_result = zarr_result.drop(grid_cols, axis=1)
+        result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, zarr_result.to_numpy().tolist()
+        result.dimensions = cols_dims if (len(cols_dims) > 0) else None
+        result.datetimes = grid_dates
         return result
 
     def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:

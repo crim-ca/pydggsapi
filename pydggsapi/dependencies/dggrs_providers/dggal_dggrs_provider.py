@@ -80,6 +80,8 @@ class DGGALProvider(AbstractDGGRSProvider):
         raise NotImplementedError
 
     def zone_id_from_textual(self, cellIds: List[str], zone_id_repr: str) -> List[Any]:
+        if (zone_id_repr not in ZoneIdRepresentationType):
+            raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
         if (len(cellIds) == 0):
             return []
         if (zone_id_repr == "textual"):
@@ -89,7 +91,9 @@ class DGGALProvider(AbstractDGGRSProvider):
         if (zone_id_repr == "hexstring"):
             raise ValueError("{__name__} dggal doesn't support hexstring zone id representation")
 
-    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str) -> List[str]:
+    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str, refinement_level=None) -> List[str]:
+        if (zone_id_repr not in ZoneIdRepresentationType):
+            raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
         if (len(cellIds) == 0):
             return []
         if (zone_id_repr == "textual"):

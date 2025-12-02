@@ -5,6 +5,8 @@ from typing_extensions import Self
 
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
 
+ZoneIdRepresentationType = ['textual', 'int', 'hexstring']
+
 
 class DGGRSProviderZoneInfoReturn(BaseModel):
     zone_level: int

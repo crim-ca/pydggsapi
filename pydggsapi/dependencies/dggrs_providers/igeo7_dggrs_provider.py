@@ -6,8 +6,10 @@ from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import (
     ZoneIdRepresentationType,
 )
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import (
+    ZoneIdRepresentationType,
+    DGGRSProviderZoneInfoReturn,
+    DGGRSProviderZonesListReturn,
     DGGRSProviderConversionReturn,
     DGGRSProviderGetRelativeZoneLevelsReturn,
     DGGRSProviderZonesElement,
@@ -22,7 +24,7 @@ import numpy as np
 import decimal
 from typing import Any, Union, List, Final
 from dggrid4py import DGGRIDv8
-from dggrid4py.igeo7 import get_z7string_resolution
+from dggrid4py.igeo7 import get_z7string_resolution, z7hex_to_z7string
 from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
 from geopandas.geoseries import GeoSeries
 from dotenv import load_dotenv
@@ -66,6 +68,27 @@ def _geodetic_to_authalic(geometry, convert: bool) -> GeoSeries:
     if (not convert):
         return geometry
     return geoseries_to_authalic(geometry)
+
+
+def z7textual_to_z7int(z7_textual_zone_id: str):
+    base, digits = z7_textual_zone_id[:2], z7_textual_zone_id[2:]
+    digits = digits.ljust(20, '0')
+    binary_repr = [np.binary_repr(int(base), width=4)]
+    binary_digits = [np.binary_repr(int(d), width=3) for d in digits]
+    binary_repr += binary_digits
+    binary_repr = ''.join(binary_repr)
+    return int(binary_repr, 2)
+
+
+def z7int_to_z7textual(z7_int_zone_id: int, refinement_level=int):
+    hexstring = hex(z7_int_zone_id)
+    z7textual = z7hex_to_z7string(hexstring)
+    return z7textual[: refinement_level + 2]
+
+
+vz7int_to_z7textual = np.vectorize(z7int_to_z7textual)
+vz7textual_to_z7int = np.vectorize(z7textual_to_z7int)
+vz7hex_to_z7textual = np.vectorize(z7hex_to_z7string)
 
 
 class IGEO7Provider(AbstractDGGRSProvider):
@@ -159,10 +182,29 @@ class IGEO7Provider(AbstractDGGRSProvider):
         return gdf
 
     def zone_id_from_textual(self, cellIds: List[str], zone_id_repr: str) -> List[Any]:
-        raise NotImplementedError
+        if (zone_id_repr not in ZoneIdRepresentationType):
+            raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
+        if (len(cellIds) == 0):
+            return []
+        if (zone_id_repr == "textual"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            return vz7textual_to_z7int(cellIds).tolist()
+        if (zone_id_repr == "hexstring"):
+            hexstring = np.vectorize(hex)(vz7textual_to_z7int(cellIds))
+            return hexstring.tolist()
 
-    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str) -> List[str]:
-        raise NotImplementedError
+    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str, refinement_level: int) -> List[str]:
+        if (zone_id_repr not in ZoneIdRepresentationType):
+            raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
+        if (len(cellIds) == 0):
+            return []
+        if (zone_id_repr == "textual"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            return vz7int_to_z7textual(cellIds, refinement_level).tolist()
+        if (zone_id_repr == "hexstring"):
+            return vz7hex_to_z7textual(cellIds).tolist()
 
     def get_cls_by_zone_level(self, zone_level: int):
         return self.data[zone_level]["CLS (km)"]

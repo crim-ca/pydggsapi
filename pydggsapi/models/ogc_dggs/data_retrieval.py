@@ -118,7 +118,7 @@ def query_zone_data(
                     collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
                                                     include_datetime, incl_props, excl_props)
                     if (zone_id_repr != 'textual'):
-                        collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr)
+                        collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr, converted_z)
                 except DatetimeNotDefinedError:
                     pass
             logger.debug(f"{__name__} {cid} get_data done")

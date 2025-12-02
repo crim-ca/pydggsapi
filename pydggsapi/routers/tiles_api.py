@@ -21,6 +21,8 @@ import json
 import shapely
 from shapely.geometry import box
 from shapely.ops import transform
+import numpy as np
+import pandas as pd
 import geopandas as gpd
 import mapbox_vector_tile
 import logging
@@ -73,17 +75,24 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     if (collection.collection_provider.dggrs_zoneid_repr != "textual"):
         zoneslist.zones = dggrs_provider.zone_id_from_textual(zoneslist.zones, collection.collection_provider.dggrs_zoneid_repr)
     zoneslist = gpd.GeoDataFrame({'zone_id': zoneslist.zones}, geometry=geometry).set_index('zone_id')
-    zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level, collection.collection_provider.datasource_id)
+    zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level, collection.collection_provider.datasource_id, padding=False)
     if (len(zones_data.zoneIds) == 0):
         content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": []},
                                             quantize_bounds=bbox,
                                             default_options={"transformer": transformer.transform})
         return Response(bytes(content), media_type="application/x-protobuf")
-    zones_data = gpd.GeoDataFrame(zones_data.data, index=zones_data.zoneIds, columns=list(zones_data.cols_meta.keys()))
-    zones_data.index = zones_data.index.astype(zoneslist.index.dtype)
-    zones_data = zones_data.join(zoneslist).reset_index(names=id_col)
+    indexes_cols = [id_col]
+    indexes_values = [np.unique(zones_data.zoneIds)]
+    for dim in zones_data.dimensions:
+        indexes_cols.append(dim.name)
+        indexes_values.append(dim.grid.coordinates)
+    pd_indexes = pd.MultiIndex.from_product(indexes_values, names=indexes_cols)
+    zones_data = gpd.GeoDataFrame(zones_data.data, index=pd_indexes, columns=list(zones_data.cols_meta.keys()))
+    zones_data = zones_data.join(zoneslist).reset_index(names=indexes_cols)
+    zones_data[id_col] = zones_data[id_col].astype(zoneslist.index.dtype)
     if (collection.collection_provider.dggrs_zoneid_repr != 'textual'):
-        zones_data[id_col] = dggrs_provider.zone_id_to_textual(zones_data[id_col].values, collection.collection_provider.dggrs_zoneid_repr)
+        zones_data[id_col] = dggrs_provider.zone_id_to_textual(zones_data[id_col].values,
+                                                               collection.collection_provider.dggrs_zoneid_repr, zone_level)
     geometry = zones_data['geometry'].values
     zones_data = zones_data.drop(columns='geometry')
     features = zones_data.to_dict(orient='records')
