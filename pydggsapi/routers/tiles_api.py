@@ -83,9 +83,10 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
         return Response(bytes(content), media_type="application/x-protobuf")
     indexes_cols = [id_col]
     indexes_values = [np.unique(zones_data.zoneIds)]
-    for dim in zones_data.dimensions:
-        indexes_cols.append(dim.name)
-        indexes_values.append(dim.grid.coordinates)
+    if (zones_data.datetimes is not None):
+        for dim in zones_data.dimensions:
+            indexes_cols.append(dim.name)
+            indexes_values.append(dim.grid.coordinates)
     pd_indexes = pd.MultiIndex.from_product(indexes_values, names=indexes_cols)
     zones_data = gpd.GeoDataFrame(zones_data.data, index=pd_indexes, columns=list(zones_data.cols_meta.keys()))
     zones_data = zones_data.join(zoneslist).reset_index(names=indexes_cols)
