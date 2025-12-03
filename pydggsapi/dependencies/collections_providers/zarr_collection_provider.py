@@ -88,8 +88,6 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                     if exclude_properties:
                         incl -= set(exclude_properties)
                     cols = f"{','.join(incl)}, {id_col}"
-                if datasource.datetime_col is not None:
-                    cols += f", {datasource.datetime_col}"
                 sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({cql_sql}) """
                 zarr_result = xr.Dataset.from_dataframe(ctx.sql(sql).to_pandas().set_index(id_col))
             else:
@@ -102,29 +100,35 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             # Zarr will raise exception if nothing matched
             logger.error(f'{__name__} {datasource_id} sel failed: {e}')
             return result
-        zarr_result = zarr_result.drop_vars('spatial_ref')
+        if (zarr_result[id_col].size == 0):
+            return result
+        if ('spatial_ref' in list(zarr_result.coords.keys())):
+            zarr_result = zarr_result.drop('spatial_ref')
         cols_dims = []
         grid_indexs_value = [zoneIds]
         grid_cols = [id_col]
         grid_dates = None
         cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
         # follows the datetime handling from parquet provider.
-        if (datasource.datetime_col not in list(zarr_result.coords.keys())):
-            zarr_result = zarr_result.assign_coords({datasource.datetime_col: zarr_result[datasource.datetime_col]})
+        if (datasource.datetime_col):
+            cols_meta.pop(datasource.datetime_col, None)
+            if (datasource.datetime_col not in list(zarr_result.coords.keys())):
+                zarr_result = zarr_result.assign_coords({datasource.datetime_col: zarr_result[datasource.datetime_col]})
         # Create the Dimension retrun from coordinates
         for dim_name, dim_value in zarr_result.coords.items():
             if (dim_name != id_col):
                 values = np.sort(np.unique(dim_value.values))
-                if (dim_name == datasource.datetime_col):
-                    grid_dates = np.sort(dim_value.values.astype(str)).tolist()
-                    values = grid_dates
+                grid_indexs_value.append(values)
                 grid_cols.append(dim_name)
-                grid_indexs_value.append(dim_value.values)
+                if (dim_name == datasource.datetime_col):
+                    values = np.sort(dim_value.values.astype(str))
+                    grid_dates = values.tolist()
                 cols_dims.append(Dimension(name=dim_name,
                                            interval=[values[0], values[-1]],
-                                           grid=DimensionGrid(cellsCount=len(values), coordinates=values)
+                                           grid=DimensionGrid(cellsCount=len(values), coordinates=values.tolist())
                                            )
                                  )
+
         grid = pd.MultiIndex.from_product(grid_indexs_value, names=grid_cols).to_frame(index=False)
         # flatten the zarr dataset to pandas dataframe and apply paddding
         zarr_result = zarr_result.to_dataframe().reset_index()
