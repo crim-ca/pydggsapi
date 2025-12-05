@@ -72,7 +72,7 @@ def _geodetic_to_authalic(geometry, convert: bool) -> GeoSeries:
 
 def z7textual_to_z7int(z7_textual_zone_id: str):
     base, digits = z7_textual_zone_id[:2], z7_textual_zone_id[2:]
-    digits = digits.ljust(20, '0')
+    digits = digits.ljust(20, '7')
     binary_repr = [np.binary_repr(int(base), width=4)]
     binary_digits = [np.binary_repr(int(d), width=3) for d in digits]
     binary_repr += binary_digits
