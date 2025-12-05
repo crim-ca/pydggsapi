@@ -107,7 +107,6 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         cols_dims = []
         grid_indexs_value = [zoneIds]
         grid_cols = [id_col]
-        grid_dates = None
         cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
         # follows the datetime handling from parquet provider.
         if (datasource.datetime_col):
@@ -121,8 +120,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                 grid_indexs_value.append(values)
                 grid_cols.append(dim_name)
                 if (dim_name == datasource.datetime_col):
-                    values = np.sort(dim_value.values.astype(str))
-                    grid_dates = values.tolist()
+                    values = np.sort(dim_value.values.astype(str).tolist())
                 cols_dims.append(Dimension(name=dim_name,
                                            interval=[values[0], values[-1]],
                                            grid=DimensionGrid(cellsCount=len(values), coordinates=values.tolist())
@@ -134,11 +132,12 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         zarr_result = zarr_result.to_dataframe().reset_index()
         if (padding):
             zarr_result = pd.merge(grid, zarr_result, how='left', on=grid_cols)
+        zone_dates = zarr_result[datasource.datetime_col].values.astype(str).tolist() if (datasource.datetime_col) else None
         zoneIds = zarr_result[id_col].tolist()
         zarr_result = zarr_result.drop(grid_cols, axis=1)
         result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, zarr_result.to_numpy().tolist()
         result.dimensions = cols_dims if (len(cols_dims) > 0) else None
-        result.datetimes = grid_dates
+        result.datetimes = zone_dates
         return result
 
     def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
