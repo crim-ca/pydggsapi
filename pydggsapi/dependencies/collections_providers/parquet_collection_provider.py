@@ -14,7 +14,7 @@ from pygeofilter.ast import AstType
 from pygeofilter.backends.sql import to_sql_where
 import duckdb
 import pandas as pd
-from typing import List
+from typing import Dict, List, cast
 import logging
 
 logger = logging.getLogger()
@@ -32,7 +32,7 @@ class ParquetDatasourceInfo(AbstractDatasourceInfo):
 class ParquetCollectionProvider(AbstractCollectionProvider):
 
     def __init__(self, datasources):
-        self.datasources = {}
+        self.datasources: Dict[str, ParquetDatasourceInfo] = {}
         for k, v in datasources.items():
             db = duckdb.connect(":memory:")
             db.install_extension("httpfs")
@@ -96,7 +96,10 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         if result_df.size == 0:
             return result
 
-        cols_meta = {k: v.name for k, v in dict(result_df.dtypes).items() if k != datasource.id_col}
+        cols_meta = cast(
+            Dict[str, str],
+            {k: v.name for k, v in dict(result_df.dtypes).items() if k != datasource.id_col},
+        )
         cols_dims = None
         zone_dates = None
 
@@ -136,7 +139,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         result.dimensions = cols_dims
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataReturn:
+    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
         result = CollectionProviderGetDataDictReturn(data={})
         try:
             datasource = self.datasources[datasource_id]
@@ -157,5 +160,5 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         data = dict(result_df.dtypes)
         for k, v in data.items():
             data[k] = str(v) if (type(v).__name__ != "ObjectDType") else "string"
-        result.data = data
+        result.data = cast(Dict[str, str], data)
         return result
