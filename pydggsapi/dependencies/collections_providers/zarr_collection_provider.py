@@ -11,7 +11,8 @@ from pygeofilter.backends.sql import to_sql_where
 
 import xarray as xr
 import xarray_sql as xql
-from typing import List
+from xarray.backends.api import DataTree
+from typing import Any, Dict, List, cast
 from dataclasses import dataclass
 import numpy as np
 import logging
@@ -22,17 +23,17 @@ logger = logging.getLogger()
 @dataclass
 class ZarrDatasourceInfo(AbstractDatasourceInfo):
     filepath: str = ""
-    filehandle: object = None
+    filehandle: DataTree = None
     # the column name of the zone ID, if not given,
-    # it is assume to be the same with the zarr group name
+    # it is assumed to be the same with the zarr group name
     id_col: str = ""
 
 
 # Zarr with Xarray DataTree
 class ZarrCollectionProvider(AbstractCollectionProvider):
 
-    def __init__(self, datasources):
-        self.datasources = {}
+    def __init__(self, datasources: Dict[str, Dict[str, Any]]):
+        self.datasources: Dict[str, ZarrDatasourceInfo] = {}
         try:
             for k, v in datasources.items():
                 datasource = ZarrDatasourceInfo(**v)
@@ -59,7 +60,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} get zone_grp for resolution {res} failed: {e}')
             return result
         id_col = datasource.id_col if (datasource.id_col != "") else zone_grp
-        datatree = datasource.filehandle[zone_grp]
+        datatree = cast(DataTree, datasource.filehandle[zone_grp])
         # in future, we may consider using xdggs-dggrid4py
         try:
             if (cql_filter is not None):
@@ -110,7 +111,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         except KeyError as e:
             logger.error(f'{__name__} {datasource_id} not found: {e}.')
             raise Exception(f'{__name__} {datasource_id} not found: {e}.')
-        datatree = datatree.filehandle[list(datatree.zone_groups.values())[0]]
+        datatree = cast(DataTree, datatree.filehandle[list(datatree.zone_groups.values())[0]])
         data = {i[0]: str(i[1].dtype) for i in datatree.data_vars.items()}
         data.update({'zone_id': 'string'})
         return CollectionProviderGetDataDictReturn(data=data)
