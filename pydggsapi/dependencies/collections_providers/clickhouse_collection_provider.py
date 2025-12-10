@@ -1,8 +1,12 @@
+import pandas as pd
+
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import (
     AbstractCollectionProvider,
     AbstractDatasourceInfo,
-    DatetimeNotDefinedError
+    DatetimeNotDefinedError,
+    PandasQuantizer
 )
+from pydggsapi.schemas.api.collections import ZoneDataPropertyQuantizationMethod
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 
@@ -11,7 +15,7 @@ from pygeofilter.ast import Attribute as pygeofilter_ats
 from pygeofilter.backends.sql import to_sql_where
 from dataclasses import dataclass
 from clickhouse_driver import Client
-from typing import List
+from typing import Dict, List
 import numpy as np
 import logging
 
@@ -24,7 +28,7 @@ class ClickhouseDatasourceInfo(AbstractDatasourceInfo):
     aggregation: str = "mode"
 
 
-class ClickhouseCollectionProvider(AbstractCollectionProvider):
+class ClickhouseCollectionProvider(AbstractCollectionProvider, PandasQuantizer):
 
     def __init__(self, datasources):
         self.datasources = {}
@@ -51,7 +55,10 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
     def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
-                 exclude_properties: List[str] = None) -> CollectionProviderGetDataReturn:
+                 exclude_properties: List[str] = None,
+                 quantize_zones_mapping: Dict[str, List[str]] = None,
+                 quantize_property_methods: ZoneDataPropertyQuantizationMethod = None,
+                 ) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]
@@ -88,13 +95,30 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
         except Exception as e:
             logger.error(f'{__name__} get_data failed : {e}')
             raise Exception(f'{__name__} get_data failed : {e}')
-        zone_idx = [i for i, r in enumerate(db_result[1]) if (r[0] == res_col)][0]
-        if (len(db_result[0]) > 0):
-            data = np.array(db_result[0])
-            zoneIds = data[:, zone_idx].tolist()
-            data = np.delete(data, zone_idx, axis=-1).tolist()
-            cols_meta = {r[0]: r[1] for r in db_result[1] if (r[0] != res_col)}
-            result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
+        if (len(db_result[0]) <= 0):
+            return result
+
+        data = np.array(db_result[0])
+
+        if quantize_zones_mapping:
+            columns = [col[0] for col in db_result[1]]
+            zones_data = pd.DataFrame(data, columns=columns)
+            zones_data = self.quantize_zones(
+                zones_data=zones_data,
+                zones_mapping=quantize_zones_mapping,
+                property_quantize_method=quantize_property_methods,
+                zone_id_column=res_col,
+                datetime_column=datasource.datetime_col,
+            )
+            data = zones_data.to_numpy()
+            zone_idx = zones_data.columns.get_loc(res_col)
+        else:
+            zone_idx = [i for i, r in enumerate(db_result[1]) if (r[0] == res_col)][0]
+
+        zoneIds = data[:, zone_idx].tolist()
+        data = np.delete(data, zone_idx, axis=-1).tolist()
+        cols_meta = {r[0]: r[1] for r in db_result[1] if (r[0] != res_col)}
+        result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, data
         return result
 
     def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:

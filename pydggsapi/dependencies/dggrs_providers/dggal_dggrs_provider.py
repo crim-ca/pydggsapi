@@ -129,6 +129,27 @@ class DGGALProvider(AbstractDGGRSProvider):
                                                        'geometry': subzones_geometry})
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
+    def get_zone_children(self, zoneId: str, children_level: int) -> List[str]:
+        zone = self.mygrid.getZoneFromTextID(zoneId)
+        return list(self.mygrid.getZoneTextID(z) for z in self.mygrid.getZoneChildren(zone))
+
+    def get_zone_parent(self, zoneIds: List[str], target_zone_level: int) -> List[str]:
+        parent_zones = set()
+        lookup_zones = set(zoneIds)
+        while lookup_zones:
+            zone_id = lookup_zones.pop()
+            if zone_id in parent_zones:
+                continue
+            zone = self.mygrid.getZoneFromTextID(zone_id)
+            zone_level = self.mygrid.getZoneLevel(zone)
+            if zone_level == target_zone_level:
+                parent_zones.add(zone_id)
+                continue
+            zone_parents = {self.mygrid.getZoneTextID(z) for z in self.mygrid.getZoneParents(zone)}
+            zone_parents -= parent_zones
+            lookup_zones.update(zone_parents)
+        return list(parent_zones)
+
     def zonesinfo(self, cellIds: List[str]) -> DGGRSProviderZoneInfoReturn:
         zone_level = self.get_cells_zone_level(cellIds)[0]
         cellIds = [self.mygrid.getZoneFromTextID(cellId) for cellId in cellIds]

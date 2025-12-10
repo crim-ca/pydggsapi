@@ -32,6 +32,7 @@ import logging
 
 logger = logging.getLogger()
 
+
 def query_zone_data(
     zoneId: str | int,
     base_level: int,
@@ -88,10 +89,10 @@ def query_zone_data(
         incl_props = [prop.split(".", 1)[-1] for prop in (include_properties or []) if prop.startswith(f"{cid}.")]
         excl_props = [prop.split(".", 1)[-1] for prop in (exclude_properties or []) if prop.startswith(f"{cid}.")]
 
-        # get data for all relative_levels for the currnet datasource
+        # get data for all relative_levels for the current datasource
         for z, v in result.relative_zonelevels.items():
-            g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
             converted_z = z
+            g = [shapely.from_geojson(json.dumps(g.__dict__)) for g in v.geometry]
             if (convert):
                 # convert the source dggrs ID to the datasource dggrs zoneID.
                 # To simplify the zoneId repr handling, we keep all zoneIds in str repr.
@@ -109,18 +110,33 @@ def query_zone_data(
                 master = gpd.GeoDataFrame(cf_zoneIds, geometry=g, columns=['zoneId']).set_index('zoneId')
                 tmp_dggrs_provider = dggrs_provider
 
-            idx = master.index.values.tolist()
             logger.debug(f"{__name__} {cid} get_data")
             collection_result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
             if (converted_z >= cmin_rf):
                 try:
-                    idx = tmp_dggrs_provider.zone_id_from_textual(idx, zone_id_repr) if (zone_id_repr != 'textual') else idx
-                    collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
-                                                    include_datetime, incl_props, excl_props)
+                    zones_idx = master.index.values.tolist()
+                    zones_map = {}
+                    quantized_z = c.collection_provider.find_closest_refinement_level(converted_z)
+                    is_quantized = (quantized_z != converted_z)
+                    if is_quantized:
+                        logger.debug(
+                            f"{__name__} {cid} will perform zone data quantization from level {quantized_z} to {z}"
+                        )
+                        for zone in zones_idx:
+                            children = tmp_dggrs_provider.get_zone_children(zone, quantized_z)
+                            zones_map[zone] = children
+                        zones_idx = list(set(zones_map))
+
+                    if (zone_id_repr != 'textual'):
+                        zones_idx = tmp_dggrs_provider.zone_id_from_textual(zones_idx, zone_id_repr)
+                    collection_result = cp.get_data(zones_idx, converted_z, datasource_id, cql_filter,
+                                                    include_datetime, incl_props, excl_props,
+                                                    zones_map, c.collection_provider.data_quantization_method)
                     if (zone_id_repr != 'textual'):
                         collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr)
                 except DatetimeNotDefinedError:
                     pass
+
             logger.debug(f"{__name__} {cid} get_data done")
             if collection_result.zoneIds:
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}

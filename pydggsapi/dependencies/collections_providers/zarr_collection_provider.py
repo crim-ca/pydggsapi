@@ -1,8 +1,10 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import (
     AbstractCollectionProvider,
     AbstractDatasourceInfo,
-    DatetimeNotDefinedError
+    DatetimeNotDefinedError,
+    XarrayQuantizer,
 )
+from pydggsapi.schemas.api.collections import ZoneDataPropertyQuantizationMethod
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 
@@ -30,7 +32,7 @@ class ZarrDatasourceInfo(AbstractDatasourceInfo):
 
 
 # Zarr with Xarray DataTree
-class ZarrCollectionProvider(AbstractCollectionProvider):
+class ZarrCollectionProvider(AbstractCollectionProvider, XarrayQuantizer):
 
     def __init__(self, datasources: Dict[str, Dict[str, Any]]):
         self.datasources: Dict[str, ZarrDatasourceInfo] = {}
@@ -46,7 +48,10 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
     def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
-                 exclude_properties: List[str] = None) -> CollectionProviderGetDataReturn:
+                 exclude_properties: List[str] = None,
+                 quantize_zones_mapping: Dict[str, List[str]] = None,
+                 quantize_property_methods: ZoneDataPropertyQuantizationMethod = None,
+                 ) -> CollectionProviderGetDataReturn:
         datatree = None
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
@@ -98,6 +103,15 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             # Zarr will raise exception if nothing matched
             logger.error(f'{__name__} {datasource_id} sel failed: {e}')
             return result
+
+        zarr_result = self.quantize_zones(
+            zones_data=zarr_result,
+            zones_mapping=quantize_zones_mapping if quantize_zones_mapping else {},
+            property_quantize_method=quantize_property_methods if quantize_property_methods else {},
+            zone_id_column=datasource.id_col,
+            datetime_column=datasource.datetime_col,
+        )
+
         cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
         zarr_result = zarr_result.to_array()
         zoneIds = zarr_result[id_col].values.astype(str).tolist()

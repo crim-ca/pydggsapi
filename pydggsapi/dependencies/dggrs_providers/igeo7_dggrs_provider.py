@@ -197,6 +197,9 @@ class IGEO7Provider(AbstractDGGRSProvider):
 
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
+    def get_zone_children(self, zoneId: str, children_level: int) -> List[str]:
+        raise NotImplementedError  # FIXME
+
     def zonesinfo(self, cellIds: List[str]):
         zone_level = get_z7string_resolution(cellIds[0])
         try:

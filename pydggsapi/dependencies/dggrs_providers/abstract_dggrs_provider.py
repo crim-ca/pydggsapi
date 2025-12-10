@@ -52,6 +52,10 @@ class AbstractDGGRSProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_zone_children(self, zoneId: str, children_level: int) -> List[str]:
+        raise NotImplementedError
+
+    @abstractmethod
     def zoneslist(self, bbox: Union[box, None], zone_level: int, parent_zone: Union[str, int, None],
                   returngeometry: ZoneGeometryType, compact: bool = True) -> DGGRSProviderZonesListReturn:
         raise NotImplementedError

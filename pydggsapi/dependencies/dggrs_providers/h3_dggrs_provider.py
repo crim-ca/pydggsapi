@@ -1,11 +1,19 @@
 # here should be DGGRID related functions and methods
 # DGGRID ISEA7H resolutions
-from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider, conversion_properties
+from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import (
+    AbstractDGGRSProvider,
+    ZoneIdRepresentationType,
+    conversion_properties,
+)
 # from pydggsapi.dependencies.dggrs_providers.igeo7_dggrs_provider import IGEO7Provider
 
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
-from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.api.dggrs_providers import (
+    DGGRSProviderConversionReturn,
+    DGGRSProviderGetRelativeZoneLevelsReturn,
+    DGGRSProviderZonesElement,
+)
 
 import logging
 from typing import Union, List, Any
@@ -27,7 +35,7 @@ class H3Provider(AbstractDGGRSProvider):
         igeo7_conversion_properties = conversion_properties(zonelevel_offset=-2)
         self.dggrs_conversion = {'igeo7': igeo7_conversion_properties}
 
-    def convert(self, zoneIds: list, targetdggrs: str, zone_id_repr: str = 'textual'):
+    def convert(self, zoneIds: List[str], targetdggrs: str, zone_id_repr: str = 'textual'):
         from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
         if (targetdggrs in self.dggrs_conversion):
             if (targetdggrs == 'igeo7'):
@@ -64,16 +72,17 @@ class H3Provider(AbstractDGGRSProvider):
         else:
             raise Exception(f"{__name__} conversion to {targetdggrs} not supported.")
 
-    def zone_id_from_textual(self, cellIds: list, zone_id_repr: str) -> list:
-        # for h3,  textaul == hexstring
+    def zone_id_from_textual(self, cellIds: List[str], zone_id_repr: ZoneIdRepresentationType) -> List[Any]:
+        # for h3,  textual == hexstring
         if (len(cellIds) == 0):
             return []
         if (zone_id_repr == "textual" or zone_id_repr == "hexstring"):
             return cellIds
         if (zone_id_repr == "int"):
             return [h3.str_to_int(z) for z in cellIds]
+        raise NotImplementedError(f"{__name__} zone_id_repr {zone_id_repr} not supported.")
 
-    def zone_id_to_textual(self, cellIds: List[str], zone_id_repr: str) -> List[str]:
+    def zone_id_to_textual(self, cellIds: List[str], zone_id_repr: ZoneIdRepresentationType) -> List[str]:
         if (len(cellIds) == 0):
             return []
         if (zone_id_repr == "textual" or zone_id_repr == "hexstring"):
@@ -87,11 +96,12 @@ class H3Provider(AbstractDGGRSProvider):
     def get_cls_by_zone_level(self, zone_level) -> float:
         return h3.average_hexagon_edge_length(zone_level, unit='km')
 
-    def get_zone_level_by_cls(self, cls_km) -> int:
+    def get_zone_level_by_cls(self, cls_km: float) -> int:
         for i in range(0, 16):
             length = h3.average_hexagon_edge_length(i, unit='km')
             if (length < cls_km):
                 return i
+        return 0
 
     def get_cells_zone_level(self, cellIds: List[str]) -> List[int]:
         zoneslevel = []
@@ -120,6 +130,9 @@ class H3Provider(AbstractDGGRSProvider):
             raise Exception(f'{__name__} get_relative_zonelevels, get children failed {e}')
 
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
+
+    def get_zone_children(self, zoneId: str, children_level: int) -> List[str]:
+        return h3.cell_to_children(zoneId, children_level)
 
     def zoneslist(self, bbox: Union[box, None], zone_level: int, parent_zone: Union[str, int, None],
                   returngeometry: str, compact=True) -> DGGRSProviderZonesListReturn:

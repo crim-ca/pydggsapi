@@ -1,8 +1,10 @@
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import (
     AbstractCollectionProvider,
     AbstractDatasourceInfo,
-    DatetimeNotDefinedError
+    DatetimeNotDefinedError,
+    PandasQuantizer,
 )
+from pydggsapi.schemas.api.collections import ZoneDataPropertyQuantizationMethod
 from pydggsapi.schemas.api.collection_providers import (
     CollectionProviderGetDataReturn,
     CollectionProviderGetDataDictReturn
@@ -21,7 +23,7 @@ logger = logging.getLogger()
 
 
 @dataclass
-class ParquetDatasourceInfo(AbstractDatasourceInfo):
+class ParquetDatasourceInfo(AbstractDatasourceInfo, PandasQuantizer):
     filepath: str = ""
     id_col: str = ""
     credential: str = ""
@@ -49,7 +51,10 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
     def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
-                 exclude_properties: List[str] = None) -> CollectionProviderGetDataReturn:
+                 exclude_properties: List[str] = None,
+                 quantize_zones_mapping: Dict[str, List[str]] = None,
+                 quantize_property_methods: ZoneDataPropertyQuantizationMethod = None,
+                 ) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]
@@ -95,6 +100,14 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         # empty result can be skipped entirely
         if result_df.size == 0:
             return result
+
+        result_df = self.quantize_zones(
+            zones_data=result_df,
+            zones_mapping=quantize_zones_mapping if quantize_zones_mapping else {},
+            property_quantize_method=quantize_property_methods if quantize_property_methods else {},
+            zone_id_column=datasource.id_col,
+            datetime_column=datasource.datetime_col,
+        )
 
         cols_meta = cast(
             Dict[str, str],
