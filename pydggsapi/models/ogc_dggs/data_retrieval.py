@@ -182,7 +182,7 @@ def query_zone_data(
         for index_name in d.index.names:
             if (index_name != 'zoneId'):
                 dim_values = np.sort(np.unique(d.index.get_level_values(index_name).values.astype(str)))
-                zone_level_dims_list.append(Dimension(name=f'{index_name}_at_zone-depth-{z-base_level}', interval=[dim_values[0], dim_values[-1]],
+                zone_level_dims_list.append(Dimension(name=index_name, interval=[dim_values[0], dim_values[-1]],
                                             grid=DimensionGrid(cellsCount=len(dim_values), coordinates=dim_values.tolist())))
                 zone_level_dims.update({z: zone_level_dims_list})
         if (returntype == 'application/geo+json'):
@@ -268,7 +268,10 @@ def query_zone_data(
         'values': values,
     })
     if zone_level_dims:
-        return_['dimensions'] = itertools.chain.from_iterable(zone_level_dims.values())
+        # temporary fix the issue https://github.com/LandscapeGeoinformatics/pydggsapi/issues/65#issuecomment-3618504418
+        # by just return the deepest zone depth dimension
+        deepest_zone_level = sorted(list(zone_level_dims.keys()))[-1]
+        return_['dimensions'] = zone_level_dims[deepest_zone_level]
     dggs_json = ZonesDataDggsJsonResponse(**return_)
     if (returntype == 'application/ubjson'):
         dggs_ubjson = ubjson.dumpb(dggs_json.model_dump(mode='json'), no_float32=False)
