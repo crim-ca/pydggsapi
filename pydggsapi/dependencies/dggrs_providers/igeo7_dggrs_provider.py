@@ -2,8 +2,7 @@
 # DGGRID ISEA7H resolutions
 
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import (
-    AbstractDGGRSProvider,
-    ZoneIdRepresentationType,
+    AbstractDGGRSProvider
 )
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import (
@@ -22,7 +21,7 @@ import logging
 import shapely
 import numpy as np
 import decimal
-from typing import Any, Union, List, Final
+from typing import Any, Union, List, Final, get_args
 from dggrid4py import DGGRIDv8
 from dggrid4py.igeo7 import get_z7string_resolution, z7hex_to_z7string
 from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
@@ -186,7 +185,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
         return gdf
 
     def zone_id_from_textual(self, cellIds: List[str], zone_id_repr: str) -> List[Any]:
-        if (zone_id_repr not in ZoneIdRepresentationType):
+        if (zone_id_repr not in get_args(ZoneIdRepresentationType)):
             raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
         if (len(cellIds) == 0):
             return []
@@ -199,7 +198,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
             return hexstring.tolist()
 
     def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str, refinement_level: int) -> List[str]:
-        if (zone_id_repr not in ZoneIdRepresentationType):
+        if (zone_id_repr not in get_args(ZoneIdRepresentationType)):
             raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
         if (len(cellIds) == 0):
             return []

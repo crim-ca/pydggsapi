@@ -15,7 +15,7 @@ from pygeofilter.backends.sql import to_sql_where
 import duckdb
 import pandas as pd
 import numpy as np
-from typing import List
+from typing import List, Any
 import logging
 
 logger = logging.getLogger()
@@ -47,7 +47,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
                 raise Exception(f'{__name__} {k} filepath is missing')
             self.datasources[k] = ParquetDatasourceInfo(**v)
 
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
+    def get_data(self, zoneIds: List[Any], res: int, datasource_id: str,
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
                  exclude_properties: List[str] = None,
@@ -99,7 +99,6 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         except Exception as e:
             logger.error(f'{__name__} {datasource_id} query data error: {e}')
             raise Exception(f'{__name__} {datasource_id} query data error: {e}')
-
         # empty result can be skipped entirely
         if result_df.size == 0:
             return result
