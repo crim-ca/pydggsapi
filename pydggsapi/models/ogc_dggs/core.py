@@ -89,6 +89,9 @@ def query_zone_info(
     collection: Dict[str, Collection],
     collection_provider: Dict[str, AbstractCollectionProvider],
 ) -> Optional[ZoneInfoResponse]:
+    # Import here due to import looping, uses for zone id representation conversion
+    from pydggsapi.routers.dggs_api import dggrs_providers as global_dggrs_providers
+
     logger.debug(f'{__name__} query zone info {zoneinfoReq.dggrsId}, zone id: {zoneinfoReq.zoneId}')
     zoneId = [zoneinfoReq.zoneId]
     zonelevel = dggrs_provider.get_cells_zone_level(zoneId)[0]
@@ -101,16 +104,20 @@ def query_zone_info(
         if (v.collection_provider.dggrsId != dggs_info.id and
                 v.collection_provider.dggrsId not in dggrs_provider.dggrs_conversion):
             continue
+        # if the request dggrs support conversion to the collection's dggrs
         if (v.collection_provider.dggrsId != dggs_info.id and
                 v.collection_provider.dggrsId in dggrs_provider.dggrs_conversion):
             converted_zones = dggrs_provider.convert([zoneinfoReq.zoneId], v.collection_provider.dggrsId,
                                                      v.collection_provider.dggrs_zoneid_repr)
+            # the zoneId and zonelevel is converted to the collection's native dggrs
             zoneId = converted_zones.target_zoneIds
             zonelevel = converted_zones.target_res[0]
-        else:
-            if (v.collection_provider.dggrs_zoneid_repr != 'textual'):
-                zoneId = dggrs_provider.zone_id_from_textual(zoneId, v.collection_provider.dggrs_zoneid_repr)
-        data = cp.get_data(zoneId, zonelevel, datasource_id)
+        # At the point, the zoneId may be converted to the collection's native dggrs
+        if (v.collection_provider.dggrs_zoneid_repr != 'textual'):
+            tmp_dggrs_provider = global_dggrs_providers[v.collection_provider.dggrsId]
+            zoneId = tmp_dggrs_provider.zone_id_from_textual(zoneId, v.collection_provider.dggrs_zoneid_repr)
+        data = cp.get_data(zoneId, zonelevel, datasource_id, input_zoneIds_padding=False)
+        print(f'{k} {len(data.zoneIds)}')
         filter_ += len(data.zoneIds)
     zoneId = zoneinfoReq.zoneId  # reset the zoneId to original one as string
     if (filter_ > 0):

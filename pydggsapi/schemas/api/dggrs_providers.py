@@ -1,9 +1,11 @@
 from __future__ import annotations
 from pydantic import BaseModel, model_validator
-from typing import List, Any, Dict, Union
+from typing import List, Any, Dict, Union, Literal
 from typing_extensions import Self
 
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
+
+ZoneIdRepresentationType = Literal['textual', 'int', 'hexstring']
 
 
 class DGGRSProviderZoneInfoReturn(BaseModel):

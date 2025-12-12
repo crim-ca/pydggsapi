@@ -52,7 +52,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
                 converted_zones = dggrs_provider.zone_id_from_textual(converted_zones, zone_id_repr)
         try:
             filtered_zoneIds = collection_provider[cp_id].get_data(converted_zones, converted_level,
-                                                                   datasource_id, cql_filter, include_datetime).zoneIds
+                                                                   datasource_id, cql_filter, include_datetime, input_zoneIds_padding=False).zoneIds
         except DatetimeNotDefinedError:
             filtered_zoneIds = []
             pass
@@ -62,7 +62,7 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
             filter_ += np.array(converted.zoneIds)[np.isin(converted.target_zoneIds, filtered_zoneIds)].tolist()
         else:
             if (zone_id_repr != 'textual'):
-                filtered_zoneIds = dggrs_provider.zone_id_to_textual(filtered_zoneIds, zone_id_repr)
+                filtered_zoneIds = dggrs_provider.zone_id_to_textual(filtered_zoneIds, zone_id_repr, zone_level)
             filter_ += filtered_zoneIds
     if (skipped == len(collection)):
         raise ValueError(f"{__name__} query zones list cql attributes({cql_attributes}) not found in all collections.")

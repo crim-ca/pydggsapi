@@ -3,17 +3,16 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from pydggsapi.schemas.api.dggrs_providers import (
+    ZoneIdRepresentationType,
     DGGRSProviderZonesElement,
     DGGRSProviderZoneInfoReturn,
     DGGRSProviderZonesListReturn,
-    DGGRSProviderGetRelativeZoneLevelsReturn
+    DGGRSProviderGetRelativeZoneLevelsReturn,
+    DGGRSProviderConversionReturn
 )
-from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZoneGeometryType
 from pydantic import BaseModel
 from shapely.geometry import box
-
-ZoneIdRepresentationType = Literal['textual', 'int', 'hexstring']
 
 
 class conversion_properties(BaseModel):
@@ -29,7 +28,7 @@ class AbstractDGGRSProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: ZoneIdRepresentationType) -> List[str]:
+    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: ZoneIdRepresentationType, refinement_level=None) -> List[str]:
         raise NotImplementedError
 
     @abstractmethod
