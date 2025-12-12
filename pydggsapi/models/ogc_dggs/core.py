@@ -116,7 +116,7 @@ def query_zone_info(
         if (v.collection_provider.dggrs_zoneid_repr != 'textual'):
             tmp_dggrs_provider = global_dggrs_providers[v.collection_provider.dggrsId]
             zoneId = tmp_dggrs_provider.zone_id_from_textual(zoneId, v.collection_provider.dggrs_zoneid_repr)
-        data = cp.get_data(zoneId, zonelevel, datasource_id, padding=False)
+        data = cp.get_data(zoneId, zonelevel, datasource_id, input_zoneIds_padding=False)
         print(f'{k} {len(data.zoneIds)}')
         filter_ += len(data.zoneIds)
     zoneId = zoneinfoReq.zoneId  # reset the zoneId to original one as string

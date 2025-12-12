@@ -48,7 +48,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
                  exclude_properties: List[str] = None,
-                 padding: bool = True) -> CollectionProviderGetDataReturn:
+                 input_zoneIds_padding: bool = True) -> CollectionProviderGetDataReturn:
         datatree = None
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
@@ -130,7 +130,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         grid = pd.MultiIndex.from_product(grid_indexs_value, names=grid_cols).to_frame(index=False)
         # flatten the zarr dataset to pandas dataframe and apply paddding
         zarr_result = zarr_result.to_dataframe().reset_index()
-        if (padding):
+        if (input_zoneIds_padding):
             zarr_result = pd.merge(grid, zarr_result, how='left', on=grid_cols)
         zone_dates = zarr_result[datasource.datetime_col].values.astype(str).tolist() if (datasource.datetime_col) else None
         zoneIds = zarr_result[id_col].tolist()

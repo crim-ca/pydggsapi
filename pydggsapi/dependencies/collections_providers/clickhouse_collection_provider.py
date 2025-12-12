@@ -52,7 +52,7 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
                  exclude_properties: List[str] = None,
-                 padding: bool = True) -> CollectionProviderGetDataReturn:
+                 input_zoneIds_padding: bool = True) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]

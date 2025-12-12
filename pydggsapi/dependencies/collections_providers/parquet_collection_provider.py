@@ -51,7 +51,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
                  exclude_properties: List[str] = None,
-                 padding: bool = True) -> CollectionProviderGetDataReturn:
+                 input_zoneIds_padding: bool = True) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]
@@ -133,7 +133,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
 
         # when no datetime requested, missing zones must still be padded for partial match
         # (notably for zone-depth requests)
-        elif (padding):
+        elif (input_zoneIds_padding):
             grid = pd.DataFrame({datasource.id_col: zoneIds})
             result_df = pd.merge(grid, result_df, how='left', on=datasource.id_col)
 

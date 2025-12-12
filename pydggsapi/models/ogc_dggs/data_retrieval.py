@@ -222,7 +222,9 @@ def query_zone_data(
             diff = set(list(d.index)) - set(list(values.keys()))
             values.update({c: [] for c in diff})
             sub_zones_count = len(set(zoneIds))
-            data_dims = {dim.name: dim.grid.cellsCount for dim in zone_level_dims[z]}
+            # data_dims is responsible for the dimension of dggs json return
+            data_dims = {dim.name: dim.grid.cellsCount for dim in zone_level_dims[z]} if (len(zone_level_dims.keys()) > 0) else {}
+            # coords is responsible for the coordinates of zarr return
             coords = {"zoneId": np.unique(zoneIds), "datetime": zone_datetimes} if (zone_datetimes is not None) else {"zoneId": zoneIds}
             for i, column in enumerate(d.index):
                 if (datatree is not None):
@@ -232,6 +234,7 @@ def query_zone_data(
                     else:
                         zone_ds = datatree[f"zone_level_{z}"].to_dataset()
                     # FIXME: if 'data_dims' exist, need to create dimension arrays...
+                    # The dimension is handled by the variable coords for zarr return
                     export_data = v[i, :]
                     export_data[pd.isna(export_data)] = nodata_mapping[column]
                     export_data = export_data.astype(data_type[column].lower())

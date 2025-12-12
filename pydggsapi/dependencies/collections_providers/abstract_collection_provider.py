@@ -37,7 +37,7 @@ class AbstractCollectionProvider(ABC):
         include_datetime: bool = False,
         include_properties: List[str] = None,
         exclude_properties: List[str] = None,
-        padding: bool = True
+        input_zoneIds_padding: bool = True
     ) -> CollectionProviderGetDataReturn:
         raise NotImplementedError
 
