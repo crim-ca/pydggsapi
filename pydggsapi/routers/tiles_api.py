@@ -75,7 +75,8 @@ async def query_mvt_tiles(req: Request, tilesreq: TilesRequest = Depends(),
     if (collection.collection_provider.dggrs_zoneid_repr != "textual"):
         zoneslist.zones = dggrs_provider.zone_id_from_textual(zoneslist.zones, collection.collection_provider.dggrs_zoneid_repr)
     zoneslist = gpd.GeoDataFrame({'zone_id': zoneslist.zones}, geometry=geometry).set_index('zone_id')
-    zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level, collection.collection_provider.datasource_id, padding=False)
+    zones_data = collection_provider.get_data(zoneslist.index.to_list(), zone_level,
+                                              collection.collection_provider.datasource_id, input_zoneIds_padding=False)
     if (len(zones_data.zoneIds) == 0):
         content = mapbox_vector_tile.encode({"name": tilesreq.collectionId, "features": []},
                                             quantize_bounds=bbox,
