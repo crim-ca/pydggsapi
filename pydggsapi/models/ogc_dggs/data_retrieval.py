@@ -53,9 +53,11 @@ def query_zone_data(
     # skip it, add it manually
     if (base_level == relative_levels[0]):
         result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels[1:], returngeometry)
-        parent = dggrs_provider.zonesinfo([zoneId])
-        g = parent.geometry[0] if (returngeometry == 'zone-region') else parent.centroids[0]
-        result.relative_zonelevels[base_level] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': [g]})
+        parent_geometry = None
+        if (returngeometry is not None):
+            parent = dggrs_provider.zonesinfo([zoneId])
+            parent_geometry = [parent.geometry[0]] if (returngeometry == 'zone-region') else [parent.centroids[0]]
+        result.relative_zonelevels[base_level] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': parent_geometry})
     else:
         result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels, returngeometry)
     # get data and form a master dataframe (selected providers) for each zone level
@@ -91,7 +93,7 @@ def query_zone_data(
 
         # get data for all relative_levels for the currnet datasource
         for z, v in result.relative_zonelevels.items():
-            g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
+            g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry] if (returngeometry is not None) else None
             converted_z = z
             if (convert):
                 # convert the source dggrs ID to the datasource dggrs zoneID.
@@ -155,15 +157,19 @@ def query_zone_data(
                     # we have to follow the original index from master, instead of index from the current dataset
                     original_index = master.index.name
                     master.reset_index(inplace=True)
-                    tmp_geo = master.groupby('vid')['geometry'].last()
-                    master.drop(columns=['zoneId', 'geometry'], inplace=True)
+                    if (returngeometry is not None):
+                        tmp_geo = master.groupby('vid')['geometry'].last()
+                        master.drop(columns=['geometry'], inplace=True)
+                    master.drop(columns=['zoneId'], inplace=True)
                     master = master.groupby('vid').agg(lambda x: mode(x)[0])
-                    master = master.join(tmp_geo).reset_index().rename(columns={'vid': 'zoneId'})
+                    if (returngeometry is not None):
+                        master = master.join(tmp_geo)
+                    master = master.reset_index().rename(columns={'vid': 'zoneId'})
                     master.set_index(original_index, inplace=True)
-                master = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry'])
+                # master = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry'])
                 try:
                     data[z] = data[z].merge(master, how='outer', suffixes=[None, cid], left_index=True, right_index=True)
-                    data[z] = data[z].drop(columns=[f'geometry{cid}'], errors='ignore')
+                    data[z] = data[z].drop(columns=[f'geometry{cid}'], errors='ignore') if (returngeometry is not None) else data[z]
                 except KeyError:
                     data[z] = master
     if not data:

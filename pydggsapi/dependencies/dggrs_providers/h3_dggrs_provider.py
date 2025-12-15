@@ -106,13 +106,15 @@ class H3Provider(AbstractDGGRSProvider):
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
                                 geometry="zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
         children = {}
-        geometry = geometry.lower()
+        geometry = geometry.lower() if (geometry is not None) else geometry
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:
             for z in zone_levels:
                 children_ids = h3.cell_to_children(cellId, z)
-                children_geometry = [self._cell_to_shapely(id_, geometry) for id_ in children_ids]
-                children_geometry = [geojson(**shapely.geometry.mapping(g)) for g in children_geometry]
+                children_geometry = None
+                if (geometry is not None):
+                    children_geometry = [self._cell_to_shapely(id_, geometry) for id_ in children_ids]
+                    children_geometry = [geojson(**shapely.geometry.mapping(g)) for g in children_geometry]
                 children[z] = DGGRSProviderZonesElement(**{'zoneIds': children_ids,
                                                            'geometry': children_geometry})
         except Exception as e:

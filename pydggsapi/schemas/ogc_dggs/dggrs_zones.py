@@ -1,7 +1,7 @@
 from __future__ import annotations
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature, ReturnGeometryTypes
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescriptionRequest
-from typing import Annotated, List, Optional, Union, Tuple, Literal
+from typing import Annotated, List, Optional, Union, Tuple, Literal, get_args
 from fastapi import Depends, Query
 from fastapi.exceptions import HTTPException
 
@@ -19,7 +19,6 @@ zone_query_support_formats = {
     'geo+json': 'application/geo+json',
 }
 zone_query_support_formats.update({typ: typ for typ in zone_query_support_returntype})
-zone_query_support_geometry = ['zone-centroid', 'zone-region']
 zone_datetime_placeholder = '_pydggs_datetime'
 
 
@@ -96,7 +95,7 @@ class ZonesRequest(BaseModel):
     limit: Optional[int] = Query(default=1000)
     bbox_crs: Optional[str] = Query(default=None,alias="bbox-crs")
     bbox: Optional[str] = Query(default=None)
-    geometry: Optional[Literal['zone-centroid', 'zone-region']] = Query(default=None)
+    geometry: Optional[ReturnGeometryTypes] = Query(default=None)
     filter: Optional[str] = Query(default=None)
     datetime: Optional[str] = Query(default=None)
 
@@ -110,9 +109,6 @@ class ZonesRequest(BaseModel):
                 raise HTTPException(status_code=400, detail='bbox length is not equal to 4')
             if (self.zone_level is None):
                 raise HTTPException(status_code=400, detail='zone-level must be specified')
-        if (self.geometry is not None):
-            if (self.geometry not in zone_query_support_geometry):
-                raise HTTPException(status_code=400, detail=f"{self.geometry} is not supported")
         # If the request includes the datetime query, it will be concatenated to the CQL filter
         # using the attribute name from zone_datetime_placeholder.
         self.datetime, self.filter = datetime_cql_validation(self.datetime, self.filter)

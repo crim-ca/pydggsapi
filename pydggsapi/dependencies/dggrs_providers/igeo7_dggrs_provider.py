@@ -227,7 +227,7 @@ class IGEO7Provider(AbstractDGGRSProvider):
 
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
         children = {}
-        geometry = geometry.lower()
+        geometry = geometry.lower() if (geometry is not None) else geometry
         method = self.hexagon_from_cellid if (geometry == 'zone-region') else self.centroid_from_cellid
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:
