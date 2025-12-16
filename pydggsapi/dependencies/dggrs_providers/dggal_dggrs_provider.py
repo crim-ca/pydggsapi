@@ -10,13 +10,13 @@ from pydggsapi.schemas.api.dggrs_providers import (
     DGGRSProviderConversionReturn,
     DGGRSProviderZonesElement,
 )
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZoneGeometryType
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ReturnGeometryTypes
 
 import shapely
 import logging
 from dggal import Application, pydggal_setup, CRS, ogc, epsg, GeoExtent, Array, GeoPoint
 from dggal import IVEA7H, ISEA7H_Z7, rHEALPix, HEALPix
-from typing import Any, List, Union, get_args
+from typing import Any, List, Union, Optional, get_args
 
 logger = logging.getLogger()
 supported_grids = {'IVEA7H': IVEA7H,
@@ -118,17 +118,17 @@ class DGGALProvider(AbstractDGGRSProvider):
         return [self.mygrid.getZoneLevel(cellId)]
 
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
-                                geometry: ZoneGeometryType = 'zone-region') -> DGGRSProviderGetRelativeZoneLevelsReturn:
+                                geometry: Optional[ReturnGeometryTypes] = 'zone-region') -> DGGRSProviderGetRelativeZoneLevelsReturn:
         children = {}
-        geometry = geometry.lower()
-        #geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
+        geometry = geometry.lower() if (geometry is not None) else geometry
         cellId = self.mygrid.getZoneFromTextID(cellId)
         for z in zone_levels:
             subzoneIds = self.mygrid.getSubZones(cellId, (z - base_level))
-            subzones_geometry = [generateZoneGeometry(self.mygrid, cellId, None, False if (geometry == 'zone-region') else True)
-                               for cellId in subzoneIds]
+            subzones_geometry = None
+            if (geometry is not None):
+                subzones_geometry = [generateZoneGeometry(self.mygrid, cellId, None, False if (geometry == 'zone-region') else True)
+                                     for cellId in subzoneIds]
             subzoneIds = [self.mygrid.getZoneTextID(id_) for id_ in subzoneIds]
-            #subzones_geometry = [geojson(**shapely.geometry.mapping(g)) for g in subzones_geometry]
             children[z] = DGGRSProviderZonesElement(**{'zoneIds': subzoneIds,
                                                        'geometry': subzones_geometry})
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
@@ -153,7 +153,7 @@ class DGGALProvider(AbstractDGGRSProvider):
                                               'areaMetersSquare': self.mygrid.getRefZoneArea(zone_level)})
 
     def zoneslist(self, bbox: Union[shapely.box, None], zone_level: int, parent_zone: Union[str, int, None],
-                  returngeometry: ZoneGeometryType, compact: bool = True) -> List[str]:
+                  returngeometry: ReturnGeometryTypes, compact: bool = True) -> List[str]:
         if (bbox is not None):
             try:
                 bbox = shapely.bounds(bbox)

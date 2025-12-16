@@ -13,7 +13,7 @@ from pydggsapi.schemas.api.dggrs_providers import (
     DGGRSProviderGetRelativeZoneLevelsReturn,
     DGGRSProviderZonesElement,
 )
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, ReturnGeometryTypes
 
 import os
 import tempfile
@@ -21,7 +21,7 @@ import logging
 import shapely
 import numpy as np
 import decimal
-from typing import Any, Union, List, Final, get_args
+from typing import Any, Union, List, Final, Optional, get_args
 from dggrid4py import DGGRIDv8
 from dggrid4py.igeo7 import get_z7string_resolution, z7hex_to_z7string
 from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
@@ -225,9 +225,10 @@ class IGEO7Provider(AbstractDGGRSProvider):
             logger.error(f'{__name__} zone id {cellIds} dggrid get zone level failed : {e}')
             raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed')
 
-    def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
+    def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
+                                geometry: Optional[ReturnGeometryTypes] = 'zone-region'):
         children = {}
-        geometry = geometry.lower()
+        geometry = geometry.lower() if (geometry is not None) else geometry
         method = self.hexagon_from_cellid if (geometry == 'zone-region') else self.centroid_from_cellid
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:

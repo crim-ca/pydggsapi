@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import Annotated, Any, Dict, Optional, Union, List
+from typing import Annotated, Any, Dict, Optional, Union, List, Literal
 from pydantic import AnyUrl, BaseModel, Field, RootModel
 
 from pydggsapi.schemas.common_basemodel import CommonBaseModel, OmitIfNone
 from pydggsapi.schemas.common_geojson import GeoJSONPoint, GeoJSONPolygon
 from fastapi import Query
 
+ReturnGeometryTypes = Literal['zone-centroid', 'zone-region']
 
 class Link(CommonBaseModel):
     href: str = Field(

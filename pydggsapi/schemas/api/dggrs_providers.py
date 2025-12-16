@@ -11,8 +11,8 @@ ZoneIdRepresentationType = Literal['textual', 'int', 'hexstring']
 class DGGRSProviderZoneInfoReturn(BaseModel):
     zone_level: int
     shapeType: str
-    centroids: List[GeoJSONPoint]
-    geometry: List[GeoJSONPolygon]
+    centroids: List[GeoJSONPoint] | None
+    geometry: List[GeoJSONPolygon] | None
     bbox: List[List[float]]
     areaMetersSquare: float
 
@@ -25,12 +25,13 @@ class DGGRSProviderZonesListReturn(BaseModel):
 
 class DGGRSProviderZonesElement(BaseModel):
     zoneIds: List[Any]
-    geometry: List[GeoJSONPolygon] | List[GeoJSONPoint]
+    geometry: List[GeoJSONPolygon] | List[GeoJSONPoint] | None
 
     @model_validator(mode='after')
     def validator(self) -> Self:
-        if (len(self.zoneIds) != len(self.geometry)):
-            raise ValueError('length of zoneIds and geometry must equal.')
+        if (self.geometry is not None):
+            if (len(self.zoneIds) != len(self.geometry)):
+                raise ValueError('length of zoneIds and geometry must equal.')
         return self
 
 
