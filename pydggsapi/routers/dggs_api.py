@@ -490,7 +490,7 @@ async def dggrs_zones_data(
     zoneId = zonedataReq.zoneId
     depth = zonedataQuery.zone_depth if (zonedataQuery.zone_depth is not None) else [dggrs_description.defaultDepth]
     returngeometry = zonedataQuery.geometry if (zonedataQuery.geometry is not None) else 'zone-region'
-    returngeometry = None if (returntype == 'application/json') else returngeometry
+    returngeometry = None if (returntype != 'application/geo+json') else returngeometry
     filter = zonedataQuery.filter
     include_datetime = True if (zonedataQuery.datetime is not None) else False
     include_properties = zonedataQuery.properties

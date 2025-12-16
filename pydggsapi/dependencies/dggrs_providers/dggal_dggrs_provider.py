@@ -16,7 +16,7 @@ import shapely
 import logging
 from dggal import Application, pydggal_setup, CRS, ogc, epsg, GeoExtent, Array, GeoPoint
 from dggal import IVEA7H, ISEA7H_Z7, rHEALPix, HEALPix
-from typing import Any, List, Union, get_args
+from typing import Any, List, Union, Optional, get_args
 
 logger = logging.getLogger()
 supported_grids = {'IVEA7H': IVEA7H,
@@ -118,7 +118,7 @@ class DGGALProvider(AbstractDGGRSProvider):
         return [self.mygrid.getZoneLevel(cellId)]
 
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
-                                geometry: ReturnGeometryTypes = 'zone-region') -> DGGRSProviderGetRelativeZoneLevelsReturn:
+                                geometry: Optional[ReturnGeometryTypes] = 'zone-region') -> DGGRSProviderGetRelativeZoneLevelsReturn:
         children = {}
         geometry = geometry.lower() if (geometry is not None) else geometry
         cellId = self.mygrid.getZoneFromTextID(cellId)

@@ -6,9 +6,10 @@ from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import Abstr
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn, DGGRSProviderGetRelativeZoneLevelsReturn, DGGRSProviderZonesElement
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ReturnGeometryTypes
 
 import logging
-from typing import Union, List, Any
+from typing import Union, List, Any, Optional
 import time
 import shapely
 import h3
@@ -104,7 +105,7 @@ class H3Provider(AbstractDGGRSProvider):
             raise Exception(f'{__name__} zone id {cellIds} failed: {e}')
 
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
-                                geometry="zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
+                                geometry: Optional[ReturnGeometryTypes] = "zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
         children = {}
         geometry = geometry.lower() if (geometry is not None) else geometry
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
@@ -124,7 +125,7 @@ class H3Provider(AbstractDGGRSProvider):
         return DGGRSProviderGetRelativeZoneLevelsReturn(relative_zonelevels=children)
 
     def zoneslist(self, bbox: Union[box, None], zone_level: int, parent_zone: Union[str, int, None],
-                  returngeometry: str, compact=True) -> DGGRSProviderZonesListReturn:
+                  returngeometry: ReturnGeometryTypes, compact=True) -> DGGRSProviderZonesListReturn:
         if (bbox is not None):
             try:
                 zoneIds = h3.h3shape_to_cells_experimental(h3.geo_to_h3shape(bbox), zone_level, contain='overlap')
