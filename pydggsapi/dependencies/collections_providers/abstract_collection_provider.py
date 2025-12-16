@@ -46,7 +46,7 @@ class AbstractQuantizer(ABC, Generic[QuantizerDataType]):
         raise NotImplementedError
 
 
-class AbstractCollectionProvider(ABC, AbstractQuantizer):
+class AbstractCollectionProvider(AbstractQuantizer, ABC):
     datasources: Dict[str, AbstractDatasourceInfo]
 
     # 1. The return data must be aggregated.
