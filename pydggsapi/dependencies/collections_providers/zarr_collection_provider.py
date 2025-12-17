@@ -38,7 +38,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         try:
             for k, v in datasources.items():
                 datasource = ZarrDatasourceInfo(**v)
-                datasource.filehandle = xr.open_datatree(datasource.filepath, engine="zarr")
+                datasource.filehandle = xr.open_datatree(datasource.filepath, engine="zarr", chunks="auto")
                 self.datasources[k] = datasource
         except Exception as e:
             logger.error(f'{__name__} create datasource failed: {e}')
