@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && cd ${APP_DIR} \
     && pip install --no-cache-dir poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --no-root --no-directory --no-cache -v \
+    && poetry install --no-root --no-directory --no-cache --only main -v \
     # cleanup
     && rm -fr ~/.cache/ \
     && apt-get remove -y \
