@@ -14,6 +14,8 @@ import xarray as xr
 import xarray_sql as xql
 import numpy as np
 import pandas as pd
+from datetime import datetime
+from copy import deepcopy
 from typing import List, Any
 from dataclasses import dataclass
 import logging
@@ -48,11 +50,14 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
                  exclude_properties: List[str] = None,
-                 input_zoneIds_padding: bool = True) -> CollectionProviderGetDataReturn:
-        datatree = None
+                 input_zoneIds_padding: bool = True,
+                 collection_timestamp: datetime = None) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
+        # For non-temporal datasources with the collection_timestamp is set
+        # The datetime_col is set to `collection_timestamp` to indicate the datetime is comming from collection
+        # So create a copy of the DatasourceInfo obj to avoid persistent changes to the object's attribute.
         try:
-            datasource = self.datasources[datasource_id]
+            datasource = deepcopy(self.datasources[datasource_id])
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found')
             raise ValueError(f'{__name__} {datasource_id} not found')
@@ -61,8 +66,13 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         except KeyError as e:
             logger.error(f'{__name__} get zone_grp for resolution {res} failed: {e}')
             return result
+        ds = datasource.filehandle[zone_grp].to_dataset().chunk('auto')
+        # create the temporal dim for non-temporal datasource if collection_timestamp is set
+        if (datasource.datetime_col is None and collection_timestamp is not None):
+            datasource.datetime_col = "collection_timestamp"
+            ds = ds.expand_dims(datasource.datetime_col)
+            ds = ds.assign_coords({datasource.datetime_col: [collection_timestamp]})
         id_col = datasource.id_col if (datasource.id_col != "") else zone_grp
-        datatree = datasource.filehandle[zone_grp]
         # in future, we may consider using xdggs-dggrid4py
         try:
             if (cql_filter is not None):
@@ -74,7 +84,6 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                     fieldmapping.update({zone_datetime_placeholder: datasource.datetime_col})
                 cql_sql = to_sql_where(cql_filter, fieldmapping)
                 ctx = xql.XarrayContext()
-                ds = datatree.to_dataset().chunk('auto')
                 ctx.from_dataset('ds', ds)
                 if ("*" in datasource.data_cols):
                     incl = ",".join(include_properties) if include_properties else "*"
@@ -91,11 +100,11 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                 sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({cql_sql}) """
                 zarr_result = xr.Dataset.from_dataframe(ctx.sql(sql).to_pandas().set_index(id_col))
             else:
-                cols = set(datatree.data_vars) if ("*" in datasource.data_cols) else set(datasource.data_cols)
+                cols = set(ds.data_vars) if ("*" in datasource.data_cols) else set(datasource.data_cols)
                 cols = list(cols - set(datasource.exclude_data_cols))
-                idx_mask = datatree[id_col].isin(np.array(zoneIds, dtype=datatree[id_col].dtype))
-                zarr_result = datatree.sel({id_col: idx_mask})
-                zarr_result = zarr_result.to_dataset()[cols]
+                idx_mask = ds[id_col].isin(np.array(zoneIds, dtype=ds[id_col].dtype))
+                zarr_result = ds.sel({id_col: idx_mask})
+                zarr_result = zarr_result[cols]
         except Exception as e:
             # Zarr will raise exception if nothing matched
             logger.error(f'{__name__} {datasource_id} sel failed: {e}')

@@ -35,6 +35,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones import (
     ZonesGeoJson,
     zone_query_support_formats,
     zone_query_support_returntype,
+    zone_datetime_placeholder
 )
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import LandingPageResponse, Link
 from pydggsapi.schemas.ogc_collections.collections import CollectionDesc as ogc_CollectionDesc
@@ -53,6 +54,7 @@ from pydggsapi.dependencies.api.dggrs import get_dggrs_descriptions, get_dggrs_c
 
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider
+from pydggsapi.dependencies.api.utils import getCQLAttributes
 
 logger = logging.getLogger()
 router = APIRouter()
@@ -419,6 +421,8 @@ async def list_dggrs_zones(
     bbox = zonesReq.bbox
     include_datetime = True if (zonesReq.datetime is not None) else False
     filter = zonesReq.filter
+    cql_attributes = set() if (filter is None) else getCQLAttributes(filter)
+    skip_temporal_collection = True if (zone_datetime_placeholder not in cql_attributes) else False
     # Parameters checking
     if (parent_zone is not None):
         parent_level = dggrs_provider.get_cells_zone_level([parent_zone])[0]
@@ -442,6 +446,16 @@ async def list_dggrs_zones(
             max_ = v.collection_provider.max_refinement_level + dggrs_provider.dggrs_conversion[v.collection_provider.dggrsId].zonelevel_offset
         if (zone_level < min_ or zone_level > max_):
             logger.warning(f'{__name__} query zones list, zone level {zone_level} is not within the {k} refinement level: {min_} {max_}')
+            skip_collection.append(k)
+        cp = collection_provider[v.collection_provider.providerId]
+        # if the collection consists of datetime_col or timeStamp, then it is a temporal collection
+        temporalcollection = (cp.datasources[v.collection_provider.datasource_id].datetime_col is not None or v.timestamp is not None)
+        # skip collection according to if datetime filter exists
+        if (skip_temporal_collection and temporalcollection):
+            # skip temporal collections
+            skip_collection.append(k)
+        if (not skip_temporal_collection and not temporalcollection):
+            # skip non-temporal collections
             skip_collection.append(k)
 
     if (len(collection) == len(skip_collection)):
