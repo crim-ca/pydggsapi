@@ -3,6 +3,7 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
     AbstractDatasourceInfo,
     DatetimeNotDefinedError
 )
+from pydggsapi.schemas.api.collections import collection_timestamp_placeholder
 from pydggsapi.schemas.api.collection_providers import CollectionProviderGetDataReturn, CollectionProviderGetDataDictReturn
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Dimension, DimensionGrid
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
@@ -57,7 +58,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         # The datetime_col is set to `collection_timestamp` to indicate the datetime is comming from collection
         # So create a copy of the DatasourceInfo obj to avoid persistent changes to the object's attribute.
         try:
-            datasource = deepcopy(self.datasources[datasource_id])
+            datasource = self.datasources[datasource_id]
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found')
             raise ValueError(f'{__name__} {datasource_id} not found')
@@ -67,21 +68,22 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} get zone_grp for resolution {res} failed: {e}')
             return result
         ds = datasource.filehandle[zone_grp].to_dataset().chunk('auto')
+        datetime_col = datasource.datetime_col
         # create the temporal dim for non-temporal datasource if collection_timestamp is set
-        if (datasource.datetime_col is None and collection_timestamp is not None):
-            datasource.datetime_col = "collection_timestamp"
-            ds = ds.expand_dims(datasource.datetime_col)
-            ds = ds.assign_coords({datasource.datetime_col: [collection_timestamp]})
+        if (datetime_col is None and collection_timestamp is not None):
+            datetime_col = collection_timestamp_placeholder
+            ds = ds.expand_dims(datetime_col)
+            ds = ds.assign_coords({datetime_col: [collection_timestamp]})
         id_col = datasource.id_col if (datasource.id_col != "") else zone_grp
         # in future, we may consider using xdggs-dggrid4py
         try:
             if (cql_filter is not None):
                 fieldmapping = self.get_datadictionary(datasource_id).data
                 fieldmapping = {k: k for k, v in fieldmapping.items()}
-                if (include_datetime and datasource.datetime_col is None):
+                if (include_datetime and datetime_col is None):
                     raise DatetimeNotDefinedError(f"{__name__} filter by datetime is not supported: datetime_col is none")
                 if (include_datetime):
-                    fieldmapping.update({zone_datetime_placeholder: datasource.datetime_col})
+                    fieldmapping.update({zone_datetime_placeholder: datetime_col})
                 cql_sql = to_sql_where(cql_filter, fieldmapping)
                 ctx = xql.XarrayContext()
                 ctx.from_dataset('ds', ds)
@@ -118,10 +120,10 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         grid_cols = [id_col]
         cols_meta = {k: v.name for k, v in dict(zarr_result.data_vars.dtypes).items()}
         # follows the datetime handling from parquet provider.
-        if (datasource.datetime_col):
-            cols_meta.pop(datasource.datetime_col, None)
-            if (datasource.datetime_col not in list(zarr_result.coords.keys())):
-                zarr_result = zarr_result.assign_coords({datasource.datetime_col: zarr_result[datasource.datetime_col]})
+        if (datetime_col):
+            cols_meta.pop(datetime_col, None)
+            if (datetime_col not in list(zarr_result.coords.keys())):
+                zarr_result = zarr_result.assign_coords({datetime_col: zarr_result[datetime_col]})
         # Create the Dimension retrun from coordinates
         for dim_name, dim_value in zarr_result.coords.items():
             if (dim_name != id_col):
@@ -141,7 +143,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         zarr_result = zarr_result.to_dataframe().reset_index()
         if (input_zoneIds_padding):
             zarr_result = pd.merge(grid, zarr_result, how='left', on=grid_cols)
-        zone_dates = zarr_result[datasource.datetime_col].values.astype(str).tolist() if (datasource.datetime_col) else None
+        zone_dates = zarr_result[datetime_col].values.astype(str).tolist() if (datetime_col) else None
         zoneIds = zarr_result[id_col].tolist()
         zarr_result = zarr_result.drop(grid_cols, axis=1)
         result.zoneIds, result.cols_meta, result.data = zoneIds, cols_meta, zarr_result.to_numpy().tolist()

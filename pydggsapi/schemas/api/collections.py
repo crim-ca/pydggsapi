@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, Annotated
 
+collection_timestamp_placeholder = "collection_timestamp"
 
 class Provider(BaseModel):
     providerId: str
