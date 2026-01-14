@@ -450,15 +450,13 @@ async def list_dggrs_zones(
         cp = collection_provider[v.collection_provider.providerId]
         # if the collection consists of datetime_col or timeStamp, then it is a temporal collection
         is_temporalcollection = (cp.datasources[v.collection_provider.datasource_id].datetime_col is not None or v.timestamp is not None)
-        # skip collection according to if datetime filter exists
         if (include_datetime and not is_temporalcollection):
-            # skip temporal collections
-            skip_collection.append(k)
-        if (not include_datetime and is_temporalcollection):
             # skip non-temporal collections
             skip_collection.append(k)
-    print(collection.keys())
-    print(skip_collection)
+        # For a non-temporal query, only filter out collections that have a native temporal dimension
+        if (not include_datetime and cp.datasources[v.collection_provider.datasource_id].datetime_col is not None):
+            # skip non-temporal collections
+            skip_collection.append(k)
     if (len(collection) == len(skip_collection)):
         raise HTTPException(status_code=400, detail=f"f'{__name__} query zones list, zone level {zone_level} is over refinement for all collections")
     filtered_collections = {k: v for k, v in collection.items() if (k not in skip_collection)}
@@ -539,9 +537,10 @@ async def dggrs_zones_data(
         cp = collection_provider[v.collection_provider.providerId]
         is_temporalcollection = (cp.datasources[v.collection_provider.datasource_id].datetime_col is not None or v.timestamp is not None)
         if (include_datetime and not is_temporalcollection):
-            # skip temporal collections
+            # skip non-temporal collections
             skip_collection.append(k)
-        if (not include_datetime and is_temporalcollection):
+        # For a non-temporal query, only filter out collections that have a native temporal dimension
+        if (not include_datetime and cp.datasources[v.collection_provider.datasource_id].datetime_col):
             # skip non-temporal collections
             skip_collection.append(k)
     if (len(collection) == len(skip_collection)):
@@ -549,9 +548,10 @@ async def dggrs_zones_data(
                             detail=f"f'{__name__} zone id {zoneId} with relative depth: {depth} is over refinement for all collections")
     filtered_collections = {k: v for k, v in collection.items() if (k not in skip_collection)}
     try:
-        result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
-                                 dggrs_provider, filtered_collections, collection_providers, returntype,
-                                 returngeometry, filter, include_datetime, include_properties, exclude_properties)
+        result = query_zone_data(zoneId=zoneId, base_level=base_level, relative_levels=relative_levels, dggrs_desc=dggrs_description,
+                                 dggrs_provider=dggrs_provider, collection=filtered_collections, collection_provider=collection_providers,
+                                 returntype=returntype, returngeometry=returngeometry, cql_filter=filter,
+                                 include_datetime=include_datetime, include_properties=include_properties, exclude_properties=exclude_properties)
         if (result is None):
             return Response(status_code=204)
         return result

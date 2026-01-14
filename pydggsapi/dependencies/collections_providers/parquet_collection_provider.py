@@ -66,14 +66,14 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         # The datetime_col is set to `collection_timestamp` to indicate the datetime is comming from collection
         datetime_col = datasource.datetime_col
         temporal_from_collection_timestamp = False
-        if (datetime_col is None and collection_timestamp is not None):
+        if (include_datetime and datetime_col is None and collection_timestamp is not None):
             datetime_col = collection_timestamp_placeholder
             temporal_from_collection_timestamp = True
         # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
         # inject the datetime to include_properties
-        if ((datetime_col is not None) and ("*" not in datasource.data_cols)):
+        if ((datetime_col is not None) and ("*" not in datasource.data_cols) and (not temporal_from_collection_timestamp)):
             if (include_properties is not None):
-                include_properties = list(set(datetime_col) | set(include_properties))
+                include_properties = set([datetime_col]) | set(include_properties)
             else:
                 include_properties = [datetime_col]
         if ("*" in datasource.data_cols):
@@ -83,9 +83,9 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
         else:
             incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
-            if include_properties:
+            if (include_properties):
                 incl &= set(include_properties)
-            if exclude_properties:
+            if (exclude_properties):
                 incl -= set(exclude_properties)
             cols = f"{','.join(incl)}, {datasource.id_col}"
         # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
@@ -96,7 +96,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         #   it must NOT be sorted, see Req 24-E (https://docs.ogc.org/DRAFTS/21-038r1.html#_req_data-json_content)
         sql = f"""select {cols} """
         if (temporal_from_collection_timestamp):
-            sql += f", '{collection_timestamp}'::DATE AS {datetime_col}"
+            sql += f""", '{collection_timestamp}'::DATE AS '{datetime_col}' """
         sql += f"""from read_parquet('{datasource.filepath}')
                   where {datasource.id_col} in (SELECT UNNEST(?))"""
         if (cql_filter is not None):

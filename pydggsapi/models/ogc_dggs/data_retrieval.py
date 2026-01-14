@@ -75,7 +75,6 @@ def query_zone_data(
         datasource_vars = list(cp.get_datadictionary(datasource_id).data.keys())
         intersection = (set(datasource_vars) & cql_attributes)
         zone_id_repr = c.collection_provider.dggrs_zoneid_repr
-        collection_timestamp = c.timestamp
         # check if the cql attributes contain inside the datasource columns
         # The datasource of the collection must consist all columns that match with the attributes of the cql filter
         if ((len(cql_attributes) > 0)):
@@ -119,8 +118,11 @@ def query_zone_data(
             if (converted_z >= cmin_rf):
                 try:
                     idx = tmp_dggrs_provider.zone_id_from_textual(idx, zone_id_repr) if (zone_id_repr != 'textual') else idx
-                    collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
-                                                    include_datetime, incl_props, excl_props, collection_timestamp)
+                    collection_result = cp.get_data(zoneIds=idx, res=converted_z, datasource_id=datasource_id, cql_filter=cql_filter,
+                                                    include_datetime=include_datetime,
+                                                    include_properties=incl_props,
+                                                    exclude_properties=excl_props,
+                                                    collection_timestamp=c.timestamp)
                     if (zone_id_repr != 'textual'):
                         collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr, converted_z)
                 except DatetimeNotDefinedError:
@@ -138,6 +140,8 @@ def query_zone_data(
                 nodata_mapping.update(collection_nodata)
                 data_type.update(cols_name)
                 id_ = np.array(collection_result.zoneIds).reshape(-1, 1)
+                # since different collections will have different datetime_col name, so it is need to convert
+                # all different datetime_col name into a standard `datetime` column name
                 index = ['zoneId', 'datetime'] if (collection_result.datetimes) else ['zoneId']
                 if (collection_result.datetimes):
                     dates = np.array(collection_result.datetimes).reshape(-1, 1)

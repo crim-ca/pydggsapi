@@ -12,6 +12,7 @@ from pygeofilter.backends.sql import to_sql_where
 from dataclasses import dataclass
 from clickhouse_driver import Client
 from typing import List
+from datetime import datetime
 import numpy as np
 import logging
 
@@ -52,7 +53,8 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
                  exclude_properties: List[str] = None,
-                 input_zoneIds_padding: bool = True) -> CollectionProviderGetDataReturn:
+                 input_zoneIds_padding: bool = True,
+                 collection_timestamp: datetime = None) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]
