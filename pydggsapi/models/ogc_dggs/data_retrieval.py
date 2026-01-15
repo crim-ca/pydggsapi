@@ -192,8 +192,9 @@ def query_zone_data(
         zone_level_dims_list = []
         for index_name in d.index.names:
             if (index_name != 'zoneId'):
-                dim_values = np.sort(np.unique(d.index.get_level_values(index_name).values.astype(str)))
-                zone_level_dims_list.append(Dimension(name=index_name, interval=[dim_values[0], dim_values[-1]],
+                dim_values = d.index.get_level_values(index_name).values.astype(str)
+                sorted_unique_dim_values = np.sort(np.unique(dim_values))
+                zone_level_dims_list.append(Dimension(name=index_name, interval=[sorted_unique_dim_values[0], sorted_unique_dim_values[-1]],
                                             grid=DimensionGrid(cellsCount=len(dim_values), coordinates=dim_values.tolist())))
                 zone_level_dims.update({z: zone_level_dims_list})
         if (returntype == 'application/geo+json'):
@@ -222,7 +223,7 @@ def query_zone_data(
             zoneIds = d.index.get_level_values('zoneId').astype(str).tolist()
             zone_datetimes = None
             if ("datetime" in d.index.names):
-                zone_datetimes = np.unique(d.index.get_level_values('datetime').values)
+                zone_datetimes = d.index.get_level_values('datetime').values
             d = d.T
             nan_mask = d.isna()
             v = d.values
