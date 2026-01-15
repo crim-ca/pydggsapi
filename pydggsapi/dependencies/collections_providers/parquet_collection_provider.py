@@ -62,15 +62,16 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found')
             raise Exception(f'{__name__} {datasource_id} not found')
-        # For non-temporal datasources with the collection_timestamp is set
-        # The datetime_col is set to `collection_timestamp` to indicate the datetime is comming from collection
         datetime_col = datasource.datetime_col
         temporal_from_collection_timestamp = False
+        # Set the `datetime_col` to the collection_timestamp for temporal query
+        # Using `temporal_from_collection_timestamp` to indicate the datetime is comming from collection
         if (include_datetime and datetime_col is None and collection_timestamp is not None):
             datetime_col = collection_timestamp_placeholder
             temporal_from_collection_timestamp = True
         # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
         # inject the datetime to include_properties
+        # caution: since the `collection_timestamp` column doesn't exist, it should not included in the column list.
         if ((datetime_col is not None) and ("*" not in datasource.data_cols) and (not temporal_from_collection_timestamp)):
             if (include_properties is not None):
                 include_properties = set([datetime_col]) | set(include_properties)

@@ -70,6 +70,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
         ds = datasource.filehandle[zone_grp].to_dataset().chunk('auto')
         datetime_col = datasource.datetime_col
         # create the temporal dim for non-temporal datasource if collection_timestamp is set
+        # only for temporal query (include_datetime == True)
         if (include_datetime and datetime_col is None and collection_timestamp is not None):
             datetime_col = collection_timestamp_placeholder
             ds = ds.expand_dims(datetime_col)
