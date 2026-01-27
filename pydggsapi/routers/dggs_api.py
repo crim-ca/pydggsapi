@@ -300,13 +300,13 @@ async def get_collection_queryables_request(
     collection: Dict[str, Collection] = Depends(_get_collection),
 ) -> Union[CollectionQueryables, JsonSchemaResponse]:
 
-    _, collection = collection.popitem()
+    _, collection = collection.copy().popitem()
     if (collection is None):
         # Error, should not be None, it should be handled by _get_collection
         raise HTTPException(status_code=404, detail=f'{__name__} collection is None')
 
     collection_provider = _get_collection_provider(collection.collection_provider.providerId)
-    _, collection_provider = collection_provider.popitem()
+    _, collection_provider = collection_provider.copy().popitem()
     if (collection_provider is None):
         # Error, should not be None, it should be handled by _get_collection_provider
         raise HTTPException(status_code=404, detail=f'{__name__} {collection.collection_provider.providerId} not found')
