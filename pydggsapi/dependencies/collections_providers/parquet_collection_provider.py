@@ -12,6 +12,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Dimension, DimensionGrid
 from dataclasses import dataclass
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sql import to_sql_where
+from ordered_set import OrderedSet
 import duckdb
 import pandas as pd
 import numpy as np
@@ -155,7 +156,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         if ("*" in datasource.data_cols):
             cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
         else:
-            cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+            cols_intersection = OrderedSet(datasource.data_cols) - OrderedSet(datasource.exclude_data_cols)
             cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
         sql = f"""select {cols} from read_parquet('{datasource.filepath}') limit 1"""
         try:

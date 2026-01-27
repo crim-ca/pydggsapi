@@ -9,7 +9,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sql import to_sql_where
-
+from ordered_set import OrderedSet
 import xarray as xr
 import xarray_sql as xql
 import numpy as np
@@ -82,7 +82,7 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                     excl.extend(exclude_properties or [])
                     cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
                 else:
-                    incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+                    incl = OrderedSet(datasource.data_cols) - OrderedSet(datasource.exclude_data_cols)
                     if include_properties:
                         incl &= set(include_properties)
                     if exclude_properties:
@@ -91,8 +91,8 @@ class ZarrCollectionProvider(AbstractCollectionProvider):
                 sql = f"""select {cols} from ds where ("{id_col}" in ({', '.join(f"'{z}'" for z in zoneIds)})) and ({cql_sql}) """
                 zarr_result = xr.Dataset.from_dataframe(ctx.sql(sql).to_pandas().set_index(id_col))
             else:
-                cols = set(datatree.data_vars) if ("*" in datasource.data_cols) else set(datasource.data_cols)
-                cols = list(cols - set(datasource.exclude_data_cols))
+                cols = OrderedSet(datatree.data_vars) if ("*" in datasource.data_cols) else OrderedSet(datasource.data_cols)
+                cols = list(cols - OrderedSet(datasource.exclude_data_cols))
                 idx_mask = datatree[id_col].isin(np.array(zoneIds, dtype=datatree[id_col].dtype))
                 zarr_result = datatree.sel({id_col: idx_mask})
                 zarr_result = zarr_result.to_dataset()[cols]

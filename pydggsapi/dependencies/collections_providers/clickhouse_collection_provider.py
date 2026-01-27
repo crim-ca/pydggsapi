@@ -9,6 +9,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder
 from pygeofilter.ast import AstType
 from pygeofilter.ast import Attribute as pygeofilter_ats
 from pygeofilter.backends.sql import to_sql_where
+from ordered_set import OrderedSet
 from dataclasses import dataclass
 from clickhouse_driver import Client
 from typing import List
@@ -64,7 +65,7 @@ class ClickhouseCollectionProvider(AbstractCollectionProvider):
         except KeyError as e:
             logger.error(f'{__name__} get zone_groups for resolution {res} failed: {e}')
             return result
-        incl_cols = datasource.data_cols
+        incl_cols = OrderedSet(datasource.data_cols)
         if include_properties:
             incl_cols &= set(include_properties)
         if exclude_properties:
