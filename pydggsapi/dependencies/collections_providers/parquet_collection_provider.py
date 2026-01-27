@@ -63,7 +63,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         # inject the datetime to include_properties
         if ((datasource.datetime_col is not None) and ("*" not in datasource.data_cols)):
             if (include_properties is not None):
-                include_properties = list({datasource.datetime_col} | set(include_properties))
+                include_properties = list(OrderedSet([datasource.datetime_col]) | OrderedSet(include_properties))
             else:
                 include_properties = [datasource.datetime_col]
         if ("*" in datasource.data_cols):
@@ -72,9 +72,9 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             excl.extend(exclude_properties or [])
             cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
         else:
-            incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+            incl = OrderedSet(datasource.data_cols) - OrderedSet(datasource.exclude_data_cols)
             if include_properties and include_properties != [datasource.datetime_col]:
-                incl = set(include_properties) - set(datasource.exclude_data_cols)
+                incl = OrderedSet(include_properties) - OrderedSet(datasource.exclude_data_cols)
             elif include_properties:
                 incl |= set(include_properties)
             if exclude_properties:

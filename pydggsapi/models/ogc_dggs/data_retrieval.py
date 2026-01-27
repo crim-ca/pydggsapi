@@ -19,6 +19,7 @@ from numcodecs import Blosc
 from typing import Any, List, Dict, Optional, Union, cast
 from scipy.stats import mode
 from pygeofilter.ast import AstType
+from ordered_set import OrderedSet
 import ubjson
 import shapely
 import tempfile
@@ -228,9 +229,9 @@ def query_zone_data(
             v = d.values
             if v[nan_mask].size > 0:
                 v[nan_mask] = np.nan
-            diff = set(list(d.index)) - set(list(properties.keys()))
+            diff = OrderedSet(list(d.index)) - OrderedSet(list(properties.keys()))
             properties.update({c: get_json_schema_property(data_type[c]) for c in diff})
-            diff = set(list(d.index)) - set(list(values.keys()))
+            diff = OrderedSet(list(d.index)) - OrderedSet(list(values.keys()))
             values.update({c: [] for c in diff})
             sub_zones_count = len(set(zoneIds))
             # data_dims is responsible for the dimension of dggs json return
