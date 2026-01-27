@@ -72,11 +72,13 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
         else:
             incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
-            if include_properties:
+            if include_properties and include_properties != [datasource.datetime_col]:
+                incl = set(include_properties) - set(datasource.exclude_data_cols)
+            elif include_properties:
                 incl |= set(include_properties)
             if exclude_properties:
                 incl -= set(exclude_properties)
-            cols = f"{','.join(incl)}, {datasource.id_col}"
+            cols = f"{','.join(incl)}{',' if incl else ''}{datasource.id_col}"
         # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
         #if datasource.datetime_col is not None:
         #    cols += f", {datasource.datetime_col}"
