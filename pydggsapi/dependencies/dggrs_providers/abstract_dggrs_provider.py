@@ -3,17 +3,16 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 from pydggsapi.schemas.api.dggrs_providers import (
+    ZoneIdRepresentationType,
     DGGRSProviderZonesElement,
     DGGRSProviderZoneInfoReturn,
     DGGRSProviderZonesListReturn,
-    DGGRSProviderGetRelativeZoneLevelsReturn
+    DGGRSProviderGetRelativeZoneLevelsReturn,
+    DGGRSProviderConversionReturn
 )
-from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderConversionReturn
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZoneGeometryType
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import ReturnGeometryTypes
 from pydantic import BaseModel
 from shapely.geometry import box
-
-ZoneIdRepresentationType = Literal['textual', 'int', 'hexstring']
 
 
 class conversion_properties(BaseModel):
@@ -29,7 +28,7 @@ class AbstractDGGRSProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: ZoneIdRepresentationType) -> List[str]:
+    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: ZoneIdRepresentationType, refinement_level=None) -> List[str]:
         raise NotImplementedError
 
     @abstractmethod
@@ -48,12 +47,12 @@ class AbstractDGGRSProvider(ABC):
     # for each zone level, the len of zoneId list and geometry must be equal
     @abstractmethod
     def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
-                                geometry: str = "zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
+                                geometry: Optional[ReturnGeometryTypes] = "zone-region") -> DGGRSProviderGetRelativeZoneLevelsReturn:
         raise NotImplementedError
 
     @abstractmethod
     def zoneslist(self, bbox: Union[box, None], zone_level: int, parent_zone: Union[str, int, None],
-                  returngeometry: ZoneGeometryType, compact: bool = True) -> DGGRSProviderZonesListReturn:
+                  returngeometry: ReturnGeometryTypes, compact: bool = True) -> DGGRSProviderZonesListReturn:
         raise NotImplementedError
 
     @abstractmethod

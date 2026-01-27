@@ -14,7 +14,8 @@ from pygeofilter.ast import AstType
 from pygeofilter.backends.sql import to_sql_where
 import duckdb
 import pandas as pd
-from typing import List
+import numpy as np
+from typing import List, Any
 import logging
 
 logger = logging.getLogger()
@@ -46,32 +47,39 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
                 raise Exception(f'{__name__} {k} filepath is missing')
             self.datasources[k] = ParquetDatasourceInfo(**v)
 
-    def get_data(self, zoneIds: List[str], res: int, datasource_id: str,
+    def get_data(self, zoneIds: List[Any], res: int, datasource_id: str,
                  cql_filter: AstType = None, include_datetime: bool = False,
                  include_properties: List[str] = None,
-                 exclude_properties: List[str] = None) -> CollectionProviderGetDataReturn:
+                 exclude_properties: List[str] = None,
+                 input_zoneIds_padding: bool = True) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataReturn(zoneIds=[], cols_meta={}, data=[])
         try:
             datasource = self.datasources[datasource_id]
         except KeyError:
             logger.error(f'{__name__} {datasource_id} not found')
             raise Exception(f'{__name__} {datasource_id} not found')
+        # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
+        # inject the datetime to include_properties
+        if ((datasource.datetime_col is not None) and ("*" not in datasource.data_cols)):
+            if (include_properties is not None):
+                include_properties = list(set(datasource.datetime_col) | set(include_properties))
+            else:
+                include_properties = [datasource.datetime_col]
         if ("*" in datasource.data_cols):
             incl = ",".join(include_properties) if include_properties else "*"
             excl = datasource.exclude_data_cols or []
             excl.extend(exclude_properties or [])
             cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
         else:
-            incl = cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
+            incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
             if include_properties:
                 incl &= set(include_properties)
             if exclude_properties:
                 incl -= set(exclude_properties)
             cols = f"{','.join(incl)}, {datasource.id_col}"
-
         # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
-        if datasource.datetime_col is not None:
-            cols += f", {datasource.datetime_col}"
+        #if datasource.datetime_col is not None:
+        #    cols += f", {datasource.datetime_col}"
 
         # WARNING: 'zone-order' must remain consistent with the original input to respect DGGS definition
         #   it must NOT be sorted, see Req 24-E (https://docs.ogc.org/DRAFTS/21-038r1.html#_req_data-json_content)
@@ -91,7 +99,6 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         except Exception as e:
             logger.error(f'{__name__} {datasource_id} query data error: {e}')
             raise Exception(f'{__name__} {datasource_id} query data error: {e}')
-
         # empty result can be skipped entirely
         if result_df.size == 0:
             return result
@@ -102,6 +109,8 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
 
         # update result with datetime dimension as applicable + zone padding for partial matches
         if datasource.datetime_col:
+            if (np.issubdtype(result_df[datasource.datetime_col].dtype, np.datetime64)):
+                result_df[datasource.datetime_col] = np.datetime_as_string(result_df[datasource.datetime_col], 'ns', 'UTC')
             # pad any missing values to fill the dimension and sort accordingly along the dimensions for 1D output
             dates = sorted(result_df[datasource.datetime_col].unique())
             cols = [datasource.id_col, datasource.datetime_col]
@@ -124,7 +133,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
 
         # when no datetime requested, missing zones must still be padded for partial match
         # (notably for zone-depth requests)
-        else:
+        elif (input_zoneIds_padding):
             grid = pd.DataFrame({datasource.id_col: zoneIds})
             result_df = pd.merge(grid, result_df, how='left', on=datasource.id_col)
 

@@ -1,7 +1,7 @@
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import (
     Property, Schema, Shape, Value, ZonesDataDggsJsonResponse,
-    Feature, ZonesDataGeoJson, Dimension
+    Feature, ZonesDataGeoJson, Dimension, DimensionGrid
 )
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
 from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZonesElement
@@ -15,9 +15,8 @@ from pydggsapi.dependencies.collections_providers.abstract_collection_provider i
 from pydggsapi.dependencies.api.utils import getCQLAttributes
 
 from fastapi.responses import FileResponse, Response
-from urllib import parse
 from numcodecs import Blosc
-from typing import Any, List, Dict, Optional, Tuple, Union, cast
+from typing import Any, List, Dict, Optional, Union, cast
 from scipy.stats import mode
 from pygeofilter.ast import AstType
 import ubjson
@@ -25,9 +24,11 @@ import shapely
 import tempfile
 import numpy as np
 import zarr
+import xarray as xr
 import geopandas as gpd
 import pandas as pd
 import json
+import itertools
 import logging
 
 logger = logging.getLogger()
@@ -52,16 +53,18 @@ def query_zone_data(
     # skip it, add it manually
     if (base_level == relative_levels[0]):
         result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels[1:], returngeometry)
-        parent = dggrs_provider.zonesinfo([zoneId])
-        g = parent.geometry[0] if (returngeometry == 'zone-region') else parent.centroids[0]
-        result.relative_zonelevels[base_level] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': [g]})
+        parent_geometry = None
+        if (returngeometry is not None):
+            parent = dggrs_provider.zonesinfo([zoneId])
+            parent_geometry = [parent.geometry[0]] if (returngeometry == 'zone-region') else [parent.centroids[0]]
+        result.relative_zonelevels[base_level] = DGGRSProviderZonesElement(**{'zoneIds': [zoneId], 'geometry': parent_geometry})
     else:
         result = dggrs_provider.get_relative_zonelevels(zoneId, base_level, relative_levels, returngeometry)
     # get data and form a master dataframe (selected providers) for each zone level
     data = {}
     data_type = {}
     nodata_mapping = {}
-    data_col_dims: Dict[Tuple[str, str], Dimension] = {}  # per-collection dimensions to manage distinct ones per provider
+    zone_level_dims: Dict[int, List[Dimension]] = {}  # per-collection dimensions to manage distinct ones per provider
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
     skipped = 0
     for cid, c in collection.items():
@@ -90,7 +93,7 @@ def query_zone_data(
 
         # get data for all relative_levels for the currnet datasource
         for z, v in result.relative_zonelevels.items():
-            g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry]
+            g = [shapely.from_geojson(json.dumps(g.__dict__))for g in v.geometry] if (returngeometry is not None) else None
             converted_z = z
             if (convert):
                 # convert the source dggrs ID to the datasource dggrs zoneID.
@@ -118,13 +121,14 @@ def query_zone_data(
                     collection_result = cp.get_data(idx, converted_z, datasource_id, cql_filter,
                                                     include_datetime, incl_props, excl_props)
                     if (zone_id_repr != 'textual'):
-                        collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr)
+                        collection_result.zoneIds = tmp_dggrs_provider.zone_id_to_textual(collection_result.zoneIds, zone_id_repr, converted_z)
                 except DatetimeNotDefinedError:
                     pass
             logger.debug(f"{__name__} {cid} get_data done")
+            # Changed to use MultiIndex for 2D collections (zoneId, datetime)
             if collection_result.zoneIds:
                 cols_name = {f'{cid}.{k}': v for k, v in collection_result.cols_meta.items()}
-                data_col_dims.update({(cid, dim.name): dim for dim in collection_result.dimensions or []})
+                # data_col_dims.update({(cid, dim.name): dim for dim in collection_result.dimensions or []})
                 cp_nodata_mapping = cp.datasources[datasource_id].nodata_mapping
                 collection_nodata = {k: cp_nodata_mapping.get("default", np.nan) for k in list(cols_name.keys())}
                 collection_nodata_keys = [k.lower() for k in cp_nodata_mapping.keys() if (k != "default")]
@@ -133,6 +137,7 @@ def query_zone_data(
                 nodata_mapping.update(collection_nodata)
                 data_type.update(cols_name)
                 id_ = np.array(collection_result.zoneIds).reshape(-1, 1)
+                index = ['zoneId', 'datetime'] if (collection_result.datetimes) else ['zoneId']
                 if (collection_result.datetimes):
                     dates = np.array(collection_result.datetimes).reshape(-1, 1)
                     array = np.concatenate([id_, collection_result.data, dates], axis=-1)
@@ -140,35 +145,53 @@ def query_zone_data(
                 else:
                     array = np.concatenate([id_, collection_result.data], axis=-1)
                     names = ['zoneId'] + list(cols_name)
-                tmp = pd.DataFrame(array, columns=names).set_index('zoneId')
-                master = master.join(tmp)
+                tmp = pd.DataFrame(array, columns=names)
+                if (collection_result.datetimes):
+                    # align datetime dtype from different collections (string, float)
+                    tmp['datetime'] = pd.to_datetime(tmp['datetime'], utc=True)
+                tmp.set_index(index, inplace=True)
+                master = master.merge(tmp, how='outer', left_index=True, right_index=True)
                 pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
                 master = master.astype(pre_numeric_cols).astype(cols_name)
                 if ('vid' in master.columns):
+                    # we have to follow the original index from master, instead of index from the current dataset
+                    original_index = master.index.name
                     master.reset_index(inplace=True)
-                    tmp_geo = master.groupby('vid')['geometry'].last()
-                    master.drop(columns=['zoneId', 'geometry'], inplace=True)
+                    if (returngeometry is not None):
+                        tmp_geo = master.groupby('vid')['geometry'].last()
+                        master.drop(columns=['geometry'], inplace=True)
+                    master.drop(columns=['zoneId'], inplace=True)
                     master = master.groupby('vid').agg(lambda x: mode(x)[0])
-                    master = master.join(tmp_geo).reset_index().rename(columns={'vid': 'zoneId'})
-                    master.set_index('zoneId', inplace=True)
-                master = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry'])
+                    if (returngeometry is not None):
+                        master = master.join(tmp_geo)
+                    master = master.reset_index().rename(columns={'vid': 'zoneId'})
+                    master.set_index(original_index, inplace=True)
+                # master = master if (returntype == 'application/geo+json') else master.drop(columns=['geometry'])
                 try:
-                    data[z] = data[z].join(master, rsuffix=cid)
-                    data[z] = data[z].drop(columns=[f'geometry{cid}'], errors='ignore')
+                    data[z] = data[z].merge(master, how='outer', suffixes=[None, cid], left_index=True, right_index=True)
+                    data[z] = data[z].drop(columns=[f'geometry{cid}'], errors='ignore') if (returngeometry is not None) else data[z]
                 except KeyError:
                     data[z] = master
     if not data:
         return None
-    zarr_root, tmpfile = None, None
+    datatree, tmpfile = None, None
     features = []
     id_ = 0
     properties, values = {}, {}
     if (returntype == 'application/zarr+zip'):
         tmpfile = tempfile.mkstemp()
         zipstore = zarr.ZipStore(tmpfile[1], mode='w')
-        zarr_root = zarr.group(zipstore)
-
+        datatree = xr.DataTree()
+        # zarr_root = zarr.group(zipstore)
     for z, d in sorted(data.items()):  # in case of multiple depths, returned them ascending
+        zone_level_dims_list = []
+        for index_name in d.index.names:
+            if (index_name != 'zoneId'):
+                dim_values = d.index.get_level_values(index_name).values.astype(str)
+                sorted_unique_dim_values = np.sort(np.unique(dim_values))
+                zone_level_dims_list.append(Dimension(name=index_name, interval=[sorted_unique_dim_values[0], sorted_unique_dim_values[-1]],
+                                            grid=DimensionGrid(cellsCount=len(dim_values), coordinates=dim_values.tolist())))
+                zone_level_dims.update({z: zone_level_dims_list})
         if (returntype == 'application/geo+json'):
             d.reset_index(inplace=True)
             geometry = d['geometry'].values
@@ -191,8 +214,11 @@ def query_zone_data(
             id_ += len(d)
             logger.debug(f'{__name__} query zone data {dggrs_desc.id}, zone id: {zoneId}@{z}, geo+json features len: {len(features)}')
         else:
-            zoneIds = d.index.values.astype(str).tolist()
-            d.drop(columns=['datetime'], inplace=True, errors='ignore')
+            # For temporal df, it is a multi-index with (zoneId, datetime)
+            zoneIds = d.index.get_level_values('zoneId').astype(str).tolist()
+            zone_datetimes = None
+            if ("datetime" in d.index.names):
+                zone_datetimes = d.index.get_level_values('datetime').values
             d = d.T
             nan_mask = d.isna()
             v = d.values
@@ -203,38 +229,41 @@ def query_zone_data(
             diff = set(list(d.index)) - set(list(values.keys()))
             values.update({c: [] for c in diff})
             sub_zones_count = len(set(zoneIds))
+            # data_dims is responsible for the dimension of dggs json return
+            data_dims = {dim.name: dim.grid.cellsCount for dim in zone_level_dims[z]} if (len(zone_level_dims.keys()) > 0) else {}
+            # coords is responsible for the coordinates of zarr return
+            coords = {"zoneId": np.unique(zoneIds), "datetime": zone_datetimes} if (zone_datetimes is not None) else {"zoneId": zoneIds}
             for i, column in enumerate(d.index):
-                data_dims = {
-                    dim.name: dim.grid.cellsCount
-                    for (col, name), dim in data_col_dims.items()
-                    if column.startswith(f"{col}.")  # only dimensions of matching collections
-                }
-                if (zarr_root is not None):
-                    root = zarr_root
-                    if (f'zone_level_{z}' not in zarr_root.group_keys()):
-                        root = zarr_root.create_group(f'zone_level_{z}')
+                if (datatree is not None):
+                    if (f"/zone_level_{z}" not in datatree.groups):
+                        # create a datatree for the zone level if not exists
+                        zone_ds = xr.Dataset(coords=coords)
                     else:
-                        root = zarr_root[f'zone_level_{z}']
-                    compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
-                    if ('zoneId' not in root.array_keys()):
-                        sub_zarr = root.create_dataset('zoneId', data=zoneIds, compressor=compressor)
-                        sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
+                        zone_ds = datatree[f"zone_level_{z}"].to_dataset()
                     # FIXME: if 'data_dims' exist, need to create dimension arrays...
+                    # The dimension is handled by the variable coords for zarr return
                     export_data = v[i, :]
                     export_data[pd.isna(export_data)] = nodata_mapping[column]
                     export_data = export_data.astype(data_type[column].lower())
-                    sub_zarr = root.create_dataset(f'{column}_zone_level_' + str(z), data=export_data, compressor=compressor)
-                    sub_zarr.attrs.update({'_ARRAY_DIMENSIONS': ["zoneId"]})
+                    if (zone_datetimes is not None):
+                        export_data = export_data.reshape(len(coords["zoneId"]), len(coords["datetime"]))
+                    zone_ds.update({column: (tuple(coords.keys()), export_data)})
+                    datatree = datatree.assign({f"zone_level_{z}": xr.DataTree(zone_ds)})
                 else:  # DGGS-(UB)JSON
                     data_count = len(v[i, :])
                     values[column].append(Value(
                         depth=z - base_level,
-                        shape=Shape(count=data_count, subZones=sub_zones_count, dimensions=data_dims or None),
+                        shape=Shape(count=data_count, subZones=sub_zones_count, dimensions=data_dims),
                         data=v[i, :].tolist(),
                     ))
-    if (zarr_root is not None):
-        zarr_root.attrs.update({k: v.__dict__ for k, v in properties.items()})
-        zarr.consolidate_metadata(zipstore)
+    if (datatree is not None):
+        compressor = Blosc(cname='zstd', clevel=3, shuffle=Blosc.BITSHUFFLE)
+        encode = {}
+        for zone in datatree.groups:
+            if (len(datatree[zone].data_vars) > 0):
+                zone_encoder = {k: {'compressor': compressor} for k in datatree[zone].data_vars.keys()}
+                encode[zone] = zone_encoder
+        datatree.to_zarr(zipstore, encoding=encode)
         zipstore.close()
         return FileResponse(tmpfile[1], headers={'content-type': 'application/zarr+zip'})
     if (returntype == 'application/geo+json'):
@@ -248,8 +277,11 @@ def query_zone_data(
         'schema': Schema(properties=properties),
         'values': values,
     })
-    if data_col_dims:
-        return_['dimensions'] = list(data_col_dims.values())
+    if zone_level_dims:
+        # temporary fix the issue https://github.com/LandscapeGeoinformatics/pydggsapi/issues/65#issuecomment-3618504418
+        # by just return the deepest zone depth dimension
+        deepest_zone_level = sorted(list(zone_level_dims.keys()))[-1]
+        return_['dimensions'] = zone_level_dims[deepest_zone_level]
     dggs_json = ZonesDataDggsJsonResponse(**return_)
     if (returntype == 'application/ubjson'):
         dggs_ubjson = ubjson.dumpb(dggs_json.model_dump(mode='json'), no_float32=False)

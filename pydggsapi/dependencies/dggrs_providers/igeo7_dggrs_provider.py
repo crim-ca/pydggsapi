@@ -2,17 +2,18 @@
 # DGGRID ISEA7H resolutions
 
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import (
-    AbstractDGGRSProvider,
-    ZoneIdRepresentationType,
+    AbstractDGGRSProvider
 )
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
-from pydggsapi.schemas.api.dggrs_providers import DGGRSProviderZoneInfoReturn, DGGRSProviderZonesListReturn
 from pydggsapi.schemas.api.dggrs_providers import (
+    ZoneIdRepresentationType,
+    DGGRSProviderZoneInfoReturn,
+    DGGRSProviderZonesListReturn,
     DGGRSProviderConversionReturn,
     DGGRSProviderGetRelativeZoneLevelsReturn,
     DGGRSProviderZonesElement,
 )
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, ReturnGeometryTypes
 
 import os
 import tempfile
@@ -20,9 +21,9 @@ import logging
 import shapely
 import numpy as np
 import decimal
-from typing import Any, Union, List, Final
+from typing import Any, Union, List, Final, Optional, get_args
 from dggrid4py import DGGRIDv8
-from dggrid4py.igeo7 import get_z7string_resolution
+from dggrid4py.igeo7 import get_z7string_resolution, z7hex_to_z7string
 from dggrid4py.auxlat import geoseries_to_authalic, geoseries_to_geodetic
 from geopandas.geoseries import GeoSeries
 from dotenv import load_dotenv
@@ -68,30 +69,55 @@ def _geodetic_to_authalic(geometry, convert: bool) -> GeoSeries:
     return geoseries_to_authalic(geometry)
 
 
+def z7textual_to_z7int(z7_textual_zone_id: str):
+    base, digits = z7_textual_zone_id[:2], z7_textual_zone_id[2:]
+    digits = digits.ljust(20, '7')
+    binary_repr = [np.binary_repr(int(base), width=4)]
+    binary_digits = [np.binary_repr(int(d), width=3) for d in digits]
+    binary_repr += binary_digits
+    binary_repr = ''.join(binary_repr)
+    return int(binary_repr, 2)
+
+
+def z7int_to_z7textual(z7_int_zone_id: int, refinement_level=int):
+    hexstring = hex(z7_int_zone_id)
+    z7textual = z7hex_to_z7string(hexstring)
+    return z7textual[: refinement_level + 2]
+
+
+vz7int_to_z7textual = np.vectorize(z7int_to_z7textual)
+vz7textual_to_z7int = np.vectorize(z7textual_to_z7int)
+vz7hex_to_z7textual = np.vectorize(z7hex_to_z7string)
+
+
 class IGEO7Provider(AbstractDGGRSProvider):
 
     def __init__(self, **params):
         executable = os.environ['DGGRID_PATH']
         working_dir = tempfile.mkdtemp()
         self.dggrid_instance = DGGRIDv8(executable=executable, working_dir=working_dir, silent=True)
-        self.data = {
-            0: {"Cells": 12, "Area (km^2)": 51006562.1724089, "CLS (km)": 8199.5003701},
-            1: {"Cells": 72, "Area (km^2)": 7286651.7389156, "CLS (km)": 3053.2232428},
-            2: {"Cells": 492, "Area (km^2)": 1040950.2484165, "CLS (km)": 1151.6430095},
-            3: {"Cells": 3432, "Area (km^2)": 148707.1783452, "CLS (km)": 435.1531492},
-            4: {"Cells": 24012, "Area (km^2)": 21243.8826207, "CLS (km)": 164.4655799},
-            5: {"Cells": 168072, "Area (km^2)": 3034.8403744, "CLS (km)": 62.1617764},
-            6: {"Cells": 1176492, "Area (km^2)": 433.5486249, "CLS (km)": 23.4949231},
-            7: {"Cells": 8235432, "Area (km^2)": 61.9355178, "CLS (km)": 8.8802451},
-            8: {"Cells": 57648012, "Area (km^2)": 8.8479311, "CLS (km)": 3.3564171},
-            9: {"Cells": 403536072, "Area (km^2)": 1.2639902, "CLS (km)": 1.2686064},
-            10: {"Cells": 2824752492, "Area (km^2)": 0.18057, "CLS (km)": 0.4794882},
-            11: {"Cells": 19773267432, "Area (km^2)": 0.0257957, "CLS (km)": 0.1812295},
-            12: {"Cells": 138412872012, "Area (km^2)": 0.0036851, "CLS (km)": 0.0684983},
-            13: {"Cells": 968890104072, "Area (km^2)": 0.0005264, "CLS (km)": 0.0258899},
-            14: {"Cells": 6782230728492, "Area (km^2)": 0.0000752, "CLS (km)": 0.0097855},
-            15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
-        }
+        self.data = {0: {"Cells": 12, "Area (km^2)": 51006562.1724089, "CLS (km)": 8199.5003701},
+                     1: {"Cells": 72, "Area (km^2)": 7286651.7389156, "CLS (km)": 3053.2232428},
+                     2: {"Cells": 492, "Area (km^2)": 1040950.2484165, "CLS (km)": 1151.6430095},
+                     3: {"Cells": 3432, "Area (km^2)": 148707.1783452, "CLS (km)": 435.1531492},
+                     4: {"Cells": 24012, "Area (km^2)": 21243.8826207, "CLS (km)": 164.4655799},
+                     5: {"Cells": 168072, "Area (km^2)": 3034.8403744, "CLS (km)": 62.1617764},
+                     6: {"Cells": 1176492, "Area (km^2)": 433.5486249, "CLS (km)": 23.4949231},
+                     7: {"Cells": 8235432, "Area (km^2)": 61.9355178, "CLS (km)": 8.8802451},
+                     8: {"Cells": 57648012, "Area (km^2)": 8.8479311, "CLS (km)": 3.3564171},
+                     9: {"Cells": 403536072, "Area (km^2)": 1.2639902, "CLS (km)": 1.2686064},
+                     10: {"Cells": 2824752492, "Area (km^2)": 0.18057, "CLS (km)": 0.4794882},
+                     11: {"Cells": 19773267432, "Area (km^2)": 0.0257957, "CLS (km)": 0.1812295},
+                     12: {"Cells": 138412872012, "Area (km^2)": 0.0036851, "CLS (km)": 0.0684983},
+                     13: {"Cells": 968890104072, "Area (km^2)": 0.0005264, "CLS (km)": 0.0258899},
+                     14: {"Cells": 6782230728492, "Area (km^2)": 0.0000752, "CLS (km)": 0.0097855},
+                     15: {"Cells": 47475615099432, "Area (km^2)": 0.0000107, "CLS (km)": 0.0036986},
+                     16: {"Cells": 332329305696012, "Area (km^2)": 0.0000015348198699, "CLS (km)": 0.0013979246590466},
+                     17: {"Cells": 2326305139872072, "Area (km^2)": 0.0000002192599814, "CLS (km)": 0.0005283658570631},
+                     18: {"Cells": 16284135979104492, "Area (km^2)": 0.0000000313228545, "CLS (km)": 0.0001997035227209},
+                     19: {"Cells": 113988951853731432, "Area (km^2)": 0.0000000044746935, "CLS (km)": 0.0000754808367233},
+                     20: {"Cells": 797922662976120012, "Area (km^2)": 0.0000000006392419, "CLS (km)": 0.0000285290746744},
+                     }
         self.dggrs = 'IGEO7'
         self.wgs84_geodetic_conversion = True
         crs = params.pop("crs", CrsModel("authalic"))
@@ -159,10 +185,29 @@ class IGEO7Provider(AbstractDGGRSProvider):
         return gdf
 
     def zone_id_from_textual(self, cellIds: List[str], zone_id_repr: str) -> List[Any]:
-        raise NotImplementedError
+        if (zone_id_repr not in get_args(ZoneIdRepresentationType)):
+            raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
+        if (len(cellIds) == 0):
+            return []
+        if (zone_id_repr == "textual"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            return vz7textual_to_z7int(cellIds).tolist()
+        if (zone_id_repr == "hexstring"):
+            hexstring = np.vectorize(hex)(vz7textual_to_z7int(cellIds))
+            return hexstring.tolist()
 
-    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str) -> List[str]:
-        raise NotImplementedError
+    def zone_id_to_textual(self, cellIds: List[Any], zone_id_repr: str, refinement_level: int) -> List[str]:
+        if (zone_id_repr not in get_args(ZoneIdRepresentationType)):
+            raise ValueError("{__name__} {zone_id_repr} representation is not supported.")
+        if (len(cellIds) == 0):
+            return []
+        if (zone_id_repr == "textual"):
+            return cellIds
+        if (zone_id_repr == "int"):
+            return vz7int_to_z7textual(cellIds, refinement_level).tolist()
+        if (zone_id_repr == "hexstring"):
+            return vz7hex_to_z7textual(cellIds).tolist()
 
     def get_cls_by_zone_level(self, zone_level: int):
         return self.data[zone_level]["CLS (km)"]
@@ -180,9 +225,10 @@ class IGEO7Provider(AbstractDGGRSProvider):
             logger.error(f'{__name__} zone id {cellIds} dggrid get zone level failed : {e}')
             raise Exception(f'{__name__} zone id {cellIds} dggrid get zone level failed')
 
-    def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int], geometry='zone-region'):
+    def get_relative_zonelevels(self, cellId: str, base_level: int, zone_levels: List[int],
+                                geometry: Optional[ReturnGeometryTypes] = 'zone-region'):
         children = {}
-        geometry = geometry.lower()
+        geometry = geometry.lower() if (geometry is not None) else geometry
         method = self.hexagon_from_cellid if (geometry == 'zone-region') else self.centroid_from_cellid
         geojson = GeoJSONPolygon if (geometry == 'zone-region') else GeoJSONPoint
         try:

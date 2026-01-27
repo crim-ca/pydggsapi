@@ -1,7 +1,7 @@
 from __future__ import annotations
 from pydggsapi.schemas.common_basemodel import CommonBaseModel, OmitIfNone
 from pydggsapi.schemas.ogc_collections.schema import Property
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature, ReturnGeometryTypes
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder, datetime_cql_validation
 
@@ -28,7 +28,6 @@ zone_data_support_formats = {
 }
 zone_data_support_formats.update({typ: typ for typ in zone_data_support_returntype})
 
-ZoneGeometryType = Literal['zone-centroid', 'zone-region']
 
 
 class ZonesDataRequest(CommonBaseModel):
@@ -41,7 +40,7 @@ class ZonesDataRequest(CommonBaseModel):
             "a range (int-int) of depths, or a comma-separated list of specific depth values or ranges."
         )
     )
-    geometry: Optional[ZoneGeometryType] = Query(default=None)
+    geometry: Optional[ReturnGeometryTypes] = Query(default=None)
     filter: Optional[str] = Query(default=None)
     datetime: Optional[str] = Query(default=None)
     properties: Optional[str] = Query(
