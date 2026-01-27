@@ -148,7 +148,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         result.dimensions = cols_dims
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataReturn:
+    def get_datadictionary(self, datasource_id: str, include_zone_id: bool = True) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataDictReturn(data={})
         try:
             datasource = self.datasources[datasource_id]
@@ -156,10 +156,13 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} {datasource_id} not found.')
             raise Exception(f'{__name__} {datasource_id} not found.')
         if ("*" in datasource.data_cols):
-            cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
+            excl = datasource.exclude_data_cols or []
+            excl = excl if include_zone_id else excl + [datasource.id_col]
+            cols = f"* EXCLUDE({','.join(excl)})" if (excl) else "*"
         else:
             cols_intersection = OrderedSet(datasource.data_cols) - OrderedSet(datasource.exclude_data_cols)
-            cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
+            incl = f"{',' if cols_intersection else ''}{datasource.id_col}" if include_zone_id else ""
+            cols = f"{','.join(cols_intersection)}{incl}"
         sql = f"""select {cols} from read_parquet('{datasource.filepath}') limit 1"""
         try:
             result_df = datasource.conn.sql(sql).df()
