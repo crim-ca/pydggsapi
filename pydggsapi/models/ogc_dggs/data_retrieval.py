@@ -151,8 +151,12 @@ def query_zone_data(
                     tmp['datetime'] = pd.to_datetime(tmp['datetime'], utc=True)
                 tmp.set_index(index, inplace=True)
                 master = master.merge(tmp, how='outer', left_index=True, right_index=True)
-                pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
-                master = master.astype(pre_numeric_cols).astype(cols_name)
+                pre_numeric_cols = {c: str(dtype).replace('int', 'float') for c, dtype in cols_name.items()}
+                post_numeric_cols = {c: str(dtype) for c, dtype in cols_name.items() if 'int' in str(dtype)}
+                master = master.astype(pre_numeric_cols)
+                for int_col, col_dtype in post_numeric_cols.items():
+                    col_dtype = str(col_dtype).capitalize()  # pandas variant that allows nullable
+                    master[int_col] = pd.to_numeric(master[int_col], errors='coerce').astype(col_dtype)
                 if ('vid' in master.columns):
                     # we have to follow the original index from master, instead of index from the current dataset
                     original_index = master.index.name
