@@ -62,7 +62,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         # inject the datetime to include_properties
         if ((datasource.datetime_col is not None) and ("*" not in datasource.data_cols)):
             if (include_properties is not None):
-                include_properties = list(set(datasource.datetime_col) | set(include_properties))
+                include_properties = list({datasource.datetime_col} | set(include_properties))
             else:
                 include_properties = [datasource.datetime_col]
         if ("*" in datasource.data_cols):
@@ -73,7 +73,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         else:
             incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
             if include_properties:
-                incl &= set(include_properties)
+                incl |= set(include_properties)
             if exclude_properties:
                 incl -= set(exclude_properties)
             cols = f"{','.join(incl)}, {datasource.id_col}"
