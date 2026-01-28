@@ -159,17 +159,23 @@ def get_json_schema_property(data_type: Union[str, datetime.datetime, datetime.d
         fmt = data_type if data_type != 'int' else None
         typ = 'number' if data_type != 'int' else 'integer'
         prop = {"type": typ, "format": fmt}
+    elif data_type == "object":
+        # assume that it is the underlying collection-provider
+        # or numpy/pandas representation of the property
+        prop = {"type": "string"}
     else:
         prop = {"type": data_type}
     return Property(**prop)
 
 
 def get_queryables(collection: Collection, collection_provider: AbstractCollectionProvider) -> CollectionQueryables:
-    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id).data
+    fields = collection_provider.get_datadictionary(collection.collection_provider.datasource_id, include_zone_id=False).data
     col_id = collection.id
     queryables = {}
-    for key, typ in fields.items():
+    for i, (key, typ) in enumerate(fields.items()):
         prop_id = f"{col_id}.{key}"
         prop = get_json_schema_property(typ)
+        prop.x_ogc_propertySeq = i
+        prop.readOnly = True
         queryables[prop_id] = prop
     return CollectionQueryables(properties=queryables)

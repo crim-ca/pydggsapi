@@ -14,11 +14,13 @@ from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import Abstr
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider, DatetimeNotDefinedError
 from pydggsapi.dependencies.api.utils import getCQLAttributes
 
+from starlette.requests import Request
 from fastapi.responses import FileResponse, Response
 from numcodecs import Blosc
 from typing import Any, List, Dict, Optional, Union, cast
 from scipy.stats import mode
 from pygeofilter.ast import AstType
+from ordered_set import OrderedSet
 import ubjson
 import shapely
 import tempfile
@@ -33,7 +35,9 @@ import logging
 
 logger = logging.getLogger()
 
+
 def query_zone_data(
+    request: Request,
     zoneId: str | int,
     base_level: int,
     relative_levels: List[int],
@@ -156,8 +160,12 @@ def query_zone_data(
                     tmp['datetime'] = pd.to_datetime(tmp['datetime'], utc=True)
                 tmp.set_index(index, inplace=True)
                 master = master.merge(tmp, how='outer', left_index=True, right_index=True)
-                pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
-                master = master.astype(pre_numeric_cols).astype(cols_name)
+                pre_numeric_cols = {c: str(dtype).replace('int', 'float') for c, dtype in cols_name.items()}
+                post_numeric_cols = {c: str(dtype) for c, dtype in cols_name.items() if 'int' in str(dtype)}
+                master = master.astype(pre_numeric_cols)
+                for int_col, col_dtype in post_numeric_cols.items():
+                    col_dtype = str(col_dtype).capitalize()  # pandas variant that allows nullable
+                    master[int_col] = pd.to_numeric(master[int_col], errors='coerce').astype(col_dtype)
                 if ('vid' in master.columns):
                     # we have to follow the original index from master, instead of index from the current dataset
                     original_index = master.index.name
@@ -229,9 +237,9 @@ def query_zone_data(
             v = d.values
             if v[nan_mask].size > 0:
                 v[nan_mask] = np.nan
-            diff = set(list(d.index)) - set(list(properties.keys()))
+            diff = OrderedSet(list(d.index)) - OrderedSet(list(properties.keys()))
             properties.update({c: get_json_schema_property(data_type[c]) for c in diff})
-            diff = set(list(d.index)) - set(list(values.keys()))
+            diff = OrderedSet(list(d.index)) - OrderedSet(list(values.keys()))
             values.update({c: [] for c in diff})
             sub_zones_count = len(set(zoneIds))
             # data_dims is responsible for the dimension of dggs json return
@@ -273,13 +281,19 @@ def query_zone_data(
         return FileResponse(tmpfile[1], headers={'content-type': 'application/zarr+zip'})
     if (returntype == 'application/geo+json'):
         return ZonesDataGeoJson(type='FeatureCollection', features=features)
-    link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
+    col_schema_id = None
+    if len(collection) == 1:  # no schema applicable if the response is a multi-collection aggregation
+        col_id = list(collection.keys())[0]
+        col_data_url = request.url.replace(query=None, fragment=None)
+        col_desc_url = str(col_data_url).rsplit(f'/{col_id}/', 1)[0]
+        col_schema_id = f"{col_desc_url}/{col_id}/schema"
+    dggrs_link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
     relative_levels = [rl - base_level for rl in relative_levels]
     return_ = cast(ZonesDataDggsJsonResponse | Dict[str, Any], {
-        'dggrs': link,
+        'dggrs': dggrs_link,
         'zoneId': str(zoneId),
         'depths': relative_levels,
-        'schema': Schema(properties=properties),
+        'schema': Schema(properties=properties, id_=col_schema_id),
         'values': values,
     })
     if zone_level_dims:

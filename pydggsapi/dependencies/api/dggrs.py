@@ -22,6 +22,8 @@ def get_conformance_classes():
         "https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/collections",
         "https://www.opengis.net/spec/ogcapi-common-2/1.0/conf/umd-collection",
         "https://www.opengis.net/spec/ogcapi-common-3/1.0/conf/queryables",
+        "https://www.opengis.net/spec/ogcapi-common-3/1.0/conf/returnables-and-receivables"
+        "https://www.opengis.net/spec/ogcapi-common-3/1.0/conf/schemas"
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/core",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/root-dggs",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/collection-dggs",
