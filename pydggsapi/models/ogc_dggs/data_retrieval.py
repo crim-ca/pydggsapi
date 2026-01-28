@@ -14,6 +14,7 @@ from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import Abstr
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider, DatetimeNotDefinedError
 from pydggsapi.dependencies.api.utils import getCQLAttributes
 
+from starlette.requests import Request
 from fastapi.responses import FileResponse, Response
 from numcodecs import Blosc
 from typing import Any, List, Dict, Optional, Union, cast
@@ -34,7 +35,9 @@ import logging
 
 logger = logging.getLogger()
 
+
 def query_zone_data(
+    request: Request,
     zoneId: str | int,
     base_level: int,
     relative_levels: List[int],
@@ -273,13 +276,19 @@ def query_zone_data(
         return FileResponse(tmpfile[1], headers={'content-type': 'application/zarr+zip'})
     if (returntype == 'application/geo+json'):
         return ZonesDataGeoJson(type='FeatureCollection', features=features)
-    link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
+    col_schema_id = None
+    if len(collection) == 1:  # no schema applicable if the response is a multi-collection aggregation
+        col_id = list(collection.keys())[0]
+        col_data_url = request.url.replace(query=None, fragment=None)
+        col_desc_url = str(col_data_url).rsplit(f'/{col_id}/', 1)[0]
+        col_schema_id = f"{col_desc_url}/{col_id}/schema"
+    dggrs_link = [k.href for k in dggrs_desc.links if (k.rel == '[ogc-rel:dggrs-definition]')][0]
     relative_levels = [rl - base_level for rl in relative_levels]
     return_ = cast(ZonesDataDggsJsonResponse | Dict[str, Any], {
-        'dggrs': link,
+        'dggrs': dggrs_link,
         'zoneId': str(zoneId),
         'depths': relative_levels,
-        'schema': Schema(properties=properties),
+        'schema': Schema(properties=properties, id_=col_schema_id),
         'values': values,
     })
     if zone_level_dims:
