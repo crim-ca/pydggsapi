@@ -45,6 +45,7 @@ xarray-sql = "^0.1.1"
 dggal = "^0.0.5"
 py-ubjson = "^0.16.1"
 gcsfs = "^2025.10.0"
+ordered-set = "^4.1.0"
 
 [tool.poetry.group.dev.dependencies]
 bump-my-version = ">=1.2.1"

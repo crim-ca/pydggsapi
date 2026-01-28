@@ -237,6 +237,12 @@ def describe_collection(collection: Collection, collection_url: Union[str, URL])
             type="application/schema+json",
             title="Queryable properties from the collection.",
         ),
+        Link(
+            href=f"{collection_url}/schema",
+            rel="[ogc-rel:schema]",
+            type="application/schema+json",
+            title="Schema of the properties in the collection.",
+        ),
     ]
     dggrs_provider = _get_dggrs_provider(collection.collection_provider.dggrsId)
     min_rf, max_rf = collection.collection_provider.min_refinement_level, collection.collection_provider.max_refinement_level
@@ -277,36 +283,52 @@ async def list_collections(req: Request) -> Union[ogc_Collections, Response]:
 
 
 @router.get("/collections/{collectionId}", tags=['ogc-dggs-api'], response_model=ogc_CollectionDesc)
-async def list_collection_by_id(collectionId: str, req: Request) -> Union[ogc_CollectionDesc, Response]:
+async def list_collection_by_id(collectionId: str, req: Request, resp: Response) -> Union[ogc_CollectionDesc, Response]:
 
     collections_info = _get_collection()
     # logger.info(f'{collections_info.keys()}')
     if collectionId in collections_info.keys():
         collection = collections_info[collectionId]
         col = describe_collection(collection, req.url)
+        for link in col.links:
+            resp.headers.append("Link", link.header())
         return col
     else:
         raise HTTPException(status_code=404, detail=f'{__name__} {collectionId} not found')
 
 
 @router.get(
+    "/collections/{collectionId}/schema",
+    tags=['ogc-dggs-api'],
+    response_class=JsonSchemaResponse,  # override Content-Type response header
+    response_model=CollectionQueryables,
+)
+async def get_collection_schema_request(
+    req: Request,
+    collection: Dict[str, Collection] = Depends(_get_collection),
+) -> Union[CollectionQueryables, JsonSchemaResponse]:
+    schema = await get_collection_queryables_request(req, collection)
+    return schema
+
+
+@router.get(
     "/collections/{collectionId}/queryables",
     tags=['ogc-dggs-api'],
     response_class=JsonSchemaResponse,  # override Content-Type response header
-    response_model=None,
+    response_model=CollectionQueryables,
 )
 async def get_collection_queryables_request(
     req: Request,
     collection: Dict[str, Collection] = Depends(_get_collection),
 ) -> Union[CollectionQueryables, JsonSchemaResponse]:
 
-    _, collection = collection.popitem()
+    _, collection = collection.copy().popitem()
     if (collection is None):
         # Error, should not be None, it should be handled by _get_collection
         raise HTTPException(status_code=404, detail=f'{__name__} collection is None')
 
     collection_provider = _get_collection_provider(collection.collection_provider.providerId)
-    _, collection_provider = collection_provider.popitem()
+    _, collection_provider = collection_provider.copy().popitem()
     if (collection_provider is None):
         # Error, should not be None, it should be handled by _get_collection_provider
         raise HTTPException(status_code=404, detail=f'{__name__} {collection.collection_provider.providerId} not found')

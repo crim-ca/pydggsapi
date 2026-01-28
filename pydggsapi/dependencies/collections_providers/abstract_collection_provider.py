@@ -42,7 +42,7 @@ class AbstractCollectionProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataDictReturn:
+    def get_datadictionary(self, datasource_id: str, include_zone_id: bool = True) -> CollectionProviderGetDataDictReturn:
         raise NotImplementedError
 
 class DatetimeNotDefinedError(ValueError):

@@ -12,6 +12,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import Dimension, DimensionGrid
 from dataclasses import dataclass
 from pygeofilter.ast import AstType
 from pygeofilter.backends.sql import to_sql_where
+from ordered_set import OrderedSet
 import duckdb
 import pandas as pd
 import numpy as np
@@ -62,7 +63,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         # inject the datetime to include_properties
         if ((datasource.datetime_col is not None) and ("*" not in datasource.data_cols)):
             if (include_properties is not None):
-                include_properties = list(set(datasource.datetime_col) | set(include_properties))
+                include_properties = list(OrderedSet([datasource.datetime_col]) | OrderedSet(include_properties))
             else:
                 include_properties = [datasource.datetime_col]
         if ("*" in datasource.data_cols):
@@ -71,12 +72,14 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             excl.extend(exclude_properties or [])
             cols = f"{incl} EXCLUDE({','.join(excl)})" if (len(excl) > 0) else incl
         else:
-            incl = set(datasource.data_cols) - set(datasource.exclude_data_cols)
-            if include_properties:
-                incl &= set(include_properties)
+            incl = OrderedSet(datasource.data_cols) - OrderedSet(datasource.exclude_data_cols)
+            if include_properties and include_properties != [datasource.datetime_col]:
+                incl = OrderedSet(include_properties) - OrderedSet(datasource.exclude_data_cols)
+            elif include_properties:
+                incl |= set(include_properties)
             if exclude_properties:
                 incl -= set(exclude_properties)
-            cols = f"{','.join(incl)}, {datasource.id_col}"
+            cols = f"{','.join(incl)}{',' if incl else ''}{datasource.id_col}"
         # even if 'datetime' was not requested/filtered, it must be reported in dimensions if present for that source
         #if datasource.datetime_col is not None:
         #    cols += f", {datasource.datetime_col}"
@@ -145,7 +148,7 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
         result.dimensions = cols_dims
         return result
 
-    def get_datadictionary(self, datasource_id: str) -> CollectionProviderGetDataReturn:
+    def get_datadictionary(self, datasource_id: str, include_zone_id: bool = True) -> CollectionProviderGetDataReturn:
         result = CollectionProviderGetDataDictReturn(data={})
         try:
             datasource = self.datasources[datasource_id]
@@ -153,10 +156,13 @@ class ParquetCollectionProvider(AbstractCollectionProvider):
             logger.error(f'{__name__} {datasource_id} not found.')
             raise Exception(f'{__name__} {datasource_id} not found.')
         if ("*" in datasource.data_cols):
-            cols = f"* EXCLUDE({','.join(datasource.exclude_data_cols)})" if (len(datasource.exclude_data_cols) > 0) else "*"
+            excl = datasource.exclude_data_cols or []
+            excl = excl if include_zone_id else excl + [datasource.id_col]
+            cols = f"* EXCLUDE({','.join(excl)})" if (excl) else "*"
         else:
-            cols_intersection = set(datasource.data_cols) - set(datasource.exclude_data_cols)
-            cols = f"{','.join(cols_intersection)}, {datasource.id_col}"
+            cols_intersection = OrderedSet(datasource.data_cols) - OrderedSet(datasource.exclude_data_cols)
+            incl = f"{',' if cols_intersection else ''}{datasource.id_col}" if include_zone_id else ""
+            cols = f"{','.join(cols_intersection)}{incl}"
         sql = f"""select {cols} from read_parquet('{datasource.filepath}') limit 1"""
         try:
             result_df = datasource.conn.sql(sql).df()

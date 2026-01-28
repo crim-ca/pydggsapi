@@ -19,6 +19,7 @@ from numcodecs import Blosc
 from typing import Any, List, Dict, Optional, Union, cast
 from scipy.stats import mode
 from pygeofilter.ast import AstType
+from ordered_set import OrderedSet
 import ubjson
 import shapely
 import tempfile
@@ -151,8 +152,12 @@ def query_zone_data(
                     tmp['datetime'] = pd.to_datetime(tmp['datetime'], utc=True)
                 tmp.set_index(index, inplace=True)
                 master = master.merge(tmp, how='outer', left_index=True, right_index=True)
-                pre_numeric_cols = {c: str(dtype).replace("int", "float") for c, dtype in cols_name.items()}
-                master = master.astype(pre_numeric_cols).astype(cols_name)
+                pre_numeric_cols = {c: str(dtype).replace('int', 'float') for c, dtype in cols_name.items()}
+                post_numeric_cols = {c: str(dtype) for c, dtype in cols_name.items() if 'int' in str(dtype)}
+                master = master.astype(pre_numeric_cols)
+                for int_col, col_dtype in post_numeric_cols.items():
+                    col_dtype = str(col_dtype).capitalize()  # pandas variant that allows nullable
+                    master[int_col] = pd.to_numeric(master[int_col], errors='coerce').astype(col_dtype)
                 if ('vid' in master.columns):
                     # we have to follow the original index from master, instead of index from the current dataset
                     original_index = master.index.name
@@ -224,9 +229,9 @@ def query_zone_data(
             v = d.values
             if v[nan_mask].size > 0:
                 v[nan_mask] = np.nan
-            diff = set(list(d.index)) - set(list(properties.keys()))
+            diff = OrderedSet(list(d.index)) - OrderedSet(list(properties.keys()))
             properties.update({c: get_json_schema_property(data_type[c]) for c in diff})
-            diff = set(list(d.index)) - set(list(values.keys()))
+            diff = OrderedSet(list(d.index)) - OrderedSet(list(values.keys()))
             values.update({c: [] for c in diff})
             sub_zones_count = len(set(zoneIds))
             # data_dims is responsible for the dimension of dggs json return
