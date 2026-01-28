@@ -1,6 +1,7 @@
 # Test for sub-folder changes
 from fastapi import FastAPI, Depends, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
 
@@ -52,6 +53,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if os.getenv('GZIP_ENABLED', 'true').lower() == 'true':
+    app.add_middleware(
+        GZipMiddleware,
+        compresslevel=os.getenv('GZIP_COMPRESS_LEVEL', 5),
+        minimum_size=os.getenv('GZIP_MINIMUM_SIZE', 500),
+    )
 
 dggs_prefix = os.environ.get('DGGS_PREFIX', '/dggs-api/v1-pre')
 tiles_prefix = os.environ.get('TILES_PREFIX', '/tiles-api')
