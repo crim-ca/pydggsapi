@@ -8,33 +8,67 @@ from fastapi import Query
 
 ReturnGeometryTypes = Literal['zone-centroid', 'zone-region']
 
-class Link(CommonBaseModel):
-    href: str = Field(
-        ...,
-        description='Supplies the URI to a remote resource (or resource fragment).',
-        example='http://data.example.com/buildings/123',
-    )
+
+class LinkBase(CommonBaseModel):
     rel: str = Field(
         ...,
         description='The type or semantics of the relation.',
-        example='alternate',
+        examples=['alternate'],
     )
     type: Optional[str] = Field(
         None,
         description='A hint indicating what the media type of the result of dereferencing the link should be.',
-        example='application/geo+json',
+        examples=['application/geo+json'],
     )
     hreflang: Annotated[Optional[str], OmitIfNone] = Field(
         None,
         description='A hint indicating what the language of the result of dereferencing the link should be.',
-        example='en',
+        examples=['en'],
     )
     title: Annotated[Optional[str], OmitIfNone] = Field(
         None,
         description='Used to label the destination of a link such that it can be used as a human-readable identifier.',
-        example='Trierer Strasse 70, 53115 Bonn',
+        examples=['Trierer Strasse 70, 53115 Bonn'],
     )
     length: Annotated[Optional[str], OmitIfNone] = None
+
+    def header(self) -> str:
+        """
+        Generate the HTTP Link header representation of the Link object.
+        """
+        uri = getattr(self, 'href', None) or getattr(self, 'uriTemplate', None)
+        parts = [f'<{uri}>', f'rel="{self.rel}"']
+        if self.type:
+            parts.append(f'type="{self.type}"')
+        if self.hreflang:
+            parts.append(f'hreflang="{self.hreflang}"')
+        if self.title:
+            parts.append(f'title="{self.title}"')
+        return '; '.join(parts)
+
+
+class Link(LinkBase):
+    href: str = Field(
+        ...,
+        description='Supplies the URI to a remote resource (or resource fragment).',
+        examples=['http://data.example.com/buildings/123'],
+    )
+
+
+class LinkTemplate(LinkBase):
+    uriTemplate: str = Field(
+        ...,
+        description=(
+            'Supplies the URL template to a remote resource (or resource fragment), '
+            'with template variables surrounded by curly brackets (`{` `}`).'
+        ),
+        examples=['http://data.example.com/buildings/{featureId}'],
+    )
+    varBase: Optional[str] = Field(
+        None,
+        description='A base path to retrieve semantic information about the variables used in URL template.',
+        examples=['/ogcapi/vars/'],
+    )
 
 
 class Crs2(BaseModel):
@@ -61,38 +95,6 @@ class Crs4(BaseModel):
 class CrsModel(RootModel):
     root: Union[str, Union[Crs2, Crs3, Crs4]] = Field(..., title='CRS')
     # crs: str
-
-
-class LinkTemplate(BaseModel):
-    uriTemplate: str = Field(
-        ...,
-        description='Supplies the URL template to a remote resource (or resource fragment), with template variables surrounded by curly brackets (`{` `}`).',
-        example='http://data.example.com/buildings/{featureId}',
-    )
-    rel: str = Field(
-        ..., description='The type or semantics of the relation.', example='alternate'
-    )
-    type: Optional[str] = Field(
-        None,
-        description='A hint indicating what the media type of the result of dereferencing the link templates should be.',
-        example='application/geo+json',
-    )
-    varBase: Optional[str] = Field(
-        None,
-        description='A base path to retrieve semantic information about the variables used in URL template.',
-        example='/ogcapi/vars/',
-    )
-    hreflang: Optional[str] = Field(
-        None,
-        description='A hint indicating what the language of the result of dereferencing the link should be.',
-        example='en',
-    )
-    title: Optional[str] = Field(
-        None,
-        description='Used to label the destination of a link template such that it can be used as a human-readable identifier.',
-        example='Trierer Strasse 70, 53115 Bonn',
-    )
-    length: Optional[int] = None
 
 
 class LandingPageResponse(BaseModel):
