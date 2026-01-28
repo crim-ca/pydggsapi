@@ -547,7 +547,7 @@ async def dggrs_zones_data(
                             detail=f"f'{__name__} zone id {zoneId} with relative depth: {depth} is over refinement for all collections")
     filtered_collections = {k: v for k, v in collection.items() if (k not in skip_collection)}
     try:
-        result = query_zone_data(zoneId, base_level, relative_levels, dggrs_description,
+        result = query_zone_data(req, zoneId, base_level, relative_levels, dggrs_description,
                                  dggrs_provider, filtered_collections, collection_providers, returntype,
                                  returngeometry, filter, include_datetime, include_properties, exclude_properties)
         if (result is None):
