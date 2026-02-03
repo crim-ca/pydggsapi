@@ -442,7 +442,8 @@ async def dggrs_description(
     tags=['OGC DGGS API', 'Zone Query'],
 )
 async def dggrs_zone_info(
-    req: Request, zoneinfoReq: ZoneInfoRequest = Depends(),
+    req: Request,
+    zoneinfoReq: Annotated[ZoneInfoRequest, Path()],
     dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
     dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
     collection: Dict[str, Collection] = Depends(_get_collection),
@@ -569,7 +570,6 @@ async def dggrs_zones_data(
     dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
     dggrs_provider: AbstractDGGRSProvider = Depends(_get_dggrs_provider),
     collection: Dict[str, Collection] = Depends(_get_collection),
-    collection_provider: Dict[str, AbstractCollectionProvider] = Depends(_get_collection_provider),
 ) -> ZonesDataDggsJsonResponse | FileResponse | Response:
     returntype = _get_return_type(req, zone_data_support_returntype, zone_data_support_formats, 'application/json')
     zoneId = zonedataReq.zoneId

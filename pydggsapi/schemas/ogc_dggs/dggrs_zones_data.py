@@ -29,8 +29,10 @@ zone_data_support_formats = {
 zone_data_support_formats.update({typ: typ for typ in zone_data_support_returntype})
 
 
-
 class ZonesDataRequest(CommonBaseModel):
+    """
+    DGGS Zones Data Request Query Parameters Model.
+    """
     zone_depth: Optional[str] = Query(
         default=None,
         alias="zone-depth",
