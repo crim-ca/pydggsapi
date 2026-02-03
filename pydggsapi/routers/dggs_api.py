@@ -208,7 +208,8 @@ for providerId, providerConfig in collection_provider_configs.items():
 # Landing page and conformance
 @router.get(
     "/",
-    tags=['ogc-dggs-api'],
+    summary="Landing Page",
+    tags=['OGC DGGS API', 'Core'],
     response_model=LandingPageResponse,
     response_model_exclude_unset=True,
     response_model_exclude_none=True,
@@ -253,7 +254,12 @@ def describe_collection(collection: Collection, collection_url: Union[str, URL])
     return col
 
 
-@router.get("/collections", tags=['ogc-dggs-api'], response_model=ogc_Collections)
+@router.get(
+    "/collections",
+    response_model=ogc_Collections,
+    summary="Collections Listing",
+    tags=['OGC DGGS API', 'Collection'],
+)
 async def list_collections(req: Request) -> Union[ogc_Collections, Response]:
     collectionsResponse = ogc_Collections(
         links=[
@@ -282,7 +288,12 @@ async def list_collections(req: Request) -> Union[ogc_Collections, Response]:
     return collectionsResponse
 
 
-@router.get("/collections/{collectionId}", tags=['ogc-dggs-api'], response_model=ogc_CollectionDesc)
+@router.get(
+    "/collections/{collectionId}",
+    response_model=ogc_CollectionDesc,
+    summary="Collection Description",
+    tags=['OGC DGGS API', 'Collection'],
+)
 async def list_collection_by_id(collectionId: str, req: Request, resp: Response) -> Union[ogc_CollectionDesc, Response]:
 
     collections_info = _get_collection()
@@ -299,9 +310,10 @@ async def list_collection_by_id(collectionId: str, req: Request, resp: Response)
 
 @router.get(
     "/collections/{collectionId}/schema",
-    tags=['ogc-dggs-api'],
     response_class=JsonSchemaResponse,  # override Content-Type response header
     response_model=CollectionQueryables,
+    tags=['OGC DGGS API', 'Collection'],
+    summary="Collection Schema Properties",
 )
 async def get_collection_schema_request(
     req: Request,
@@ -313,7 +325,8 @@ async def get_collection_schema_request(
 
 @router.get(
     "/collections/{collectionId}/queryables",
-    tags=['ogc-dggs-api'],
+    summary="Collection Queryables Properties",
+    tags=['OGC DGGS API', 'Collection'],
     response_class=JsonSchemaResponse,  # override Content-Type response header
     response_model=CollectionQueryables,
 )
@@ -338,7 +351,7 @@ async def get_collection_queryables_request(
     return queryables
 
 
-@router.get("/conformance", tags=['ogc-dggs-api'])
+@router.get("/conformance", summary="OGC API Conformance Listing", tags=['OGC DGGS API', 'Core'])
 async def conformance(conformance_classes=Depends(get_conformance_classes)) -> JSONResponse:
     return JSONResponse(content={'conformsTo': conformance_classes})
 
@@ -346,8 +359,18 @@ async def conformance(conformance_classes=Depends(get_conformance_classes)) -> J
 # Core conformance class
 
 # dggrs-list
-@router.get("/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs", response_model=DggrsListResponse, tags=['ogc-dggs-api'])
+@router.get(
+    "/dggs",
+    response_model=DggrsListResponse,
+    summary="DGGS Listing",
+    tags=['OGC DGGS API', 'DGGRS'],
+)
+@router.get(
+    "/collections/{collectionId}/dggs",
+    response_model=DggrsListResponse,
+    summary="DGGS Listing available for a specific Collection",
+    tags=['OGC DGGS API', 'DGGRS'],
+)
 async def support_dggs(
     req: Request, collectionId: Optional[str] = None,
     collection: Dict[str, Collection] = Depends(_get_collection),
@@ -375,8 +398,18 @@ async def support_dggs(
 
 
 # dggrs description
-@router.get("/dggs/{dggrsId}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrsId}", response_model=DggrsDescription, tags=['ogc-dggs-api'])
+@router.get(
+    "/dggs/{dggrsId}",
+    response_model=DggrsDescription,
+    summary="DGGS Description",
+    tags=['OGC DGGS API', 'DGGRS'],
+)
+@router.get(
+    "/collections/{collectionId}/dggs/{dggrsId}",
+    response_model=DggrsDescription,
+    summary="DGGS Description available for a specific Collection",
+    tags=['OGC DGGS API', 'DGGRS'],
+)
 async def dggrs_description(
     req: Request, dggrs_req: DggrsDescriptionRequest = Depends(),
     dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
@@ -396,8 +429,18 @@ async def dggrs_description(
 
 
 # zone-info
-@router.get("/dggs/{dggrsId}/zones/{zoneId}",  response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}", response_model=ZoneInfoResponse, tags=['ogc-dggs-api'])
+@router.get(
+    "/dggs/{dggrsId}/zones/{zoneId}",
+    response_model=ZoneInfoResponse,
+    summary="DGGS Zone Information Query across Collections",
+    tags=['OGC DGGS API', 'Zone Query'],
+)
+@router.get(
+    "/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}",
+    response_model=ZoneInfoResponse,
+    summary="DGGS Zone Information Query for a specific Collection",
+    tags=['OGC DGGS API', 'Zone Query'],
+)
 async def dggrs_zone_info(
     req: Request, zoneinfoReq: ZoneInfoRequest = Depends(),
     dggrs_description: DggrsDescription = Depends(_get_dggrs_description),
@@ -420,8 +463,18 @@ async def dggrs_zone_info(
 
 # Zone query conformance class
 
-@router.get("/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones", response_model=Union[ZonesResponse, ZonesGeoJson], tags=['ogc-dggs-api'])
+@router.get(
+    "/dggs/{dggrsId}/zones",
+    response_model=Union[ZonesResponse, ZonesGeoJson],
+    summary="DGGS Zones Listing across Collections",
+    tags=['OGC DGGS API', 'Zone Query'],
+)
+@router.get(
+    "/collections/{collectionId}/dggs/{dggrsId}/zones",
+    response_model=Union[ZonesResponse, ZonesGeoJson],
+    summary="DGGS Zones Listing for a specific Collection",
+    tags=['OGC DGGS API', 'Zone Query'],
+)
 async def list_dggrs_zones(
     req: Request,
     dggrsDesc: Annotated[DggrsDescriptionRequest, Path()],
@@ -497,8 +550,18 @@ async def list_dggrs_zones(
 # Data-retrieval conformance class
 
 
-@router.get("/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
-@router.get("/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data", response_model=None, tags=['ogc-dggs-api'])
+@router.get(
+    "/dggs/{dggrsId}/zones/{zoneId}/data",
+    response_model=None,
+    summary="DGGS Zones Data Retrieval across Collections",
+    tags=['OGC DGGS API', 'Zone Data'],
+)
+@router.get(
+    "/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data",
+    response_model=None,
+    summary="DGGS Zones Data Retrieval for a specific Collection",
+    tags=['OGC DGGS API', 'Zone Data'],
+)
 async def dggrs_zones_data(
     req: Request,
     zonedataReq: Annotated[ZoneInfoRequest, Path()],

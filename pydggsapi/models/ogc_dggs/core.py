@@ -72,9 +72,16 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
     for i, link in enumerate(dggrs_description.links):
         if link.rel == 'self':
             dggrs_description.links[i].href = str(current_url)
-    zone_query_link = Link(href=str(current_url) + '/zones', rel='[ogc-rel:dggrs-zone-query]', title='Dggrs zone-query link')
-    zone_data_link = LinkTemplate(uriTemplate=str(current_url) + '/zones/{zoneId}/data', rel='[ogc-rel:dggrs-zone-data]',
-                                     title='Dggrs zone-query link')
+    zone_query_link = Link(
+        href=f'{current_url}/zones',
+        rel='[ogc-rel:dggrs-zone-query]',
+        title='DGGRS zone-query link',
+    )
+    zone_data_link = LinkTemplate(
+        uriTemplate=f'{current_url}/zones/{{zoneId}}/data',
+        rel='[ogc-rel:dggrs-zone-data]',
+        title='Dggrs zone-query link',
+    )
     dggrs_description.links.append(zone_query_link)
     dggrs_description.linkTemplates = [zone_data_link]
     logger.debug(f'{__name__} query dggrs model: {pprint(dggrs_description)}')
