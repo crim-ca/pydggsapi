@@ -1,7 +1,7 @@
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Link, LinkTemplate, LandingPageResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_list import DggrsItem, DggrsListResponse
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest, ZoneInfoResponse
+from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoPathRequest, ZoneInfoResponse
 from pydggsapi.schemas.api.collections import Collection
 from pydggsapi.schemas.ogc_collections.queryables import CollectionQueryables, Property
 from pydggsapi.schemas.common_geojson import GeoJSONPolygon, GeoJSONPoint
@@ -89,7 +89,7 @@ def query_dggrs_definition(current_url, dggrs_description: DggrsDescription):
 
 
 def query_zone_info(
-    zoneinfoReq: ZoneInfoRequest,
+    zoneinfoReq: ZoneInfoPathRequest,
     current_url: URL,
     dggs_info: DggrsDescription,
     dggrs_provider: AbstractDGGRSProvider,

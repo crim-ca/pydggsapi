@@ -7,7 +7,6 @@ from typing import Annotated
 
 from pydggsapi.schemas.tiles.tiles import TilesRequest, TilesJSON
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesRequest, ZonesResponse
-from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoRequest
 from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import ZonesDataRequest
 
 from pydggsapi.dependencies.api.mercator import Mercator
