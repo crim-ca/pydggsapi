@@ -11,11 +11,13 @@ from datetime import datetime as dt
 from typing import Annotated, List, Optional, Union, Tuple, Literal, get_args
 import json
 
-zone_query_support_returntype = ['application/json', 'application/geo+json']
+zone_query_support_returntype = ['application/json', 'application/geo+json', 'application/x-binary']
 zone_query_support_formats = {
     'json': 'application/json',
     'geojson': 'application/geo+json',
     'geo+json': 'application/geo+json',
+    'binary': 'application/x-binary',
+    'bin': 'application/x-binary',
 }
 zone_query_support_formats.update({typ: typ for typ in zone_query_support_returntype})
 zone_datetime_placeholder = '_pydggs_datetime'

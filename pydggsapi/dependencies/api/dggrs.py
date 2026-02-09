@@ -29,7 +29,7 @@ def get_conformance_classes():
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/collection-dggs",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-query",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-query-cql2-filter",
-        # "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-unit64",  # application/x-binary zone-list
+        "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-unit64",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/zone-geojson",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-custom-depths",
         "https://www.opengis.net/spec/ogcapi-dggs-1/1.0/conf/data-retrieval",
