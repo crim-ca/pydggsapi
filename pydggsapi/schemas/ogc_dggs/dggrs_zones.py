@@ -103,7 +103,7 @@ class ZonesRequest(BaseModel):
     # note: only for documentation, exacted by 'returntype' that considers all 'Accept' header / 'f' query combinations
     f: ZoneQueryFormatTypes = Field(
         default='json',
-        description="The output format of the response as queryable equivalent to the 'Accept' header."
+        description="The output format of the response as queryable equivalent to the `Accept` header."
     )
 
     @model_validator(mode="after")
