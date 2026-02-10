@@ -83,14 +83,15 @@ def query_zones_list(
     if (len(filter_) == 0):
         return None
     logger.debug(f'{__name__} query zones list result: {len(filter_)}')
-    if zone_list_binary:
-        zone_ids = np.array(filter_, dtype=np.uint64)
-        zone_count = np.array([len(zone_ids)], dtype=np.uint64)
-        zone_list = np.concatenate((zone_count, zone_ids))
-        return Response(content=zone_list.tobytes(), media_type='application/x-binary')
     if (returntype == 'application/geo+json'):
         features = [Feature(**{'type': 'Feature', 'id': i, 'geometry': result.geometry[i], 'properties': {'zoneId': zid}})
                     for i, zid in enumerate(result.zones[:limit]) if (zid in filter_)]
         return ZonesGeoJson(**{'type': 'FeatureCollection', 'features': features})
-    total_area = sum(np.array(result.returnedAreaMetersSquare)[np.isin(result.zones, filter_)].tolist())
-    return ZonesResponse(**{'zones': np.unique(filter_[:limit]), 'returnedAreaMetersSquare': total_area})
+    zones = np.unique(filter_[:limit])
+    if zone_list_binary:
+        zone_ids = np.array(zones, dtype=np.uint64)
+        zone_count = np.array([len(zone_ids)], dtype=np.uint64)
+        zone_list = np.concatenate((zone_count, zone_ids))
+        return Response(content=zone_list.tobytes(), media_type='application/x-binary')
+    total_area = sum(np.array(result.returnedAreaMetersSquare)[np.isin(result.zones, zones)].tolist())
+    return ZonesResponse(**{'zones': zones, 'returnedAreaMetersSquare': total_area})
