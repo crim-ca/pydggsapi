@@ -1,30 +1,43 @@
-from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature
+from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import Feature, ReturnGeometryTypes
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import ZonesResponse, ZonesGeoJson
 from pydggsapi.schemas.ogc_dggs.dggrs_descrption import DggrsDescription
 from pydggsapi.schemas.api.collections import Collection
-
 
 from pydggsapi.dependencies.dggrs_providers.abstract_dggrs_provider import AbstractDGGRSProvider
 from pydggsapi.dependencies.collections_providers.abstract_collection_provider import AbstractCollectionProvider, DatetimeNotDefinedError
 from pydggsapi.dependencies.api.utils import getCQLAttributes
 
 import numpy as np
+from fastapi import Response
 from pygeofilter.ast import AstType
+from shapely.geometry import Polygon
 from typing import Dict
 import logging
 
 logger = logging.getLogger()
 
 
-def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggrs_provider: AbstractDGGRSProvider,
-                     collection: Dict[str, Collection], collection_provider: Dict[str, AbstractCollectionProvider],
-                     compact=True, parent_zone=None, returntype='application/json', returngeometry='zone-region',
-                     cql_filter: AstType = None, include_datetime: bool = False):
+def query_zones_list(
+    bbox: Polygon | None,
+    zone_level: int,
+    limit: int,
+    dggrs_info: DggrsDescription,
+    dggrs_provider: AbstractDGGRSProvider,
+    collection: Dict[str, Collection],
+    collection_provider: Dict[str, AbstractCollectionProvider],
+    compact: bool = True,
+    parent_zone: str | int | None = None,
+    returntype: str = 'application/json',
+    returngeometry: ReturnGeometryTypes = 'zone-region',
+    cql_filter: AstType = None,
+    include_datetime: bool = False,
+) -> ZonesResponse | ZonesGeoJson | Response | None:
     logger.debug(f'{__name__} query zones list: {bbox}, {zone_level}, {limit}, {parent_zone}, {compact}')
     # generate zones for the bbox at the required zone_level
     result = dggrs_provider.zoneslist(bbox, zone_level, parent_zone, returngeometry, compact)
     filter_ = []
     cql_attributes = set() if (cql_filter is None) else getCQLAttributes(cql_filter)
+    zone_list_binary = (returntype == 'application/x-binary')
     skipped = 0
     for k, v in collection.items():
         converted = None
@@ -61,11 +74,12 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         if (converted is not None):
             # The zoneId repr of target_zoneIds and the filtered_zoneIds is aligned, no need to handle
             # and the zoneIds is in original repr (str)
-            filter_ += np.array(converted.zoneIds)[np.isin(converted.target_zoneIds, filtered_zoneIds)].tolist()
-        else:
-            if (zone_id_repr != 'textual'):
-                filtered_zoneIds = dggrs_provider.zone_id_to_textual(filtered_zoneIds, zone_id_repr, zone_level)
-            filter_ += filtered_zoneIds
+            filtered_zoneIds = np.array(converted.zoneIds)[np.isin(converted.target_zoneIds, filtered_zoneIds)].tolist()
+        if (zone_id_repr != 'textual' and not zone_list_binary):
+            filtered_zoneIds = dggrs_provider.zone_id_to_textual(filtered_zoneIds, zone_id_repr, zone_level)
+        elif (zone_id_repr != 'int' and zone_list_binary):
+            filtered_zoneIds = dggrs_provider.zone_id_from_textual(filtered_zoneIds, "int")
+        filter_ += filtered_zoneIds
     if (skipped == len(collection)):
         raise ValueError(f"{__name__} query zones list cql attributes({cql_attributes}) not found in all collections.")
     if (len(filter_) == 0):
@@ -75,5 +89,11 @@ def query_zones_list(bbox, zone_level, limit, dggrs_info: DggrsDescription, dggr
         features = [Feature(**{'type': 'Feature', 'id': i, 'geometry': result.geometry[i], 'properties': {'zoneId': zid}})
                     for i, zid in enumerate(result.zones[:limit]) if (zid in filter_)]
         return ZonesGeoJson(**{'type': 'FeatureCollection', 'features': features})
-    total_area = sum(np.array(result.returnedAreaMetersSquare)[np.isin(result.zones, filter_)].tolist())
-    return ZonesResponse(**{'zones': np.unique(filter_[:limit]), 'returnedAreaMetersSquare': total_area})
+    zones = np.unique(filter_[:limit])
+    if zone_list_binary:
+        zone_ids = np.array(zones, dtype=np.uint64)
+        zone_count = np.array([len(zone_ids)], dtype=np.uint64)
+        zone_list = np.concatenate((zone_count, zone_ids))
+        return Response(content=zone_list.tobytes(), media_type='application/x-binary')
+    total_area = sum(np.array(result.returnedAreaMetersSquare)[np.isin(result.zones, zones)].tolist())
+    return ZonesResponse(**{'zones': zones, 'returnedAreaMetersSquare': total_area})

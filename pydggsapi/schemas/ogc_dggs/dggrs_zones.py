@@ -2,22 +2,25 @@ from __future__ import annotations
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import CrsModel, Feature, ReturnGeometryTypes
 
 from fastapi import Depends, Query
+from fastapi.openapi.constants import REF_TEMPLATE
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, Field, conint, model_validator
 from pygeofilter.parsers.cql_json import parse as cql_json_parser
 from pygeofilter.parsers.ecql import parse as cql_text_parser
 from pygeofilter.ast import AstType
 from datetime import datetime as dt
-from typing import Annotated, List, Optional, Union, Tuple, Literal, get_args
+from typing import Annotated, List, Optional, Union, Tuple, TypeAlias, Literal, get_args
 import json
 
-zone_query_support_returntype = ['application/json', 'application/geo+json']
-zone_query_support_formats = {
-    'json': 'application/json',
-    'geojson': 'application/geo+json',
-    'geo+json': 'application/geo+json',
-}
-zone_query_support_formats.update({typ: typ for typ in zone_query_support_returntype})
+
+ZoneQueryFormatTypes = Literal[
+    'json',
+    'geojson',
+    'geo+json',
+    'binary',
+    'bin',
+]
+
 zone_datetime_placeholder = '_pydggs_datetime'
 
 
@@ -97,6 +100,12 @@ class ZonesRequest(BaseModel):
     filter: Optional[str] = Field(default=None)
     datetime: Optional[str] = Field(default=None)
 
+    # note: only for documentation, exacted by 'returntype' that considers all 'Accept' header / 'f' query combinations
+    f: ZoneQueryFormatTypes = Field(
+        default='json',
+        description="The output format of the response as queryable equivalent to the `Accept` header."
+    )
+
     @model_validator(mode="after")
     def validation(self):
         if (self.bbox is None and self.parent_zone is None):
@@ -114,10 +123,40 @@ class ZonesRequest(BaseModel):
 
 
 class ZonesResponse(BaseModel):
+    """
+    DGGS zones list in JSON format, directly providing the zone IDs in textual representation.
+    """
     zones: List[str]
     returnedAreaMetersSquare: Optional[float]
 
 
 class ZonesGeoJson(BaseModel):
+    """
+    DGGS zones list in GeoJSON format, with each zone represented as a GeoJSON feature.
+    """
     type: str
     features: List[Feature]
+
+
+zone_query_support_formats = {
+    'json': 'application/json',
+    'geojson': 'application/geo+json',
+    'geo+json': 'application/geo+json',
+    'binary': 'application/x-binary',
+    'bin': 'application/x-binary',
+}
+zone_query_support_responses = {
+    'application/json': {
+        "schema": ZonesResponse.model_json_schema(ref_template=REF_TEMPLATE),
+    },
+    'application/geo+json': {
+        "schema": ZonesGeoJson.model_json_schema(ref_template=REF_TEMPLATE),
+    },
+    'application/x-binary': {
+        "schema": {
+            "description": "DGGS zones list in a binary format, with zone count and zone IDs as 64-bit unsigned integers."
+        },
+    },
+}
+zone_query_support_returntype = list(zone_query_support_responses)
+zone_query_support_formats.update({typ: typ for typ in zone_query_support_returntype})
