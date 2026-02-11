@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Depends, Path, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.openapi.constants import REF_PREFIX
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
 
@@ -13,6 +14,7 @@ import os
 import json
 import logging
 import importlib.metadata
+from typing import Any
 
 version = importlib.metadata.version('pydggsapi')
 
@@ -74,6 +76,30 @@ app.include_router(tiles_api.router, prefix=tiles_prefix)
 # https://www.linode.com/docs/guides/documenting-a-fastapi-app-with-openapi/
 ######################################################
 
+
+def _openapi_ref_patcher(responses_schema) -> dict[str, Any]:
+    """
+    Takes a 'responses' dictionary with multiple media-type / schema mapping and extract schema definitions.
+
+    When a schema is defined inline, the '$defs' aliases are embedded within that schema, making them unavailable
+    to the higher-level OpenAPI definitions. Extracted definitions should be pushed down into OpenAPI components.
+
+    This function expects schema within responses were generated with
+    `model.model_json_schema(ref_template=fastapi.openapi.constants.REF_TEMPLATE)`
+    and are applied to a post-operation step to the FastAPI `app.openapi`.
+    """
+
+    defs = {}
+    for media_type, response in responses_schema.items():
+        if "schema" in response:
+            schema = response["schema"]
+            if "$defs" in schema:
+                s = schema.get("$defs")
+                defs.update(s)
+
+    return defs
+
+
 def extended_openapi_schema():
     openapi_schema = get_openapi(
         title="pydggsapi: A python FastAPI OGC DGGS API implementation",
@@ -92,6 +118,14 @@ def extended_openapi_schema():
             "url": "https://spdx.org/licenses/Apache-2.0.html"
         }
     }
+
+    openapi_schema.setdefault("components", {}).setdefault("schemas", {})
+    openapi_schema["components"]["schemas"].update(
+        _openapi_ref_patcher(dggs_api.zone_query_support_responses)
+    )
+    openapi_schema["components"]["schemas"].update(
+        _openapi_ref_patcher(dggs_api.zone_data_support_responses)
+    )
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema

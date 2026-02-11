@@ -37,6 +37,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_data import (
     ZonesDataDggsJsonResponse,
     ZonesDataGeoJson,
     zone_data_support_formats,
+    zone_data_support_responses,
     zone_data_support_returntype,
 )
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import (
@@ -44,6 +45,7 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones import (
     ZonesResponse,
     ZonesGeoJson,
     zone_query_support_formats,
+    zone_query_support_responses,
     zone_query_support_returntype,
 )
 from pydggsapi.schemas.ogc_dggs.common_ogc_dggs_api import LandingPageResponse, Link
@@ -556,7 +558,8 @@ async def collection_dggrs_zone_info(
 
 @router.get(
     "/dggs/{dggrsId}/zones",
-    response_model=Union[ZonesResponse, ZonesGeoJson],
+    response_model=ZonesResponse,  # default, others in 'responses'
+    responses={200: {"content": zone_query_support_responses}},
     summary="DGGS Zones Listing across Collections",
     tags=['OGC DGGS API', 'Zone Query'],
 )
@@ -574,7 +577,8 @@ async def list_dggrs_zones(
 
 @router.get(
     "/collections/{collectionId}/dggs/{dggrsId}/zones",
-    response_model=Union[ZonesResponse, ZonesGeoJson],
+    response_model=ZonesResponse,  # default, others in 'responses'
+    responses={200: {"content": zone_query_support_responses}},
     summary="DGGS Zones Listing for a specific Collection",
     tags=['OGC DGGS API', 'Zone Query'],
 )
@@ -656,6 +660,7 @@ async def collection_list_dggrs_zones(
 @router.get(
     "/dggs/{dggrsId}/zones/{zoneId}/data",
     response_model=None,
+    responses={200: {"content": zone_data_support_responses}},
     summary="DGGS Zones Data Retrieval across Collections",
     tags=['OGC DGGS API', 'Zone Data'],
 )
@@ -673,6 +678,7 @@ async def dggrs_zones_data(
 @router.get(
     "/collections/{collectionId}/dggs/{dggrsId}/zones/{zoneId}/data",
     response_model=None,
+    responses={200: {"content": zone_data_support_responses}},
     summary="DGGS Zones Data Retrieval for a specific Collection",
     tags=['OGC DGGS API', 'Zone Data'],
 )

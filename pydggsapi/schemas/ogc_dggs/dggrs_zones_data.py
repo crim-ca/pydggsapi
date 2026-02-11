@@ -6,27 +6,22 @@ from pydggsapi.schemas.ogc_dggs.dggrs_zones_info import ZoneInfoPathRequest
 from pydggsapi.schemas.ogc_dggs.dggrs_zones import zone_datetime_placeholder, datetime_cql_validation
 
 from typing import Annotated, List, Literal, Optional, Dict, Union, Any, cast
+from fastapi.openapi.constants import REF_TEMPLATE
 from fastapi.exceptions import HTTPException
 from fastapi import Query
 from pydantic import AnyUrl, Field, ConfigDict, model_validator
 
-zone_data_support_returntype = [
-    'application/json',     # DGGS-JSON
-    'application/ubjson',   # DGGS-UBJSON
-    'application/zarr+zip',
-    'application/geo+json',
+
+ZoneDataFormatTypes = Literal[
+    'json',
+    'dggs-json',
+    'dggs+json',
+    'ubjson',
+    'dggs-ubjson',
+    'zarr',
+    'geojson',
+    'geo+json',
 ]
-zone_data_support_formats = {
-    'json': 'application/json',
-    'dggs-json': 'application/json',
-    'dggs+json': 'application/json',
-    'ubjson': 'application/ubjson',
-    'dggs+ubjson': 'application/ubjson',
-    'zarr': 'application/zarr+zip',
-    'geojson': 'application/geo+json',
-    'geo+json': 'application/geo+json',
-}
-zone_data_support_formats.update({typ: typ for typ in zone_data_support_returntype})
 
 
 class ZonesDataRequest(CommonBaseModel):
@@ -68,6 +63,12 @@ class ZonesDataRequest(CommonBaseModel):
             "Comma-separated list of properties contained in the DGGS to be returned. "
             "If not specified, all available properties are returned by default."
         )
+    )
+
+    # note: only for documentation, exacted by 'returntype' that considers all 'Accept' header / 'f' query combinations
+    f: "ZoneDataFormatTypes" = Field(
+        default='json',
+        description="The output format of the response as queryable equivalent to the `Accept` header."
     )
 
     @model_validator(mode='after')
@@ -136,6 +137,9 @@ class Schema(CommonBaseModel):
 
 
 class ZonesDataDggsJsonResponse(CommonBaseModel):
+    """
+    DGGS Zones Data in JSON format, directly providing the zone IDs in textual representation.
+    """
     schema_: str = Field("https://schemas.opengis.net/ogcapi/dggs/1.0/core/schemas/dggs-json/dggs-json.json", alias='$schema')
     dggrs: AnyUrl
     zoneId: str
@@ -148,5 +152,36 @@ class ZonesDataDggsJsonResponse(CommonBaseModel):
 
 
 class ZonesDataGeoJson(CommonBaseModel):
+    """
+    DGGS Zones Data in GeoJSON format, with each zone represented as a GeoJSON feature.
+    """
     type: str
     features: List[Feature]
+
+
+zone_data_support_formats = {
+    'json': 'application/json',
+    'dggs-json': 'application/json',
+    'dggs+json': 'application/json',
+    'ubjson': 'application/ubjson',
+    'dggs+ubjson': 'application/ubjson',
+    'zarr': 'application/zarr+zip',
+    'geojson': 'application/geo+json',
+    'geo+json': 'application/geo+json',
+}
+zone_data_support_responses = {
+    'application/json': {
+        "schema": ZonesDataDggsJsonResponse.model_json_schema(ref_template=REF_TEMPLATE),
+    },
+    'application/ubjson': {
+        "schema": {"description": "DGGS Zones Data in DGGS-UBJSON format."},
+    },
+    'application/zarr+zip': {
+        "schema": {"description": "DGGS Zones Data in Zarr format compressed as ZIP archive."}
+    },
+    'application/geo+json': {
+        "schema": ZonesDataGeoJson.model_json_schema(ref_template=REF_TEMPLATE),
+    },
+}
+zone_data_support_returntype = list(zone_data_support_responses)
+zone_data_support_formats.update({typ: typ for typ in zone_data_support_returntype})
