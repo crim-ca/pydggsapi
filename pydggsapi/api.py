@@ -103,14 +103,14 @@ def _openapi_ref_patcher(responses_schema) -> dict[str, Any]:
 def extended_openapi_schema():
     openapi_schema = get_openapi(
         title="pydggsapi: A python FastAPI OGC DGGS API implementation",
-        version="0.1.6-rc11",
+        version="0.1.6-rc12",
         routes=app.routes,
         servers=[{"url": root_path}] if root_path else None,
     )
 
     openapi_schema["info"] = {
         "title": "pydggsapi: A python FastAPI OGC DGGS API implementation",
-        "version": "0.1.6-rc11",
+        "version": "0.1.6-rc12",
         "description": "A python FastAPI OGC DGGS API implementation",
         "contact": api_contact,
         "license": {
